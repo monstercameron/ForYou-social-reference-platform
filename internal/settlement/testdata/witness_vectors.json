@@ -1,0 +1,108 @@
+{
+  "source": "C:\\Users\\mreca\\Desktop\\ForYou-Social-Ecosystem-Specification\\examples\\settlement.example.json at specification commit eefdeae",
+  "second_claim": {
+    "provider_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+    "network": "bitcoin-mainnet",
+    "sequence": 2,
+    "previous_claim_id": "fysc2:a3854d69cc661226d0ec03420f6d0e892a2be098f7609e027231592ba199d8ae",
+    "period_start": "2027-01-12T00:00:00Z",
+    "period_end": "2027-01-13T00:00:00Z",
+    "declaration_id": "fyrd2:16cadc2610d20c84575d03a409c29beee0acf70fb6e963800814340d3acb17d1",
+    "succession_id": null,
+    "receipt_count": 1,
+    "total_base_units": "136",
+    "cumulative_base_units": "10608",
+    "receipts_root": "7f0b4118e1530800d11e80d9d412108ee17789bde19676fb134a856603a6cbd8",
+    "claim_id": "fysc2:8ba27d6ac595f657c428b78c6ae8a4ef7920edddb710aa5f939133107e9f5cf4",
+    "provider_signature": "-vLQw82y6Hh5xObvdHmCbXP6Bb3NQa--shxHXboNjnx4yZMxfW2nFr38CHTE_fa7LRLzxYeCqVwyRZ3DyR0BAA"
+  },
+  "second_claim_witnesses": [
+    {
+      "witness_id": "did:key:z6MkrPuMzSSYYddw1BKtyrH5mMJzQmUX42Lr8eiKpsPVb3C1",
+      "claim_id": "fysc2:8ba27d6ac595f657c428b78c6ae8a4ef7920edddb710aa5f939133107e9f5cf4",
+      "provider_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+      "network": "bitcoin-mainnet",
+      "sequence": 2,
+      "period_end": "2027-01-13T00:00:00Z",
+      "total_base_units": "136",
+      "cumulative_base_units": "10608",
+      "receipts_root": "7f0b4118e1530800d11e80d9d412108ee17789bde19676fb134a856603a6cbd8",
+      "credit_base_units": "9989392",
+      "witnessed_at": "2027-01-13T12:00:00Z",
+      "witness_signature": "vcBkyteXp0nmgN4RrB32yyF0aVdePVGHLybOQkiyk0iuZlbhnr4ld5Dv1XD7-nJlnvaipPT670_EkGSXXYGSCg"
+    },
+    {
+      "witness_id": "did:key:z6Mkin4R28N2tfcsvUfuX52peTmvPGz99aA4585EtYvALN5W",
+      "claim_id": "fysc2:8ba27d6ac595f657c428b78c6ae8a4ef7920edddb710aa5f939133107e9f5cf4",
+      "provider_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+      "network": "bitcoin-mainnet",
+      "sequence": 2,
+      "period_end": "2027-01-13T00:00:00Z",
+      "total_base_units": "136",
+      "cumulative_base_units": "10608",
+      "receipts_root": "7f0b4118e1530800d11e80d9d412108ee17789bde19676fb134a856603a6cbd8",
+      "credit_base_units": "9989392",
+      "witnessed_at": "2027-01-13T12:00:00Z",
+      "witness_signature": "27YGWAfFmNTQn59SYNW4zxzHFefAPSX_EwsedUqRQSJDv_DG_f8cx4d3BpZIzTrdtLzb5m81SpfH_zEg5WVvBw"
+    },
+    {
+      "witness_id": "did:key:z6Mkjsv23KiDw67aC9qfNVUcNwM19nj8GZPvEMMEBuv3ZpT3",
+      "claim_id": "fysc2:8ba27d6ac595f657c428b78c6ae8a4ef7920edddb710aa5f939133107e9f5cf4",
+      "provider_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+      "network": "bitcoin-mainnet",
+      "sequence": 2,
+      "period_end": "2027-01-13T00:00:00Z",
+      "total_base_units": "136",
+      "cumulative_base_units": "10608",
+      "receipts_root": "7f0b4118e1530800d11e80d9d412108ee17789bde19676fb134a856603a6cbd8",
+      "credit_base_units": "9989392",
+      "witnessed_at": "2027-01-13T12:00:00Z",
+      "witness_signature": "fs9I_kzqSZJRnA9SBi7Y1cbt0X1CrxeSeKVJk8NUBl4Ne-MHgf7qkO17DggIybhgMRPkBKBodmCTkWn0kv8ICA"
+    },
+    {
+      "witness_id": "did:key:z6MkksB6V1wxz1SWEgct2qdqVSk6a7E24fuifo62BgYFsEc6",
+      "claim_id": "fysc2:8ba27d6ac595f657c428b78c6ae8a4ef7920edddb710aa5f939133107e9f5cf4",
+      "provider_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+      "network": "bitcoin-mainnet",
+      "sequence": 2,
+      "period_end": "2027-01-13T00:00:00Z",
+      "total_base_units": "136",
+      "cumulative_base_units": "10608",
+      "receipts_root": "7f0b4118e1530800d11e80d9d412108ee17789bde19676fb134a856603a6cbd8",
+      "credit_base_units": "9989392",
+      "witnessed_at": "2027-01-13T12:00:00Z",
+      "witness_signature": "q6fbpT-9pTv1WCsc3o01UQ1vWxs-3hAVTkq3aE4alGVvrVf88F6u-wVa7nHw2uyFo6lkrZ4AIpwx1L1iFMlRDQ"
+    },
+    {
+      "witness_id": "did:key:z6MknRVAmZWhgiDdFgGcm6Q1npBZtsdA3Y5zU3p3fc1Ez4wo",
+      "claim_id": "fysc2:8ba27d6ac595f657c428b78c6ae8a4ef7920edddb710aa5f939133107e9f5cf4",
+      "provider_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+      "network": "bitcoin-mainnet",
+      "sequence": 2,
+      "period_end": "2027-01-13T00:00:00Z",
+      "total_base_units": "136",
+      "cumulative_base_units": "10608",
+      "receipts_root": "7f0b4118e1530800d11e80d9d412108ee17789bde19676fb134a856603a6cbd8",
+      "credit_base_units": "9989392",
+      "witnessed_at": "2027-01-13T12:00:00Z",
+      "witness_signature": "aPW5dPCGFzIi0o1ND6ISlBEfMGDnCX0oWoIvbZhPgBcfeptOxEtrWmvntTIj7c12Fpa7HDPSQ-nxnW0qqFM1Cw"
+    }
+  ],
+  "settlement_refusal_example": {
+    "witness_id": "did:key:z6MkrPuMzSSYYddw1BKtyrH5mMJzQmUX42Lr8eiKpsPVb3C1",
+    "claim_id": "fysc2:dd758891f1f325147a1ad219c7f5366184ab89208db6b4ecb1a113f9a695850e",
+    "provider_id": "did:key:z6MkuPRZNRtUkrhBZ1L119iGW2rmWNhPiqovUGDfhSzBDC1D",
+    "network": "bitcoin-mainnet",
+    "sequence": 1,
+    "reason": "bad_period",
+    "refused_at": "2027-01-13T00:00:00Z",
+    "witness_signature": "sZ1nN1Z3_newW8q8GgfiH67XH-ThOVi0B4ECpsij88N3xiotU7heqxpR0QglFpt7FAamDbHzzz5wvjUc6NV2Ag"
+  },
+  "monitors": [
+    "did:key:z6Mkin4R28N2tfcsvUfuX52peTmvPGz99aA4585EtYvALN5W",
+    "did:key:z6Mkjsv23KiDw67aC9qfNVUcNwM19nj8GZPvEMMEBuv3ZpT3",
+    "did:key:z6MkksB6V1wxz1SWEgct2qdqVSk6a7E24fuifo62BgYFsEc6",
+    "did:key:z6MknRVAmZWhgiDdFgGcm6Q1npBZtsdA3Y5zU3p3fc1Ez4wo",
+    "did:key:z6MkrPuMzSSYYddw1BKtyrH5mMJzQmUX42Lr8eiKpsPVb3C1"
+  ]
+}
