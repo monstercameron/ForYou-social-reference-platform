@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"foryou.local/foryou/internal/content"
 	"net/http"
 	"slices"
 	"strings"
@@ -118,8 +119,9 @@ func (s *demoStore) replyCount(postID string) int {
 // forReader adds what only this request knows: the reader's own choices and
 // the replies written in this session.
 func (a *App) forReader(r *http.Request, posts []post) {
-	feedback, followed, store := feedbackSelections(r), followSet(r), a.store
+	feedback, followed, store, shown := feedbackSelections(r), followSet(r), a.store, readerFilters(r)
 	for i := range posts {
+		posts[i].Rating = rate(content.FormatPlain, posts[i].Text, shown)
 		posts[i].Feedback = feedback[posts[i].ID]
 		posts[i].Following = followed[posts[i].AuthorID]
 		if store != nil {

@@ -30,6 +30,8 @@ type reply struct {
 	HTML     template.HTML
 	Images   []galleryPage
 	pictures []int
+	// Rating is the rubric rating of the reply as this reader sees it.
+	Rating rating
 	// PostID and Path address a reply inside its thread; Path is the index at each level, joined by dots.
 	PostID, Path string
 	// Mine marks a reply written in this session; Open means the reply can still be answered.
@@ -118,6 +120,14 @@ func replyChain(replies []reply, path string) []*reply {
 // threadReplies returns a post's fixture replies with the replies added in this
 // session attached where they were written.
 func (a *App) threadReplies(r *http.Request, postID string) []reply {
+	replies := a.storedReplies(postID)
+	rateReplies(replies, readerFilters(r))
+	return replies
+}
+
+// storedReplies returns a post's fixture replies with the replies written in
+// this session attached where they were written.
+func (a *App) storedReplies(postID string) []reply {
 	replies := prepareReplies(demoReplies(postID), postID, "", replyDepthLimit)
 	store := a.store
 	if store == nil {

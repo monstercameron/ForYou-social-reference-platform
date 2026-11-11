@@ -12,7 +12,9 @@ type post struct {
 	// Avatar is the picture that goes with the name, when the author set one.
 	SignedName, AuthorID, Fingerprint, Avatar string
 	// Why says why this reader is shown the post, where a view chose it for them.
-	Why                string
+	Why string
+	// Rating is the rubric rating of the post as this reader sees it.
+	Rating             rating
 	ReplyCount         int
 	IsReply, Following bool
 }

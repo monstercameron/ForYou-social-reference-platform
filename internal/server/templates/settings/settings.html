@@ -7,9 +7,10 @@
       <p>Use your device preference or select a theme. Your choice is saved in this browser.</p>
       {{template "layout-appearance-control" .Layout}}
     </section>
+    {{template "settings-filters" .Filters}}
     <section class="component-card settings-card" aria-labelledby="feedback-title">
       <h2 id="feedback-title">Personal feedback</h2>
-      <p>Thumbs up and down are saved in this browser and sent to this server with requests. The 24 most recent choices are used; older choices are cleaned up on updates. They do not change the feed yet.</p>
+      <p>Thumbs up and down are saved in this browser and sent to this server with requests. The 24 most recent choices are used; older choices are cleaned up on updates. They fill the Liked filter and sort the ads section.</p>
       <p class="settings-meta">Saved choices: {{.FeedbackCount}}</p>
       <form action="/feedback/clear" method="post"><button class="button button-secondary" type="submit">Clear feedback</button></form>
     </section>

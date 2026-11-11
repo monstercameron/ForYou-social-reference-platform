@@ -9,11 +9,14 @@ func init() { routeGroups = append(routeGroups, registerSettings) }
 
 func registerSettings(a *App, mux *http.ServeMux) {
 	mux.HandleFunc("GET /settings", a.settingsHandler)
+	mux.HandleFunc("POST /settings/filters", a.filtersHandler)
+	mux.HandleFunc("POST /settings/filters/fragment", a.filtersHandler)
 }
 
 type settingsPage struct {
 	Layout        Layout
 	FeedbackCount int
+	Filters       filterSettings
 }
 
 // settingsHandler uses navigable links so appearance changes work without
@@ -42,5 +45,5 @@ func (a *App) settingsHandler(w http.ResponseWriter, r *http.Request) {
 	layout.Theme = theme
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "private, no-store")
-	a.page(w, r, "settings-page", settingsPage{Layout: layout, FeedbackCount: len(feedbackEntries(r))})
+	a.page(w, r, "settings-page", settingsPage{Layout: layout, FeedbackCount: len(feedbackEntries(r)), Filters: filterSettingsFor(readerFilters(r), false)})
 }

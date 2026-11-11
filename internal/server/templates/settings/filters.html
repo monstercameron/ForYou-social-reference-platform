@@ -1,0 +1,9 @@
+{{define "settings-filters"}}<section id="content-filters" class="component-card settings-card filter-card" aria-labelledby="filters-title">
+  <h2 id="filters-title">Content filters</h2>
+  <p>Every post and reply is rated on this device by a fixed rubric ({{.Rubric}}), the same for every reader. For each kind of content, choose the most you want to see. Anything above your choice is folded with the reason, and you can still open it. Your choices are saved in this browser.</p>
+  <form class="filter-form" action="/settings/filters" method="post" post="/settings/filters/fragment" target="#content-filters(outerHTML)" timeout="5000" onerror="#filters-status(innerHTML)">
+    {{range .Filters}}{{$row := .}}<fieldset class="filter-row"><legend>{{.Name}}</legend><p>{{.About}}</p><div class="filter-options">{{range .Options}}<label class="filter-option"><input type="radio" name="{{$row.Key}}" value="{{.Value}}"{{if .Selected}} checked{{end}}><span>{{.Label}}</span></label>{{end}}</div></fieldset>{{end}}
+    <div class="filter-actions"><button class="button button-primary" type="submit">Save filters</button><span id="filters-status" class="filter-status" role="status" aria-live="polite">{{if .Saved}}Saved. New pages use these filters.{{end}}</span></div>
+  </form>
+  <form class="filter-reset" action="/settings/filters" method="post" post="/settings/filters/fragment" target="#content-filters(outerHTML)" timeout="5000" onerror="#filters-status(innerHTML)"><input type="hidden" name="reset" value="1"><button class="button button-secondary" type="submit">Reset to defaults</button></form>
+</section>{{end}}
