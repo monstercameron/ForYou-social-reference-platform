@@ -1,0 +1,2 @@
+Source paths: C:\Users\mreca\Desktop\ForYou-Social-Ecosystem-Specification\examples\settlement.example.json, post-version-chain.json, post-comment-thread.json
+Spec commit: aeb3df4be8cf39bea0c5a1aeb414081374ed7787
