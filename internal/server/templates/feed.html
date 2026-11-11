@@ -1,16 +1,15 @@
 {{define "feed"}}
 <section id="feed-section" aria-label="Posts">
-  <div class="flex flex-col items-start gap-3 px-4 pt-5 pb-4 min-[541px]:flex-row min-[541px]:items-center min-[541px]:justify-between min-[1101px]:px-6">
-    <div><h1 class="m-0 text-2xl font-bold tracking-tight">Home</h1><span class="text-xs text-[var(--muted)]">Your window into the network</span></div>
-    <nav class="flex w-full justify-between gap-1.5 min-[541px]:w-auto min-[541px]:justify-start" aria-label="Filter posts">
-      {{template "filter-all" .}}{{template "filter-text" .}}{{template "filter-images" .}}{{template "filter-video" .}}
-    </nav>
-  </div>
+  <header class="feed-heading">
+    <div><h1>Home</h1><p>Your window into the network</p></div>
+    {{template "feed-filter-pills" .}}
+  </header>
   {{template "feed-search" .}}
   <div id="search-status" class="search-status" role="status" aria-live="polite"></div>
-  <div id="thread-error" class="thread-error" role="status"></div>
+  <div id="thread-error" class="thread-error" role="status" aria-live="polite"></div>
   <div id="post-results">{{template "results" .}}</div>
 </section>
 {{end}}
-{{define "results"}}<div class="posts">{{if .Posts}}{{template "post-list" .Posts}}{{if .HasMore}}{{template "load-more" .}}{{else}}{{template "end-feed"}}{{end}}{{else}}<div class="empty-results">No posts found. Try another search.</div>{{end}}</div><div id="feed-status" class="px-4 text-center text-xs text-[var(--muted)]" role="status" aria-live="polite" aria-atomic="true"></div>{{end}}
+{{define "results"}}<div class="posts">{{if .Posts}}{{template "post-list" .Posts}}{{if .HasMore}}{{template "load-more" .}}{{else}}{{template "end-feed"}}{{end}}{{else}}{{template "empty-results" .}}{{end}}</div><div id="feed-status" class="feed-status" role="status" aria-live="polite" aria-atomic="true"></div>{{end}}
+{{define "empty-results"}}<div class="empty-results"><h2>No posts found</h2><p>Try changing your search or filter.</p><a href="{{if eq .Section "explore"}}/explore{{else}}/{{end}}?filter={{.Filter}}&amp;theme={{.Theme}}">Clear search</a></div>{{end}}
 {{define "search-response"}}<fragment target="#post-results(innerHTML)">{{template "results" .}}</fragment><fragment target="#search-status(innerHTML)">{{if .Query}}Showing results for “{{.Query}}”.{{end}}</fragment>{{end}}

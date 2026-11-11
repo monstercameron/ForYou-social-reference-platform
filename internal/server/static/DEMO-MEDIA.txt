@@ -1,2 +1,4 @@
 demo-flower.mp4: MDN interactive example, CC0; https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4
+demo-tech.mp4: Existing local demo fixture; checked with ffprobe as a valid H.264, 640x360, 4-second MP4 clip. Original source was not recorded.
+demo-flower-poster.svg and demo-tech-poster.svg: Original project mock assets created for this demo.
 The demo-landscape SVG illustrations are original project mock assets.

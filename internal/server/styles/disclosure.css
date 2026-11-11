@@ -1,20 +1,16 @@
 @layer components {
   .text-fold { interpolate-size:allow-keywords; }
-  .text-fold .post-text { @apply mb-0.5 overflow-hidden whitespace-pre-wrap; max-height:4.65em; transition:max-height .32s ease; }
+  .text-fold .post-text { margin-bottom:2px; overflow:hidden; max-height:4.65em; transition:max-height .32s ease; }
   .text-fold:has(.fold-control[open]) .post-text { max-height:max-content; }
   .text-fold:has(.fold-control:not([hidden]):not([open])) .post-text { mask-image:linear-gradient(to bottom,#000 55%,transparent 100%); }
-  .fold-control { @apply mb-2.5; }
+  .fold-control { margin:0 0 8px; }
   .fold-control[hidden] { display:none; }
-  .fold-control summary { @apply mt-1 inline-flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-full border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-bold text-[var(--on-accent)]; transition:box-shadow .18s,filter .18s,transform .18s; }
+  .fold-control summary { display:inline-flex; min-height:44px; cursor:pointer; list-style:none; align-items:center; gap:6px; border:0; border-radius:8px; background:transparent; padding:0 8px; color:var(--accent); font-size:14px; font-weight:600; text-decoration:underline; }
   .fold-control summary::-webkit-details-marker { display:none; }
-  .fold-control summary::after { content:"↓"; font-size:14px; line-height:1; }
-  .fold-control[open] summary::after { content:"↑"; }
-  .fold-control summary:hover { filter:brightness(1.12); box-shadow:0 4px 14px color-mix(in srgb,var(--accent) 30%,transparent); transform:translateY(-1px); }
-  .fold-control summary:active { transform:translateY(1px); }
-  .fold-control summary:focus-visible { outline:3px solid var(--accent); outline-offset:3px; }
+  .fold-control summary:hover { background:var(--accent-soft); color:var(--text); }
+  .fold-control summary::after { content:""; width:8px; height:8px; transform:rotate(45deg); border-right:1.5px solid currentColor; border-bottom:1.5px solid currentColor; }
+  .fold-control[open] summary::after { transform:rotate(225deg); }
   .fold-less, .fold-control[open] .fold-more { display:none; }
   .fold-control[open] .fold-less { display:inline; }
 }
-@media (prefers-reduced-motion:reduce) {
-  .text-fold .post-text, .fold-control summary { transition:none; }
-}
+@media (prefers-reduced-motion:reduce) { .text-fold .post-text { transition:none; } }

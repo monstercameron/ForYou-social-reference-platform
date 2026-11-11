@@ -1,13 +1,15 @@
 @layer components {
-  .post-bottom .feedback-control button {
-    @apply grid min-h-11 min-w-11 place-items-center rounded-full p-2 text-sm;
-    transition:background-color .18s,box-shadow .18s,transform .18s;
+  .feedback-control { @apply flex flex-wrap items-center gap-1; }
+  .feedback-button {
+    @apply inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-lg border-0 bg-transparent px-2.5 text-[13px] text-[var(--muted)];
+    transition:background-color .18s,color .18s;
   }
-  .post-bottom .feedback-control button:hover { @apply bg-[var(--accent-soft)]; }
-  .post-bottom .feedback-control button:active { transform:scale(.94); }
+  .feedback-button .post-icon { @apply h-5 w-5 shrink-0; }
+  .feedback-button:hover { @apply bg-[var(--accent-soft)] text-[var(--text)]; }
+  .feedback-button:focus-visible { outline:3px solid var(--accent); outline-offset:2px; }
+  .feedback-button[aria-pressed="true"] { @apply bg-[var(--accent-soft)] text-[var(--accent)]; }
+  .feedback-button[aria-pressed="true"] .post-icon { fill:var(--accent); }
   .feedback-control > .error { @apply basis-full text-xs text-[#c55050]; }
-  .post-bottom .feedback-control button[aria-pressed="true"] {
-    @apply bg-[var(--accent-soft)];
-    box-shadow:inset 0 0 0 2px var(--accent);
-  }
+  .posts > .post .post-bottom .feedback-control,
+  .posts > .post .post-bottom .feedback-control form { display:contents; }
 }

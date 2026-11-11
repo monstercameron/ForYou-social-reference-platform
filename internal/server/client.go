@@ -129,6 +129,19 @@ func readFeedRequest(r *http.Request, more bool) (feedPage, bool) {
 }
 
 func feedHandler(w http.ResponseWriter, r *http.Request) {
+	values, err := url.ParseQuery(r.URL.RawQuery)
+	if err == nil && values.Has("play") {
+		id := values.Get("play")
+		p, ok := requestPost(r, id)
+		if !ok || (p.Art != "video" && p.Art != "tech-video") {
+			http.Error(w, "video post not found", http.StatusBadRequest)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-store")
+		_ = home.ExecuteTemplate(w, "video-player-response", p)
+		return
+	}
 	page, ok := readFeedRequest(r, false)
 	if !ok {
 		http.Error(w, "invalid feed filter or search", http.StatusBadRequest)

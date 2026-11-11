@@ -14,4 +14,87 @@
   .post-bottom:has(.thread-head) .thread-region { @apply order-3 basis-full; }
   .post-bottom button, .post-link { @apply border-0 bg-transparent py-[5px] text-xs text-[var(--muted)]; }
   .post-bottom button:hover, .post-link:hover { @apply text-[var(--accent)]; }
+  .posts { display:flex; flex-direction:column; gap:12px; padding:0 16px; }
+  .posts > .post { display:flex; gap:12px; background:var(--panel); padding:16px; border:1px solid var(--line); border-radius:12px; }
+  .posts > .post .post-content { min-width:0; flex:1; }
+  .posts > .post > .identicon { width:40px; height:40px; flex:0 0 40px; }
+  .posts > .post .post-top { display:flex; min-width:0; flex-wrap:nowrap; align-items:center; gap:8px; white-space:nowrap; }
+  .posts > .post .receipt-id { min-width:0; overflow:hidden; color:var(--text); font-size:14px; font-weight:600; font-variant-numeric:tabular-nums; text-overflow:ellipsis; white-space:nowrap; }
+  .posts > .post .receipt-id:hover { color:var(--accent); }
+  .posts > .post .post-top .receipt-badge { flex:0 0 auto; border-radius:9999px; background:var(--control); padding:3px 8px; color:var(--muted); font-size:13px; line-height:1.2; }
+  .posts > .post .post-time { flex:0 0 auto; color:var(--muted); font-size:13px; }
+  .posts > .post .post-topic { display:inline-block; margin-top:8px; border-radius:9999px; background:var(--control); padding:3px 9px; color:var(--muted); font-size:13px; }
+  .posts > .post .post-text { margin:8px 0 12px; color:var(--text); font-size:15px; line-height:1.55; overflow-wrap:anywhere; white-space:pre-wrap; }
+  .posts > .post .post-bottom { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); align-items:center; gap:0; color:var(--muted); }
+  .posts > .post .post-bottom > .thread-region { display:contents; }
+  .posts > .post .post-bottom .thread-action, .posts > .post .post-bottom .embed-action { display:contents; }
+  .posts > .post .post-action, .posts .post-bottom .thread-toggle { display:flex; min-width:0; min-height:44px; align-items:center; justify-content:center; gap:6px; border:0; border-radius:8px; background:transparent; padding:4px; color:var(--muted); font-size:13px; line-height:1.2; text-align:center; white-space:nowrap; }
+  .posts > .post .post-action:hover, .posts .post-bottom .thread-toggle:hover { background:var(--accent-soft); color:var(--text); }
+  .posts > .post .post-icon { width:20px; height:20px; flex:0 0 20px; stroke:currentColor; stroke-width:1.75; fill:none; }
+  .posts > .post .feedback-button[aria-pressed="true"] { background:var(--accent-soft); color:var(--accent); }
+  .posts > .post .post-action:focus-visible, .posts .post-bottom .thread-toggle:focus-visible { outline:3px solid var(--accent); outline-offset:2px; }
+  .posts > .post .feedback-control > .error { grid-column:1/-1; color:var(--muted); font-size:13px; }
+  .posts > .post .post-media-frame { position:relative; width:100%; aspect-ratio:16/8.2; margin:12px 0; overflow:hidden; border:1px solid var(--line); border-radius:12px; background:var(--control); }
+  .posts > .post .post-media-frame > img, .posts > .post .post-media-frame > video { display:block; width:100%; height:100%; object-fit:cover; }
+  .posts > .post .post-media-frame noscript video { display:block; width:100%; height:100%; object-fit:cover; }
+  .posts > .post .video-facade form, .posts > .post .video-poster, .posts > .post .video-play { display:none; }
+  .posts > .post .video-poster { position:absolute; inset:0; }
+  .posts > .post .video-facade form { position:absolute; inset:0; z-index:1; }
+  .posts > .post .video-play { position:absolute; top:50%; left:50%; display:grid; width:56px; height:56px; transform:translate(-50%,-50%); place-items:center; border:0; border-radius:50%; background:var(--accent); color:var(--on-accent); }
+  .posts > .post .video-play:hover { background:var(--accent-soft); color:var(--text); }
+  .posts > .post .video-play:focus-visible { outline:3px solid var(--on-accent); outline-offset:3px; box-shadow:0 0 0 6px var(--accent); }
+  .posts > .post .video-play .post-icon { width:24px; height:24px; }
+  /* The gallery template's margin is a Tailwind utility, which outranks this layer. */
+  .posts > .post .post-gallery-frame > div { position:relative; width:100%; height:100%; margin:0 !important; }
+  .posts > .post .post-gallery-frame > div > [role="group"] { position:absolute; inset:0; width:100%; height:100%; border-radius:0 !important; }
+  .posts > .post .post-gallery-frame > div > [aria-hidden="true"] { display:none; }
+  .posts > .post .post-bottom:has(.thread-head) > .thread-region { display:block; grid-column:1/-1; }
+  .posts > .post .thread-toggle:not(button), .posts > .post .thread-toggle:not(button):hover { cursor:default; background:transparent; color:var(--muted); }
+  .feed-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:20px 16px 16px; }
+  .feed-heading h1 { margin:0; color:var(--text); font-size:24px; font-weight:700; letter-spacing:-.025em; }
+  .feed-heading p { margin:4px 0 0; color:var(--muted); font-size:13px; }
+  .feed-filters { display:flex; flex-wrap:nowrap; gap:6px; }
+  .feed-filters form { margin:0; }
+  .feed-filters button { min-height:44px; border:0; border-radius:9999px; background:var(--control); padding:0 12px; color:var(--text); font-size:13px; font-weight:600; white-space:nowrap; }
+  .feed-filters button[aria-current="page"] { background:var(--accent); color:var(--on-accent); }
+  .feed-filters button:hover { background:var(--accent-soft); }
+  .feed-filters button[aria-current="page"]:hover { background:var(--accent); }
+  .feed-search { display:flex; min-height:44px; align-items:center; gap:8px; margin:0 16px 8px; border:1px solid var(--line); border-radius:10px; background:var(--panel); padding:0 8px 0 12px; }
+  .feed-search input { width:100%; min-width:0; min-height:42px; border:0; outline:0; background:transparent; color:var(--text); font-size:14px; }
+  .feed-search input:focus-visible { outline:3px solid var(--accent); outline-offset:2px; border-radius:3px; }
+  .feed-search button { min-height:44px; border:0; border-radius:7px; background:var(--accent); padding:0 12px; color:var(--on-accent); font-size:13px; font-weight:600; }
+  .feed-search button:hover { opacity:.88; }
+  .load-more { display:block; padding:0 0 12px; }
+  .load-more button { width:100%; min-height:44px; border:1px solid var(--line); border-radius:10px; background:transparent; color:var(--muted); font-size:14px; }
+  .load-more button:hover { background:var(--control); color:var(--text); }
+  .end-feed { margin:0; padding:8px 0 12px; color:var(--muted); font-size:13px; text-align:center; }
+  .empty-results { margin:0 0 12px; border:1px solid var(--line); border-radius:12px; background:var(--panel); padding:24px 16px; text-align:center; }
+  .empty-results h2 { margin:0; color:var(--text); font-size:16px; }
+  .empty-results p { margin:8px 0; color:var(--muted); font-size:14px; }
+  .empty-results a { display:inline-flex; min-height:44px; align-items:center; color:var(--accent); font-size:14px; font-weight:600; text-decoration:underline; }
+  .feed-status, .search-status { min-height:20px; padding:0 16px; color:var(--muted); font-size:13px; }
+  @media(max-width:540px) {
+    .posts { padding-right:12px; padding-left:12px; }
+    .posts > .post { gap:10px; padding:16px 12px; }
+    .feed-heading { align-items:flex-start; flex-direction:column; gap:12px; padding-right:12px; padding-left:12px; }
+    .feed-filters { width:100%; justify-content:flex-start; gap:8px; }
+    .feed-filters button { padding:0 10px; }
+    .feed-search { margin-right:12px; margin-left:12px; }
+  }
+  @media(max-width:419px) {
+    .posts > .post .post-action > span:not(.reply-text), .posts > .post .reply-label { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
+    .posts > .post .post-action { gap:0; padding:4px 0; }
+  }
+  @media(max-width:360px) {
+    .posts > .post { gap:8px; }
+    .feed-filters button { padding:0 8px; font-size:12px; }
+  }
+  @media (scripting: none) {
+    .posts > .post .video-facade form, .posts > .post .video-poster { display:none; }
+    .posts > .post .video-facade noscript video { display:block; width:100%; height:100%; object-fit:cover; }
+  }
+  @media (scripting: enabled) {
+    .posts > .post .video-poster { display:block; }
+    .posts > .post .video-facade form { display:block; }
+  }
 }

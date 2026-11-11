@@ -66,6 +66,109 @@ func TestNavigationComponents(t *testing.T) {
 	}
 }
 
+func TestFeedVideoFacadesAndIcons(t *testing.T) {
+	w := httptest.NewRecorder()
+	newHandler("client", nil).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/", nil))
+	body := w.Body.String()
+	if w.Code != http.StatusOK {
+		t.Fatalf("feed status = %d; want 200", w.Code)
+	}
+	if strings.Contains(body, "👍") || strings.Contains(body, "👎") {
+		t.Errorf("feed uses emoji for feedback icons")
+	}
+	if strings.Count(body, `video-facade`) != 2 || strings.Count(body, `<noscript><video`) != 2 || !strings.Contains(body, `aria-label="Play Flower video"`) || !strings.Contains(body, `aria-label="Play Home server monitor video"`) || strings.Count(body, `get="/feed"`) != 2 || !strings.Contains(body, `target="#video-elliot(outerHTML)" timeout="10000" onerror="#thread-error(innerHTML)"><input type="hidden" name="play" value="elliot">`) || !strings.Contains(body, `target="#video-tech-video(outerHTML)" timeout="10000" onerror="#thread-error(innerHTML)"><input type="hidden" name="play" value="tech-video">`) {
+		t.Errorf("video facade or accessible play control missing")
+	}
+	if !strings.Contains(body, `poster="/static/demo-flower-poster.svg"`) || !strings.Contains(body, `poster="/static/demo-tech-poster.svg"`) {
+		t.Errorf("video poster missing")
+	}
+}
+
+func TestFeedHasOneAccessibleActionOfEachKindPerPost(t *testing.T) {
+	w := httptest.NewRecorder()
+	newHandler("client", nil).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/", nil))
+	if w.Code != http.StatusOK {
+		t.Fatalf("feed status = %d; want 200", w.Code)
+	}
+	check := func(t *testing.T, id string) {
+		t.Helper()
+		marker := `id="thread-` + id + `"`
+		markerAt := strings.Index(w.Body.String(), marker)
+		if markerAt < 0 {
+			t.Fatalf("post %q is missing its replies slot", id)
+		}
+		start := strings.LastIndex(w.Body.String()[:markerAt], `<article class="post">`)
+		end := strings.Index(w.Body.String()[markerAt:], `</article>`)
+		if start < 0 || end < 0 {
+			t.Fatalf("post %q article boundaries are missing", id)
+		}
+		article := w.Body.String()[start : markerAt+end+len(`</article>`)]
+		if strings.Count(article, `aria-label="Positive feedback"`) != 1 || strings.Count(article, `aria-label="Negative feedback"`) != 1 || strings.Count(article, `>Embed</span>`) != 1 || strings.Count(article, `>Open post</span>`) != 1 || strings.Count(article, `class="thread-toggle post-action"`) != 1 {
+			t.Errorf("post %q does not have one accessible action in each slot", id)
+		}
+		if got := strings.Count(article, `<span class="reply-label">replies</span>`) + strings.Count(article, `<span>No replies</span>`); got != 1 {
+			t.Errorf("post %q replies label count = %d; want 1", id, got)
+		}
+	}
+	t.Run("maya", func(t *testing.T) { check(t, "maya") })
+	t.Run("elliot", func(t *testing.T) { check(t, "elliot") })
+	t.Run("tech video", func(t *testing.T) { check(t, "tech-video") })
+	t.Run("sponsored post", func(t *testing.T) { check(t, "ad-coffee") })
+	t.Run("art post", func(t *testing.T) { check(t, "art-studio") })
+}
+
+func TestFeedVideoPlayerFragments(t *testing.T) {
+	check := func(t *testing.T, id, present string, wantStatus int) {
+		t.Helper()
+		w := httptest.NewRecorder()
+		newHandler("client", nil).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/feed?play="+id, nil))
+		if w.Code != wantStatus || (present != "" && !strings.Contains(w.Body.String(), present)) {
+			t.Errorf("play %q: status %d, expected %d and %q", id, w.Code, wantStatus, present)
+		}
+	}
+	t.Run("flower player", func(t *testing.T) {
+		check(t, "elliot", `<video class="post-video" controls autoplay playsinline preload="auto" poster="/static/demo-flower-poster.svg"`, http.StatusOK)
+	})
+	t.Run("tech player", func(t *testing.T) {
+		check(t, "tech-video", `<video class="post-video" controls autoplay playsinline preload="auto" poster="/static/demo-tech-poster.svg"`, http.StatusOK)
+	})
+	t.Run("text post rejected", func(t *testing.T) { check(t, "maya", "", http.StatusBadRequest) })
+	t.Run("unknown post rejected", func(t *testing.T) { check(t, "missing", "", http.StatusBadRequest) })
+}
+
+func TestHomeAndExploreShareSearchAndFilterMarkup(t *testing.T) {
+	request := func(path string) string {
+		t.Helper()
+		w := httptest.NewRecorder()
+		newHandler("client", nil).ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
+		if w.Code != http.StatusOK {
+			t.Fatalf("%s status = %d; want 200", path, w.Code)
+		}
+		return w.Body.String()
+	}
+	extract := func(body, start, end string) string {
+		t.Helper()
+		from := strings.Index(body, start)
+		if from < 0 {
+			t.Fatalf("missing markup start %q", start)
+		}
+		to := strings.Index(body[from:], end)
+		if to < 0 {
+			t.Fatalf("missing markup end %q", end)
+		}
+		return body[from : from+to+len(end)]
+	}
+	home := request("/?filter=video&q=server&theme=dark")
+	explore := request("/explore?filter=video&q=server&theme=dark")
+	normalize := func(markup string) string { return strings.ReplaceAll(markup, `action="/explore"`, `action="/"`) }
+	if got, want := normalize(extract(home, `<form class="feed-search"`, `</form>`)), normalize(extract(explore, `<form class="feed-search"`, `</form>`)); got != want {
+		t.Errorf("search markup differs between Home and Explore")
+	}
+	if got, want := normalize(extract(home, `<nav class="feed-filters"`, `</nav>`)), normalize(extract(explore, `<nav class="feed-filters"`, `</nav>`)); got != want {
+		t.Errorf("filter markup differs between Home and Explore")
+	}
+}
+
 func TestFeedRejectsInvalidQueryEncoding(t *testing.T) {
 	t.Run("malformed percent escape", func(t *testing.T) {
 		w := httptest.NewRecorder()

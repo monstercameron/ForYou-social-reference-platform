@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 492" role="img" aria-labelledby="title desc">
+  <title id="title">Home server monitor</title>
+  <desc id="desc">A small home server with a status display on a workbench.</desc>
+  <defs>
+    <linearGradient id="wall" x2="0" y2="1"><stop stop-color="#dce8e6"/><stop offset="1" stop-color="#b3c8c2"/></linearGradient>
+    <linearGradient id="case" x2="1" y2="1"><stop stop-color="#3c4850"/><stop offset="1" stop-color="#202a31"/></linearGradient>
+  </defs>
+  <path fill="url(#wall)" d="M0 0h960v492H0z"/>
+  <path fill="#9baea4" d="M0 356h960v136H0z"/>
+  <path fill="#82968b" d="M0 377h960v20H0z"/>
+  <rect x="280" y="100" width="400" height="270" rx="26" fill="url(#case)"/>
+  <rect x="318" y="135" width="324" height="175" rx="12" fill="#101a20"/>
+  <path d="M345 263h39v-47h39v23h39v-72h39v56h39v-31h39v71h36" fill="none" stroke="#74cbb2" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="352" cy="340" r="7" fill="#74cbb2"/><circle cx="382" cy="340" r="7" fill="#d5b76c"/>
+  <path fill="#d9dfd8" d="M204 370h552v20H204z"/>
+  <path fill="#77847b" d="M170 390h620v25H170z"/>
+</svg>

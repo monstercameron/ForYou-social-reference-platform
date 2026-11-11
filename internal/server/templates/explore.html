@@ -5,29 +5,14 @@
 {{template "sidebar" .}}
 <main class="center">{{template "mobile-header" .}}
   <section aria-label="Explore posts" class="min-w-0">
-    <header class="border-b border-[var(--line)] px-4 pt-5 pb-4 min-[1101px]:px-6">
-      <h1 class="m-0 text-2xl font-bold tracking-tight">Explore</h1>
-      <p class="mt-1 mb-4 text-sm text-[var(--muted)]">Discover posts available on this server.</p>
-      <form action="/explore" method="get" role="search" class="flex gap-2">
-        <input type="hidden" name="theme" value="{{.Theme}}"><input type="hidden" name="filter" value="{{.Filter}}">
-        <label class="sr-only" for="explore-search">Search posts</label><input id="explore-search" class="min-w-0 flex-1 rounded-lg border border-[var(--line)] bg-[var(--control)] px-3 py-2 text-[var(--text)]" type="search" name="q" maxlength="120" value="{{.Query}}" placeholder="Search posts">
-        <button class="min-h-11 rounded-lg bg-[var(--accent)] px-4 font-bold text-[var(--on-accent)] transition-opacity hover:opacity-80" type="submit">Search</button>
-      </form>
-      <nav aria-label="Explore filters" class="mt-4 flex flex-wrap gap-2">
-        {{template "explore-filter-all" .}}{{template "explore-filter-text" .}}{{template "explore-filter-images" .}}{{template "explore-filter-video" .}}
-      </nav>
-    </header>
+    <header class="feed-heading"><div><h1>Explore</h1><p>Discover posts available on this server.</p></div>{{template "feed-filter-pills" .}}</header>
+    {{template "feed-search" .}}
     <div id="thread-error" class="thread-error" role="status" aria-live="polite"></div>
-    <div class="posts">{{if .Posts}}{{template "post-list" .Posts}}{{if .HasMore}}{{template "explore-more" .}}{{else}}{{template "end-feed"}}{{end}}{{else}}<div class="empty-results">No posts found. Try another search.</div>{{end}}</div>
-    <div id="explore-status" role="status" aria-live="polite" aria-atomic="true" class="px-4 text-center text-xs text-[var(--muted)]"></div>
+    <div class="posts">{{if .Posts}}{{template "post-list" .Posts}}{{if .HasMore}}{{template "explore-more" .}}{{else}}{{template "end-feed"}}{{end}}{{else}}{{template "empty-results" .}}{{end}}</div>
+    <div id="explore-status" role="status" aria-live="polite" aria-atomic="true" class="feed-status"></div>
   </section>
 </main>{{template "rightbar" .}}</div></body></html>
 {{end}}
 
-{{define "explore-filter-all"}}<form action="/explore" method="get"><input type="hidden" name="theme" value="{{.Theme}}"><input type="hidden" name="q" value="{{.Query}}"><input type="hidden" name="filter" value="all"><button {{if eq .Filter "all"}}aria-current="page"{{end}} class="min-h-10 rounded-full px-3 text-xs font-semibold transition-colors {{if eq .Filter "all"}}bg-[var(--accent)] text-[var(--on-accent)]{{else}}bg-[var(--control)] text-[var(--text)] hover:bg-[var(--accent-soft)]{{end}}">All</button></form>{{end}}
-{{define "explore-filter-text"}}<form action="/explore" method="get"><input type="hidden" name="theme" value="{{.Theme}}"><input type="hidden" name="q" value="{{.Query}}"><input type="hidden" name="filter" value="text"><button {{if eq .Filter "text"}}aria-current="page"{{end}} class="min-h-10 rounded-full px-3 text-xs font-semibold transition-colors {{if eq .Filter "text"}}bg-[var(--accent)] text-[var(--on-accent)]{{else}}bg-[var(--control)] text-[var(--text)] hover:bg-[var(--accent-soft)]{{end}}">Text</button></form>{{end}}
-{{define "explore-filter-images"}}<form action="/explore" method="get"><input type="hidden" name="theme" value="{{.Theme}}"><input type="hidden" name="q" value="{{.Query}}"><input type="hidden" name="filter" value="images"><button {{if eq .Filter "images"}}aria-current="page"{{end}} class="min-h-10 rounded-full px-3 text-xs font-semibold transition-colors {{if eq .Filter "images"}}bg-[var(--accent)] text-[var(--on-accent)]{{else}}bg-[var(--control)] text-[var(--text)] hover:bg-[var(--accent-soft)]{{end}}">Images</button></form>{{end}}
-{{define "explore-filter-video"}}<form action="/explore" method="get"><input type="hidden" name="theme" value="{{.Theme}}"><input type="hidden" name="q" value="{{.Query}}"><input type="hidden" name="filter" value="video"><button {{if eq .Filter "video"}}aria-current="page"{{end}} class="min-h-10 rounded-full px-3 text-xs font-semibold transition-colors {{if eq .Filter "video"}}bg-[var(--accent)] text-[var(--on-accent)]{{else}}bg-[var(--control)] text-[var(--text)] hover:bg-[var(--accent-soft)]{{end}}">Video</button></form>{{end}}
-
-{{define "explore-more"}}<form id="explore-more" class="flex justify-center p-4" action="/explore" method="get" get="/explore/more" auto="lazy" target="#explore-more(outerHTML)" timeout="5000" loading="#explore-status(innerHTML)" onerror="#explore-status(innerHTML)"><input type="hidden" name="filter" value="{{.Filter}}"><input type="hidden" name="q" value="{{.Query}}"><input type="hidden" name="theme" value="{{.Theme}}"><input type="hidden" name="limit" value="{{.NextLimit}}"><input type="hidden" name="anchor" value="{{.Anchor}}"><button class="min-h-11 rounded-full border border-[var(--line)] bg-transparent px-5 py-2 font-semibold text-[var(--text)] transition-colors hover:bg-[var(--accent-soft)]" type="submit">Load more posts</button></form>{{end}}
+{{define "explore-more"}}<form id="explore-more" class="load-more" action="/explore" method="get" get="/explore/more" auto="lazy" target="#explore-more(outerHTML)" timeout="5000" loading="#explore-status(innerHTML)" onerror="#explore-status(innerHTML)"><input type="hidden" name="filter" value="{{.Filter}}"><input type="hidden" name="q" value="{{.Query}}"><input type="hidden" name="theme" value="{{.Theme}}"><input type="hidden" name="limit" value="{{.NextLimit}}"><input type="hidden" name="anchor" value="{{.Anchor}}"><button type="submit">Load more posts</button></form>{{end}}
 {{define "explore-more-response"}}<fragment target="#explore-more(outerHTML)">{{template "post-list" .Posts}}{{if .HasMore}}{{template "explore-more" .}}{{else}}{{template "end-feed"}}{{end}}</fragment><fragment target="#explore-status(innerHTML)">{{len .Posts}} more posts loaded, {{.Loaded}} total.</fragment>{{end}}
