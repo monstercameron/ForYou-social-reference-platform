@@ -1,0 +1,22 @@
+{
+  "source": "inputs of tests/version_fixtures.py request(delegated=True); cross-check by running it after pip install -r tests/requirements.txt",
+  "delegation": {
+    "author_id": "did:key:z6MkehRgf7yJbgaGfYsdoAsKdBPE3dj2CYhowQdcjqSJgvVd",
+    "delegation_id": "fyd1:81be12b9bd26036c3f60ae77724d9aa269afaa07ec2ea283cd49a203b328ea78",
+    "delegation_signature": "WeQ4zlwp4kOWjezXLWZIqTO6DaUaDGGlagsyuC8ks6e2HL2WjgUdNOFdrYzsgUjhxT9Pb4dML77xkOGOM2htAA",
+    "epoch": {
+      "activated_at": "2026-11-10T22:00:00Z",
+      "author_id": "did:key:z6MkehRgf7yJbgaGfYsdoAsKdBPE3dj2CYhowQdcjqSJgvVd",
+      "epoch_id": "fye1:357f50da807c0081b4861835691b7b6e93b08ac1fddab4aa4fa88e2f2d3273a7",
+      "epoch_sequence": 1,
+      "nonce": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "provider_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+      "provider_signature": "8mF4s-bdewKPkgu9U-Lnt7CueQ2jB-OuEUD7552KUU9nBrde9oDBq9PnrijB9LJ_LXKl8ZpSQhUexF-p2L4lDg"
+    },
+    "provider_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+    "scope": ["post"],
+    "signer_id": "did:key:z6Mkgxj2R3HLtQRpPnvfvpuKEceSqf3tZHBjdmZ3fFz3JHGG",
+    "valid_from": "2026-11-10T23:00:00Z",
+    "valid_until": "2026-11-11T01:00:00Z"
+  }
+}
