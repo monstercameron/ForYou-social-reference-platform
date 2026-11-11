@@ -31,9 +31,9 @@ func TestFeedbackAcrossPages(t *testing.T) {
 			t.Errorf("%s status %d; missing %q", path, response.Code, want)
 		}
 	}
-	t.Run("home", func(t *testing.T) { check(t, "/", `aria-label="Positive feedback" aria-pressed="true"`) })
-	t.Run("explore", func(t *testing.T) { check(t, "/explore", `aria-label="Positive feedback" aria-pressed="true"`) })
-	t.Run("post page", func(t *testing.T) { check(t, "/posts/maya", `aria-label="Positive feedback" aria-pressed="true"`) })
+	t.Run("home", func(t *testing.T) { check(t, "/", `aria-label="Like" aria-pressed="true"`) })
+	t.Run("explore", func(t *testing.T) { check(t, "/explore", `aria-label="Like" aria-pressed="true"`) })
+	t.Run("post page", func(t *testing.T) { check(t, "/posts/maya", `aria-label="Like" aria-pressed="true"`) })
 	t.Run("settings", func(t *testing.T) { check(t, "/settings", "Saved choices: 1") })
 	clearRequest := httptest.NewRequest(http.MethodPost, "/feedback/clear", nil)
 	clearRequest.AddCookie(cookie)
@@ -173,7 +173,7 @@ func TestNativeFeedbackReturnsToEditablePost(t *testing.T) {
 	postRequest.AddCookie(w.Result().Cookies()[0])
 	page := httptest.NewRecorder()
 	h.ServeHTTP(page, postRequest)
-	if page.Code != http.StatusOK || !strings.Contains(page.Body.String(), `aria-label="Negative feedback" aria-pressed="true"`) || !strings.Contains(page.Body.String(), `value="clear"`) {
+	if page.Code != http.StatusOK || !strings.Contains(page.Body.String(), `aria-label="Dislike" aria-pressed="true"`) || !strings.Contains(page.Body.String(), `value="clear"`) {
 		t.Errorf("post page does not offer the selected feedback for editing: status %d", page.Code)
 	}
 }

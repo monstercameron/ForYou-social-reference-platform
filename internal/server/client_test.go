@@ -103,7 +103,7 @@ func TestFeedHasOneAccessibleActionOfEachKindPerPost(t *testing.T) {
 			t.Fatalf("post %q article boundaries are missing", id)
 		}
 		article := w.Body.String()[start : markerAt+end+len(`</article>`)]
-		if strings.Count(article, `aria-label="Positive feedback"`) != 1 || strings.Count(article, `aria-label="Negative feedback"`) != 1 || strings.Count(article, `>Embed</span>`) != 1 || strings.Count(article, `>Open post</span>`) != 1 || strings.Count(article, `class="thread-toggle post-action"`) != 1 {
+		if strings.Count(article, `aria-label="Like"`) != 1 || strings.Count(article, `aria-label="Dislike"`) != 1 || strings.Count(article, `>Embed</span>`) != 1 || strings.Count(article, `>Open post</span>`) != 1 || strings.Count(article, `class="thread-toggle post-action"`) != 1 {
 			t.Errorf("post %q does not have one accessible action in each slot", id)
 		}
 		if got := strings.Count(article, `<span class="reply-label">replies</span>`) + strings.Count(article, `<span>No replies</span>`); got != 1 {

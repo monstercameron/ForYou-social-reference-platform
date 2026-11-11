@@ -23,7 +23,7 @@ func TestFeedbackSelection(t *testing.T) {
 		return w
 	}
 	up := submit("up", nil)
-	if up.Code != http.StatusOK || !strings.Contains(up.Body.String(), `aria-label="Positive feedback" aria-pressed="true"`) || strings.Count(up.Body.String(), `aria-pressed="true"`) != 1 || strings.Count(up.Body.String(), `aria-pressed="false"`) != 1 || strings.Count(up.Body.String(), `onerror="this(after)"`) != 2 {
+	if up.Code != http.StatusOK || !strings.Contains(up.Body.String(), `aria-label="Like" aria-pressed="true"`) || strings.Count(up.Body.String(), `aria-pressed="true"`) != 1 || strings.Count(up.Body.String(), `aria-pressed="false"`) != 1 || strings.Count(up.Body.String(), `onerror="this(after)"`) != 2 {
 		t.Fatalf("positive feedback: status %d", up.Code)
 	}
 	cookies := up.Result().Cookies()
@@ -35,7 +35,7 @@ func TestFeedbackSelection(t *testing.T) {
 		t.Fatal("feedback leaked to another browser")
 	}
 	down := submit("down", cookies[0])
-	if down.Code != http.StatusOK || !strings.Contains(down.Body.String(), `aria-label="Negative feedback" aria-pressed="true"`) || strings.Count(down.Body.String(), `aria-pressed="true"`) != 1 || strings.Count(down.Body.String(), `aria-pressed="false"`) != 1 {
+	if down.Code != http.StatusOK || !strings.Contains(down.Body.String(), `aria-label="Dislike" aria-pressed="true"`) || strings.Count(down.Body.String(), `aria-pressed="true"`) != 1 || strings.Count(down.Body.String(), `aria-pressed="false"`) != 1 {
 		t.Fatalf("negative feedback: status %d", down.Code)
 	}
 	cleared := submit("clear", down.Result().Cookies()[0])

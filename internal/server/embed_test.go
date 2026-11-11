@@ -123,7 +123,7 @@ func TestPostPageActionsStayInsideCard(t *testing.T) {
 	if card >= 0 {
 		end = strings.Index(body[card:], `</article>`)
 	}
-	if w.Code != http.StatusOK || card < 0 || actions < card || end < 0 || actions > card+end || thread < card+end || !strings.Contains(body, `aria-label="Positive feedback"`) || !strings.Contains(body, `>Embed</span>`) || !strings.Contains(body, `>Replies</span>`) {
+	if w.Code != http.StatusOK || card < 0 || actions < card || end < 0 || actions > card+end || thread < card+end || !strings.Contains(body, `aria-label="Like"`) || !strings.Contains(body, `>Embed</span>`) || !strings.Contains(body, `>Replies</span>`) {
 		t.Errorf("post actions are not inside the post card, or the thread is not below it (status %d)", w.Code)
 	}
 }
