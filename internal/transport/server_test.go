@@ -1,6 +1,7 @@
 package transport
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
@@ -17,7 +18,6 @@ import (
 	"testing"
 	"time"
 
-	"foryou.local/foryou/internal/server"
 	"github.com/quic-go/quic-go/http3"
 )
 
@@ -38,7 +38,7 @@ func TestHTTP3AndHTTP11(t *testing.T) {
 	}
 	defer udp.Close()
 	done := make(chan error, 1)
-	go func() { done <- serve(tcp, udp, cert, server.NewRole("client", nil)) }()
+	go func() { done <- serve(context.Background(), tcp, udp, cert, transportTestHandler()) }()
 	defer func() {
 		_ = tcp.Close()
 		_ = udp.Close()
@@ -142,7 +142,7 @@ func TestHTTP11WhenUDPPortIsOccupied(t *testing.T) {
 	}
 	defer occupied.Close()
 	done := make(chan error, 1)
-	go func() { done <- serveWithUDP(tcp, cert, server.NewRole("client", nil)) }()
+	go func() { done <- serve(context.Background(), tcp, nil, cert, transportTestHandler()) }()
 	tr := &http.Transport{TLSClientConfig: &tls.Config{RootCAs: roots, NextProtos: []string{"http/1.1"}}}
 	defer tr.CloseIdleConnections()
 	client := &http.Client{Transport: tr, Timeout: 5 * time.Second}
@@ -266,7 +266,7 @@ func TestHTTP11AfterUDPFailure(t *testing.T) {
 	log.SetOutput(waiter)
 	defer log.SetOutput(previousWriter)
 	done := make(chan error, 1)
-	go func() { done <- serve(tcp, udp, cert, server.NewRole("client", nil)) }()
+	go func() { done <- serve(context.Background(), tcp, udp, cert, transportTestHandler()) }()
 	tr := &http.Transport{TLSClientConfig: &tls.Config{RootCAs: roots, NextProtos: []string{"http/1.1"}}}
 	defer tr.CloseIdleConnections()
 	client := &http.Client{Transport: tr, Timeout: 5 * time.Second}
@@ -302,4 +302,35 @@ func TestHTTP11AfterUDPFailure(t *testing.T) {
 	if err := <-done; err == nil {
 		t.Error("expected server to stop after closing the TCP listener")
 	}
+}
+
+func transportTestHandler() http.Handler {
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /thread/fragment", func(w http.ResponseWriter, r *http.Request) { _, _ = io.WriteString(w, "Tomatoes and basil") })
+	mux.HandleFunc("POST /feedback/fragment", func(w http.ResponseWriter, r *http.Request) {
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, "bad form", http.StatusBadRequest)
+			return
+		}
+		vote := r.Form.Get("vote")
+		if vote != "up" && vote != "down" {
+			http.Error(w, "bad vote", http.StatusBadRequest)
+			return
+		}
+		http.SetCookie(w, &http.Cookie{Name: "feedback_" + r.Form.Get("id"), Value: vote, Path: "/"})
+		_, _ = io.WriteString(w, `aria-label="Positive feedback" aria-pressed="true"`)
+	})
+	mux.HandleFunc("GET /explore", func(w http.ResponseWriter, r *http.Request) {
+		if cookie, err := r.Cookie("feedback_maya"); err == nil && cookie.Value == "up" {
+			_, _ = io.WriteString(w, `aria-label="Positive feedback" aria-pressed="true"`)
+		}
+		if cookie, err := r.Cookie("feedback_elliot"); err == nil && cookie.Value == "down" {
+			_, _ = io.WriteString(w, `aria-label="Negative feedback" aria-pressed="true"`)
+		}
+	})
+	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = io.WriteString(w, `{"status":"ok"}`)
+	})
+	return mux
 }

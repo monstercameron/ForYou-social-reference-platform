@@ -1,56 +1,124 @@
 package main
 
 import (
-	"database/sql"
+	"context"
+	"errors"
 	"flag"
+	"fmt"
 	"log"
 	"os"
+	"os/signal"
+	"sort"
 	"strings"
-	"time"
+	"syscall"
 
-	"foryou.local/foryou/internal/server"
 	"foryou.local/foryou/internal/transport"
-	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/joho/godotenv"
 )
 
 func main() {
 	if err := godotenv.Load(); err != nil && !os.IsNotExist(err) {
-		log.Fatal("load .env: ", err)
+		log.Printf("load .env: %v", err)
+		os.Exit(1)
 	}
-	role := flag.String("role", "client", "server role: foundation, provider, replica, or client")
-	flag.Parse()
-	addr, ok := server.DefaultAddress(*role)
-	if !ok {
-		log.Fatal("invalid role: choose foundation, provider, replica, or client")
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	if err := run(ctx, os.Args[1:], os.Getenv, func(role, address string) { log.Printf("%s listening on %s", role, address) }); err != nil {
+		log.Print(err)
+		os.Exit(1)
 	}
-	rolePrefix := "FORYOU_" + strings.ToUpper(*role) + "_"
-	if value := os.Getenv(rolePrefix + "ADDR"); value != "" {
-		addr = value
+}
+
+func run(ctx context.Context, args []string, getenv func(string) string, onListen func(role, url string)) error {
+	flags := flag.NewFlagSet("foryou", flag.ContinueOnError)
+	flags.SetOutput(os.Stderr)
+	role := flags.String("role", "client", "server role or whole-process command")
+	if err := flags.Parse(args); err != nil {
+		return err
 	}
-	devMode := os.Getenv("FORYOU_DEV") == "1"
-	certFile, keyFile := os.Getenv("FORYOU_TLS_CERT"), os.Getenv("FORYOU_TLS_KEY")
-	if !devMode && (certFile == "" || keyFile == "") {
-		log.Fatal("set FORYOU_TLS_CERT and FORYOU_TLS_KEY to a certificate and private key, or FORYOU_DEV=1 for plain HTTP on loopback")
+	if command, ok := commands[*role]; ok {
+		return command(ctx, getenv)
 	}
-	var db *sql.DB
-	if url := os.Getenv(rolePrefix + "DATABASE_URL"); url != "" {
-		var err error
-		db, err = sql.Open("pgx", url)
-		if err != nil {
-			log.Fatal("configure database: ", err)
+	valid := append(append([]string(nil), roleOrder...), commandNames()...)
+	if _, ok := rolePorts[*role]; !ok {
+		return fmt.Errorf("invalid role %q; valid names: %s", *role, strings.Join(valid, ", "))
+	}
+	config, transportConfig, err := loadRoleConfig(*role, getenv)
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(config.DataDir, 0700); err != nil {
+		return fmt.Errorf("create data directory: %w", err)
+	}
+	svc, err := builders[*role](config)
+	if err != nil {
+		return fmt.Errorf("build %s: %w", *role, err)
+	}
+	listener, err := transport.Listen(transportConfig)
+	if err != nil {
+		_ = svc.Close()
+		return err
+	}
+	defer listener.Close()
+	if onListen != nil {
+		onListen(*role, listener.URL())
+	}
+	if config.Dev {
+		log.Printf("%s serves plain HTTP on loopback in dev mode; this is not for production", *role)
+	}
+	runCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	serveErrors := make(chan error, 1)
+	runErrors := make(chan error, 1)
+	go func() { serveErrors <- listener.Serve(runCtx, svc.Handler()) }()
+	go func() { runErrors <- svc.Run(runCtx) }()
+	var serveErr, runErr error
+	runFinished := false
+	for {
+		select {
+		case serveErr = <-serveErrors:
+			cancel()
+			if !runFinished {
+				runErr = <-runErrors
+			}
+			return finishService(svc, serveErr, runErr)
+		case runErr = <-runErrors:
+			runFinished = true
+			if runErr != nil {
+				cancel()
+				serveErr = <-serveErrors
+				return finishService(svc, serveErr, runErr)
+			}
+		case <-ctx.Done():
+			cancel()
+			serveErr = <-serveErrors
+			if !runFinished {
+				runErr = <-runErrors
+			}
+			return finishService(svc, serveErr, runErr)
 		}
-		defer db.Close()
-		db.SetMaxOpenConns(5)
-		db.SetConnMaxLifetime(30 * time.Minute)
 	}
-	handler := server.NewRole(*role, db)
-	if devMode {
-		log.Printf("%s listening on http://%s (dev mode: plain HTTP, loopback only)", *role, addr)
-		log.Fatal(transport.ListenAndServePlain(addr, handler))
+}
+
+func finishService(svc service, serveErr, runErr error) error {
+	closeErr := svc.Close()
+	if serveErr != nil && !errors.Is(serveErr, context.Canceled) {
+		return serveErr
 	}
-	log.Printf("%s listening on https://%s (HTTP/3 when available; HTTP/1.1 fallback)", *role, addr)
-	if err := transport.ListenAndServe(addr, certFile, keyFile, handler); err != nil {
-		log.Fatal(err)
+	if runErr != nil && !errors.Is(runErr, context.Canceled) {
+		return runErr
 	}
+	if closeErr != nil {
+		return closeErr
+	}
+	return nil
+}
+
+func commandNames() []string {
+	names := make([]string, 0, len(commands))
+	for name := range commands {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
 }
