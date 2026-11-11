@@ -1,0 +1,17 @@
+kill
+hurt
+shoot
+stab
+beat
+murder
+bomb
+burn
+strangle
+rape
+smash
+punch
+choke
+slit
+torch
+kick
+lynch

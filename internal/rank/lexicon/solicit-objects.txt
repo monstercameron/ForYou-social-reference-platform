@@ -1,0 +1,7 @@
+wallet
+recovery phrase
+seed phrase
+private key
+password
+passphrase
+mnemonic
