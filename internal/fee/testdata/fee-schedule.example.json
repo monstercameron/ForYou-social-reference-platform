@@ -1,0 +1,15 @@
+{
+  "status": "SYNTHETIC ONLY: public test keys, imaginary balances and test amounts. Not an activated schedule, funding proof, debit proof or deployment.",
+  "schedule": {
+    "profile_major": 2,
+    "profile_minor": 0,
+    "revision": 1,
+    "network": "bitcoin-mainnet",
+    "denomination": "millisatoshi",
+    "base_fee_base_units": "1",
+    "per_kib_fee_base_units": "1",
+    "effective_at": "2026-01-01T00:00:00Z",
+    "expires_at": "2027-01-01T00:00:00Z",
+    "schedule_id": "fyfs2:28f524f836f7e81dc358cf5d86711185cad127a876cec0b1d770db471a5dc854"
+  }
+}

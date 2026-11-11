@@ -1,0 +1,3 @@
+C:\Users\mreca\Desktop\ForYou-Social-Ecosystem-Specification\examples\settlement.example.json
+C:\Users\mreca\Desktop\ForYou-Social-Ecosystem-Specification\examples\fee-schedule.example.json
+C:\Users\mreca\Desktop\ForYou-Social-Ecosystem-Specification\examples\post-with-media-slots.json

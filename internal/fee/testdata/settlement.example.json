@@ -1,0 +1,550 @@
+{
+  "status": "SYNTHETIC ONLY: public test keys, imaginary deposits and recipients. The schedule amounts are fee schedule 1; every key, certificate, approval, witness and statement is a test fixture, and this manifest is not the genesis manifest of any network.",
+  "genesis_manifest": {
+    "release": "1.0",
+    "release_key_ids": [
+      "did:key:z6Mkf3cuJVj9Frb5QcR2P7qx8tB86LfzbVS1NaGKuYc7ppjM",
+      "did:key:z6MkfUA6q63QayZpLUtQTtotdTSD3VsTk6JNpMpCeJ7CJpb6",
+      "did:key:z6MkhkzxiZyrERq5s5RXGZRwboQ3eJhK9rgA7nvTTHP18VxC",
+      "did:key:z6Mkq9YUgmGe3uY4RBebSnCENnMkQvBLG1bYAdW3cyWn74YX",
+      "did:key:z6Mks9FrbHCWz1axuS2g8X323RZsJkqxi3e3e7c5B2c1PPKB"
+    ],
+    "release_threshold": 4,
+    "foundation_key_certificates": [
+      {
+        "foundation_id": "did:key:z6MktFovzcapNZyZBWzFJpCXf26B8XLKdXtwfwnXXFebPgzM",
+        "recipients": {
+          "bitcoin-mainnet": "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4",
+          "ethereum-mainnet": "0x5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a"
+        },
+        "issued_at": "2026-09-01T00:00:00Z",
+        "valid_from": "2026-10-01T00:00:00Z",
+        "valid_until": "2027-10-01T00:00:00Z",
+        "certificate_id": "fyfc2:7d1a8b9e734a6f97d64d75a316adfaa13b5585bfb9d433382f7164111d5bbd54",
+        "release_signatures": [
+          {
+            "release_key_id": "did:key:z6Mkf3cuJVj9Frb5QcR2P7qx8tB86LfzbVS1NaGKuYc7ppjM",
+            "signature": "qQkO3mqgCwcKNIKtlkEscmSr_oBarQMjr_ti-Ivn3vSmP4BIoArPIW7bVNkVqbAb8Xy5oFcJDE2y_TILJ3pLBA"
+          },
+          {
+            "release_key_id": "did:key:z6MkfUA6q63QayZpLUtQTtotdTSD3VsTk6JNpMpCeJ7CJpb6",
+            "signature": "PhBrnmtD-NNwIHwXSURHqtuql7ges9WfFzOLrNxR-YQJ-qNkX_F72lT46LPi0cNskYgGhUYkkasLwJh_FM89Cg"
+          },
+          {
+            "release_key_id": "did:key:z6MkhkzxiZyrERq5s5RXGZRwboQ3eJhK9rgA7nvTTHP18VxC",
+            "signature": "jYk1clYFrZn0hAmm-0lH1jFV1Doh5WiMCMGTYu4CgCqhHWHqpzVHl3nAC0pOQ5e_zrWrOvEvG3kY5WDhbu8NBQ"
+          },
+          {
+            "release_key_id": "did:key:z6Mkq9YUgmGe3uY4RBebSnCENnMkQvBLG1bYAdW3cyWn74YX",
+            "signature": "KCPGGAnBOzOGjd7FiqPtoASUE4fkVsW_rJbAa9tbJ1XVyPmoeH8FppCIoOgu1YcD3cmxTEYS2r7u1FGZeA1ZCw"
+          }
+        ]
+      }
+    ],
+    "fee_schedules": [
+      {
+        "profile_major": 2,
+        "profile_minor": 0,
+        "revision": 1,
+        "network": "bitcoin-mainnet",
+        "denomination": "millisatoshi",
+        "base_fee_base_units": "0",
+        "per_kib_fee_base_units": "136",
+        "effective_at": "2027-01-01T00:00:00Z",
+        "expires_at": "2027-07-01T00:00:00Z",
+        "schedule_id": "fyfs2:4c6b3daa8dd073011c7b347468b8c530413b37b9ecbabe79ad443ae1588a5ede"
+      },
+      {
+        "profile_major": 2,
+        "profile_minor": 0,
+        "revision": 1,
+        "network": "ethereum-mainnet",
+        "denomination": "wei",
+        "base_fee_base_units": "0",
+        "per_kib_fee_base_units": "48900000000",
+        "effective_at": "2027-01-01T00:00:00Z",
+        "expires_at": "2027-07-01T00:00:00Z",
+        "schedule_id": "fyfs2:8111419e42dd20bb0a02395af966a20c51a78c425bbbb585d4b29a53b66fb98d"
+      }
+    ],
+    "fee_schedule_approvals": [
+      {
+        "schedule_id": "fyfs2:4c6b3daa8dd073011c7b347468b8c530413b37b9ecbabe79ad443ae1588a5ede",
+        "approved_at": "2026-11-01T00:00:00Z",
+        "drift": false,
+        "release_signatures": [
+          {
+            "release_key_id": "did:key:z6Mkf3cuJVj9Frb5QcR2P7qx8tB86LfzbVS1NaGKuYc7ppjM",
+            "signature": "UaakqEmiSWt7aHQBSWnFq_l24e71zkxULk3PqAPVJaYvMBvHZCJtLzePHqWNoj1C3Ofxtdf3-qYxggQUZAZzDw"
+          },
+          {
+            "release_key_id": "did:key:z6MkfUA6q63QayZpLUtQTtotdTSD3VsTk6JNpMpCeJ7CJpb6",
+            "signature": "HyyG4o1lOy2pSQ8zWAK0Deh3FigaHwEuLYbc8ghi6xbi-2oZ_9o81j9iY6Fr8jtcJjx6fWsRdgbVQ3Xzv50KDg"
+          },
+          {
+            "release_key_id": "did:key:z6MkhkzxiZyrERq5s5RXGZRwboQ3eJhK9rgA7nvTTHP18VxC",
+            "signature": "x-QrM2tXFvjsWvnu7wyIa0h8_sZ1PBwlUthkBESIN3SUhZMohXp77Y6u4xsa0A1XdkdjwDWmwAKHeTVgwDn3Dw"
+          },
+          {
+            "release_key_id": "did:key:z6Mkq9YUgmGe3uY4RBebSnCENnMkQvBLG1bYAdW3cyWn74YX",
+            "signature": "xat35T_TW_WCPWjR5E19_9zcziU5NKxyy8pUDZRKqXhDOMrbqjay-UNZI1p435_SuQe0x0-rgP7DNkKteKKfBQ"
+          }
+        ]
+      },
+      {
+        "schedule_id": "fyfs2:8111419e42dd20bb0a02395af966a20c51a78c425bbbb585d4b29a53b66fb98d",
+        "approved_at": "2026-11-01T00:00:00Z",
+        "drift": false,
+        "release_signatures": [
+          {
+            "release_key_id": "did:key:z6Mkf3cuJVj9Frb5QcR2P7qx8tB86LfzbVS1NaGKuYc7ppjM",
+            "signature": "jE6EHB1oJU1M-eKk7EDdoVxzPJ1ai8osUUsEnrcpE-ggww1_NKfA-j6vb-9TZWG-0A6NzARuplOG8jvnUugOCg"
+          },
+          {
+            "release_key_id": "did:key:z6MkfUA6q63QayZpLUtQTtotdTSD3VsTk6JNpMpCeJ7CJpb6",
+            "signature": "U6VVIYfC56Dp4EeIGvAYeknpof7kaWPO0rvC0YF3o0a6VTuz_oinrWjhG9FIAsSb6xJTPC1NpK6W8c92mpn6Ag"
+          },
+          {
+            "release_key_id": "did:key:z6MkhkzxiZyrERq5s5RXGZRwboQ3eJhK9rgA7nvTTHP18VxC",
+            "signature": "syKoZHlSVJ6IJ3KG88frep71ju4gp1IZmO_VFE6uLsqcFF5rL-booO0SZOuWq_ac35nAwazMKTbXmZZm6IcYAw"
+          },
+          {
+            "release_key_id": "did:key:z6Mkq9YUgmGe3uY4RBebSnCENnMkQvBLG1bYAdW3cyWn74YX",
+            "signature": "AfUi-TYk7rgpzvHJzD1RrJi6HVy8jr83wFuA-CLE2hhlCZTfYry0TL33Ur6J_VQVtS-0Epz9HgUHsm_IW-TBDA"
+          }
+        ]
+      }
+    ],
+    "distribution_policy": {
+      "revision": 1,
+      "vault_share_bp": 5000,
+      "monitor_share_bp": 500,
+      "max_retention_years": 10,
+      "min_reports": 3,
+      "monitors": [
+        "did:key:z6Mkin4R28N2tfcsvUfuX52peTmvPGz99aA4585EtYvALN5W",
+        "did:key:z6Mkjsv23KiDw67aC9qfNVUcNwM19nj8GZPvEMMEBuv3ZpT3",
+        "did:key:z6MkksB6V1wxz1SWEgct2qdqVSk6a7E24fuifo62BgYFsEc6",
+        "did:key:z6MknRVAmZWhgiDdFgGcm6Q1npBZtsdA3Y5zU3p3fc1Ez4wo",
+        "did:key:z6MkrPuMzSSYYddw1BKtyrH5mMJzQmUX42Lr8eiKpsPVb3C1"
+      ],
+      "approved_at": "2026-10-01T00:00:00Z",
+      "effective_at": "2027-01-01T00:00:00Z",
+      "policy_id": "fydp2:1653998b4c4e2cc1ea65cfd738ebdf79ef631e711df09e202df3b617fb662a2e",
+      "release_signatures": [
+        {
+          "release_key_id": "did:key:z6Mkf3cuJVj9Frb5QcR2P7qx8tB86LfzbVS1NaGKuYc7ppjM",
+          "signature": "JTbi1IC7iOxldm7NmmmyAqxikyrkCm7KjolUYmMX1XH9g1mRH6cVQajhP1B-adcgkwXkq9YN3o0goy2B3dgTBw"
+        },
+        {
+          "release_key_id": "did:key:z6MkfUA6q63QayZpLUtQTtotdTSD3VsTk6JNpMpCeJ7CJpb6",
+          "signature": "YB-IwKJqE9aJJ5OelIBsQNAPAcZByzCIQGmKEGK5843vJiZIO12wSkMrgICuVyZfjiiQXQBiPOM_FdKIV4jUDg"
+        },
+        {
+          "release_key_id": "did:key:z6MkhkzxiZyrERq5s5RXGZRwboQ3eJhK9rgA7nvTTHP18VxC",
+          "signature": "hpsmTr3_W0hKj3OTqL8UMAmOKc_-YfMjFP2BY25pqQyoYp8oohil_WOIFvvrwGohNrwO0rsC4jaM58pZuC3cBg"
+        },
+        {
+          "release_key_id": "did:key:z6Mkq9YUgmGe3uY4RBebSnCENnMkQvBLG1bYAdW3cyWn74YX",
+          "signature": "S-E0OfqZR9qBb4bcs3CwiHHlXhJwk4NwcQGfBwnRTsKaaU0OJVIdJmtDUnwjrlCqMNDaBXaryLzDBm4dct0WAg"
+        }
+      ]
+    },
+    "signed_at": "2026-09-01T00:00:00Z",
+    "release_signatures": [
+      {
+        "release_key_id": "did:key:z6Mkf3cuJVj9Frb5QcR2P7qx8tB86LfzbVS1NaGKuYc7ppjM",
+        "signature": "WY35B3jN44O6GSfQu70jKYvC69W65jo6zuzkofBFD1wEE2hSKcwglpSINSukgb0tfCH5KpOcIPikwE8wKEJqCg"
+      },
+      {
+        "release_key_id": "did:key:z6MkfUA6q63QayZpLUtQTtotdTSD3VsTk6JNpMpCeJ7CJpb6",
+        "signature": "tglCqIebCu9RDwljcUm6SZzrauXt5UWlzRW9bSUDb_YSktSvJx6cyr5mvakcR9gu-tBIERqfvGTnOEyvKcB_Bw"
+      },
+      {
+        "release_key_id": "did:key:z6MkhkzxiZyrERq5s5RXGZRwboQ3eJhK9rgA7nvTTHP18VxC",
+        "signature": "YIOXPhjJhyACn5B4XhHkZBfLOFXBN1OBg0rH_vpHK97G_VlGBCnr3hjMkoNhUcFKJ1ZApaFT6rUl-xnnbMRoDA"
+      },
+      {
+        "release_key_id": "did:key:z6Mkq9YUgmGe3uY4RBebSnCENnMkQvBLG1bYAdW3cyWn74YX",
+        "signature": "ufQ-YodT2VFKlM_o3FK9JHyN__ZKKwD9J91jvRu_vToqMzfH2P1wdrCYVWhEu4qIOTLNd7X-OHo1a5uhY4elDA"
+      }
+    ]
+  },
+  "settlement_deposit_commitment_hex": "98845265d22fb22da22771e41817b6d0cdc4e18bf3b14b0563d88b87269b8d55",
+  "retention_declarations": [
+    {
+      "provider_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+      "retention_seconds": 315360000,
+      "payout_recipients": {
+        "bitcoin-mainnet": "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4"
+      },
+      "effective_at": "2026-12-01T00:00:00Z",
+      "declaration_id": "fyrd2:16cadc2610d20c84575d03a409c29beee0acf70fb6e963800814340d3acb17d1",
+      "provider_signature": "cXISY1ScrLHaEccQpXRkETP60e9MW7_8rxKDxmL5PuIENnbZ4Ax1YkG5Y0TPn9SJJOqp0dJHZR5_N1aVRArpAA"
+    },
+    {
+      "provider_id": "did:key:z6Mkjppjwd12cSzdhduNMf3reWgxgkUn7WFM3pnA5f3gFcLj",
+      "retention_seconds": 31536000,
+      "payout_recipients": {
+        "bitcoin-mainnet": "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4"
+      },
+      "effective_at": "2026-12-01T00:00:00Z",
+      "declaration_id": "fyrd2:a590de1916dcc224cb120b8713b961131d2414a7d2387432bd420242cacb989a",
+      "provider_signature": "NJvjPl4pjAwomJKV0uMH6m4-U8wBHyowGdy7alBYTlesan3kfzLlsWfzfJ0fBUCBLk6hTfmW5q71kFHecq5yBA"
+    }
+  ],
+  "receipt": {
+    "provider_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+    "author_id": "did:key:z6MkehRgf7yJbgaGfYsdoAsKdBPE3dj2CYhowQdcjqSJgvVd",
+    "message_id": "fy1:a61585d751d87c693cafd0126a624e0223c6241405ddcdbe2ef6a84e801938fc",
+    "receipt_id": "rArZ_ThjTaKSy-SsW0pvsxzYigfjcr8LkLI8bDH1q8U",
+    "quote_id": "fyfq2:1cf3e2d5c32116f59ea338ce39bc5dca632aab921f575dae2569c593836ac097",
+    "schedule_id": "fyfs2:4c6b3daa8dd073011c7b347468b8c530413b37b9ecbabe79ad443ae1588a5ede",
+    "network": "bitcoin-mainnet",
+    "amount_base_units": "136",
+    "authorization_at": "2027-01-05T00:00:00Z",
+    "issued_at": "2027-01-05T00:00:00Z",
+    "provider_signature": "NrdCG-B4FISkJQwLSoQzQ8uYPdYdwbEdWOstLyGY4ROJ_IlAgvnJAnlVhnAOLKdAmk7pIFkYkips6takDnmyDA"
+  },
+  "settlement_claim": {
+    "provider_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+    "network": "bitcoin-mainnet",
+    "sequence": 1,
+    "previous_claim_id": null,
+    "period_start": "2027-01-05T00:00:00Z",
+    "period_end": "2027-01-06T00:00:00Z",
+    "declaration_id": "fyrd2:16cadc2610d20c84575d03a409c29beee0acf70fb6e963800814340d3acb17d1",
+    "succession_id": null,
+    "receipt_count": 5,
+    "total_base_units": "10472",
+    "cumulative_base_units": "10472",
+    "receipts_root": "a3b611487ed295e46340f4132f3281d8c32e0e8dc9546776be535594c2e3cfa9",
+    "claim_id": "fysc2:a3854d69cc661226d0ec03420f6d0e892a2be098f7609e027231592ba199d8ae",
+    "provider_signature": "OcPmII9r9BQaZzkzV0UeFnOxGH9EK0Gg4AivCdMrXCgJ4nrCGi0qBNOTUb5f3G1-90t78KHSy7h1y__F4BHFCw"
+  },
+  "settlement_leaves": [
+    {
+      "receipt_hash": "3645f8212125b40cd567dc369ddd2875695456b90425f49f88e48e339de39366",
+      "schedule_id": "fyfs2:4c6b3daa8dd073011c7b347468b8c530413b37b9ecbabe79ad443ae1588a5ede",
+      "amount_base_units": "272",
+      "issued_at": "2027-01-05T00:00:00Z"
+    },
+    {
+      "receipt_hash": "4a015477011c42b11b3eb549e49bc3b164d7a397fe78ef5a47daa28c8ba7a797",
+      "schedule_id": "fyfs2:4c6b3daa8dd073011c7b347468b8c530413b37b9ecbabe79ad443ae1588a5ede",
+      "amount_base_units": "544",
+      "issued_at": "2027-01-05T00:00:00Z"
+    },
+    {
+      "receipt_hash": "cdb9ce4f1dd695e637a346b15009011bcf7b75c1c786ee19cbb27650024ceff4",
+      "schedule_id": "fyfs2:4c6b3daa8dd073011c7b347468b8c530413b37b9ecbabe79ad443ae1588a5ede",
+      "amount_base_units": "136",
+      "issued_at": "2027-01-05T00:00:00Z"
+    },
+    {
+      "receipt_hash": "e633f7c30294495f30181cc8f8ae26e6e701219375e2edd7f6f11abbd669b132",
+      "schedule_id": "fyfs2:4c6b3daa8dd073011c7b347468b8c530413b37b9ecbabe79ad443ae1588a5ede",
+      "amount_base_units": "9384",
+      "issued_at": "2027-01-05T00:00:00Z"
+    },
+    {
+      "receipt_hash": "f242973e7c3d4bfe916c9a1e0961af4a3216d616488ed7f63d0f5ca5f41fd25f",
+      "schedule_id": "fyfs2:4c6b3daa8dd073011c7b347468b8c530413b37b9ecbabe79ad443ae1588a5ede",
+      "amount_base_units": "136",
+      "issued_at": "2027-01-05T00:00:00Z"
+    }
+  ],
+  "settlement_proof": {
+    "claim": {
+      "provider_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+      "network": "bitcoin-mainnet",
+      "sequence": 1,
+      "previous_claim_id": null,
+      "period_start": "2027-01-05T00:00:00Z",
+      "period_end": "2027-01-06T00:00:00Z",
+      "declaration_id": "fyrd2:16cadc2610d20c84575d03a409c29beee0acf70fb6e963800814340d3acb17d1",
+      "succession_id": null,
+      "receipt_count": 5,
+      "total_base_units": "10472",
+      "cumulative_base_units": "10472",
+      "receipts_root": "a3b611487ed295e46340f4132f3281d8c32e0e8dc9546776be535594c2e3cfa9",
+      "claim_id": "fysc2:a3854d69cc661226d0ec03420f6d0e892a2be098f7609e027231592ba199d8ae",
+      "provider_signature": "OcPmII9r9BQaZzkzV0UeFnOxGH9EK0Gg4AivCdMrXCgJ4nrCGi0qBNOTUb5f3G1-90t78KHSy7h1y__F4BHFCw"
+    },
+    "leaf": {
+      "receipt_hash": "cdb9ce4f1dd695e637a346b15009011bcf7b75c1c786ee19cbb27650024ceff4",
+      "schedule_id": "fyfs2:4c6b3daa8dd073011c7b347468b8c530413b37b9ecbabe79ad443ae1588a5ede",
+      "amount_base_units": "136",
+      "issued_at": "2027-01-05T00:00:00Z"
+    },
+    "leaf_index": 2,
+    "audit_path": [
+      {
+        "hash": "241467ee23e134dc12fedbe4d01742f96a14b4e05e7ab849b8da5a8c79787bb0",
+        "sum": "9384"
+      },
+      {
+        "hash": "4169ce1ac99a643b218f85a6f61b6acd4afef55acb88a2863a9c8e4d9df08a4b",
+        "sum": "816"
+      },
+      {
+        "hash": "023c64d0693a3afe32859a0f279650f240d3a17d977d44a831eaafab76709a81",
+        "sum": "136"
+      }
+    ],
+    "witnesses": [
+      {
+        "witness_id": "did:key:z6MkrPuMzSSYYddw1BKtyrH5mMJzQmUX42Lr8eiKpsPVb3C1",
+        "claim_id": "fysc2:a3854d69cc661226d0ec03420f6d0e892a2be098f7609e027231592ba199d8ae",
+        "provider_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+        "network": "bitcoin-mainnet",
+        "sequence": 1,
+        "period_end": "2027-01-06T00:00:00Z",
+        "total_base_units": "10472",
+        "cumulative_base_units": "10472",
+        "receipts_root": "a3b611487ed295e46340f4132f3281d8c32e0e8dc9546776be535594c2e3cfa9",
+        "credit_base_units": "9989528",
+        "witnessed_at": "2027-01-06T12:00:00Z",
+        "witness_signature": "a46XqRyKAr3IuXZP_Yi3AIf5Q3fxilGqC22i4E_NPGLJEvSIpl2xvBjQDOgI-wdHVS84GOH_gK246Bzg8W_RCw"
+      },
+      {
+        "witness_id": "did:key:z6Mkin4R28N2tfcsvUfuX52peTmvPGz99aA4585EtYvALN5W",
+        "claim_id": "fysc2:a3854d69cc661226d0ec03420f6d0e892a2be098f7609e027231592ba199d8ae",
+        "provider_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+        "network": "bitcoin-mainnet",
+        "sequence": 1,
+        "period_end": "2027-01-06T00:00:00Z",
+        "total_base_units": "10472",
+        "cumulative_base_units": "10472",
+        "receipts_root": "a3b611487ed295e46340f4132f3281d8c32e0e8dc9546776be535594c2e3cfa9",
+        "credit_base_units": "9989528",
+        "witnessed_at": "2027-01-06T12:00:00Z",
+        "witness_signature": "3e8tEHfI-MX_H4Z5C2RGonAFMKItqfp2x7ntsdF5ZC93Pp8R-laiKgkufBlT7cHPo8aonflltG1Y8K2ygVUgDQ"
+      },
+      {
+        "witness_id": "did:key:z6Mkjsv23KiDw67aC9qfNVUcNwM19nj8GZPvEMMEBuv3ZpT3",
+        "claim_id": "fysc2:a3854d69cc661226d0ec03420f6d0e892a2be098f7609e027231592ba199d8ae",
+        "provider_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+        "network": "bitcoin-mainnet",
+        "sequence": 1,
+        "period_end": "2027-01-06T00:00:00Z",
+        "total_base_units": "10472",
+        "cumulative_base_units": "10472",
+        "receipts_root": "a3b611487ed295e46340f4132f3281d8c32e0e8dc9546776be535594c2e3cfa9",
+        "credit_base_units": "9989528",
+        "witnessed_at": "2027-01-06T12:00:00Z",
+        "witness_signature": "DU3wT0y8_jTHiE2lh0YyczA1XfaIHbChkH79t24bycA-GTlkQuI8PRf4F4dk1DvNW4kgDZNsrDuUFUkBko3gDA"
+      },
+      {
+        "witness_id": "did:key:z6MkksB6V1wxz1SWEgct2qdqVSk6a7E24fuifo62BgYFsEc6",
+        "claim_id": "fysc2:a3854d69cc661226d0ec03420f6d0e892a2be098f7609e027231592ba199d8ae",
+        "provider_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+        "network": "bitcoin-mainnet",
+        "sequence": 1,
+        "period_end": "2027-01-06T00:00:00Z",
+        "total_base_units": "10472",
+        "cumulative_base_units": "10472",
+        "receipts_root": "a3b611487ed295e46340f4132f3281d8c32e0e8dc9546776be535594c2e3cfa9",
+        "credit_base_units": "9989528",
+        "witnessed_at": "2027-01-06T12:00:00Z",
+        "witness_signature": "ap4ETAScoup7gU05BwDENd1aZAxkU6uQ7YmezDwZO917e9HbkQYxQY1KkmmFGqWzXnlEeG4-vBIVaYk9liXUCA"
+      }
+    ]
+  },
+  "second_claim": {
+    "provider_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+    "network": "bitcoin-mainnet",
+    "sequence": 2,
+    "previous_claim_id": "fysc2:a3854d69cc661226d0ec03420f6d0e892a2be098f7609e027231592ba199d8ae",
+    "period_start": "2027-01-12T00:00:00Z",
+    "period_end": "2027-01-13T00:00:00Z",
+    "declaration_id": "fyrd2:16cadc2610d20c84575d03a409c29beee0acf70fb6e963800814340d3acb17d1",
+    "succession_id": null,
+    "receipt_count": 1,
+    "total_base_units": "136",
+    "cumulative_base_units": "10608",
+    "receipts_root": "7f0b4118e1530800d11e80d9d412108ee17789bde19676fb134a856603a6cbd8",
+    "claim_id": "fysc2:8ba27d6ac595f657c428b78c6ae8a4ef7920edddb710aa5f939133107e9f5cf4",
+    "provider_signature": "-vLQw82y6Hh5xObvdHmCbXP6Bb3NQa--shxHXboNjnx4yZMxfW2nFr38CHTE_fa7LRLzxYeCqVwyRZ3DyR0BAA"
+  },
+  "second_claim_witnesses": [
+    {
+      "witness_id": "did:key:z6MkrPuMzSSYYddw1BKtyrH5mMJzQmUX42Lr8eiKpsPVb3C1",
+      "claim_id": "fysc2:8ba27d6ac595f657c428b78c6ae8a4ef7920edddb710aa5f939133107e9f5cf4",
+      "provider_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+      "network": "bitcoin-mainnet",
+      "sequence": 2,
+      "period_end": "2027-01-13T00:00:00Z",
+      "total_base_units": "136",
+      "cumulative_base_units": "10608",
+      "receipts_root": "7f0b4118e1530800d11e80d9d412108ee17789bde19676fb134a856603a6cbd8",
+      "credit_base_units": "9989392",
+      "witnessed_at": "2027-01-13T12:00:00Z",
+      "witness_signature": "vcBkyteXp0nmgN4RrB32yyF0aVdePVGHLybOQkiyk0iuZlbhnr4ld5Dv1XD7-nJlnvaipPT670_EkGSXXYGSCg"
+    },
+    {
+      "witness_id": "did:key:z6Mkin4R28N2tfcsvUfuX52peTmvPGz99aA4585EtYvALN5W",
+      "claim_id": "fysc2:8ba27d6ac595f657c428b78c6ae8a4ef7920edddb710aa5f939133107e9f5cf4",
+      "provider_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+      "network": "bitcoin-mainnet",
+      "sequence": 2,
+      "period_end": "2027-01-13T00:00:00Z",
+      "total_base_units": "136",
+      "cumulative_base_units": "10608",
+      "receipts_root": "7f0b4118e1530800d11e80d9d412108ee17789bde19676fb134a856603a6cbd8",
+      "credit_base_units": "9989392",
+      "witnessed_at": "2027-01-13T12:00:00Z",
+      "witness_signature": "27YGWAfFmNTQn59SYNW4zxzHFefAPSX_EwsedUqRQSJDv_DG_f8cx4d3BpZIzTrdtLzb5m81SpfH_zEg5WVvBw"
+    },
+    {
+      "witness_id": "did:key:z6Mkjsv23KiDw67aC9qfNVUcNwM19nj8GZPvEMMEBuv3ZpT3",
+      "claim_id": "fysc2:8ba27d6ac595f657c428b78c6ae8a4ef7920edddb710aa5f939133107e9f5cf4",
+      "provider_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+      "network": "bitcoin-mainnet",
+      "sequence": 2,
+      "period_end": "2027-01-13T00:00:00Z",
+      "total_base_units": "136",
+      "cumulative_base_units": "10608",
+      "receipts_root": "7f0b4118e1530800d11e80d9d412108ee17789bde19676fb134a856603a6cbd8",
+      "credit_base_units": "9989392",
+      "witnessed_at": "2027-01-13T12:00:00Z",
+      "witness_signature": "fs9I_kzqSZJRnA9SBi7Y1cbt0X1CrxeSeKVJk8NUBl4Ne-MHgf7qkO17DggIybhgMRPkBKBodmCTkWn0kv8ICA"
+    },
+    {
+      "witness_id": "did:key:z6MkksB6V1wxz1SWEgct2qdqVSk6a7E24fuifo62BgYFsEc6",
+      "claim_id": "fysc2:8ba27d6ac595f657c428b78c6ae8a4ef7920edddb710aa5f939133107e9f5cf4",
+      "provider_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+      "network": "bitcoin-mainnet",
+      "sequence": 2,
+      "period_end": "2027-01-13T00:00:00Z",
+      "total_base_units": "136",
+      "cumulative_base_units": "10608",
+      "receipts_root": "7f0b4118e1530800d11e80d9d412108ee17789bde19676fb134a856603a6cbd8",
+      "credit_base_units": "9989392",
+      "witnessed_at": "2027-01-13T12:00:00Z",
+      "witness_signature": "q6fbpT-9pTv1WCsc3o01UQ1vWxs-3hAVTkq3aE4alGVvrVf88F6u-wVa7nHw2uyFo6lkrZ4AIpwx1L1iFMlRDQ"
+    },
+    {
+      "witness_id": "did:key:z6MknRVAmZWhgiDdFgGcm6Q1npBZtsdA3Y5zU3p3fc1Ez4wo",
+      "claim_id": "fysc2:8ba27d6ac595f657c428b78c6ae8a4ef7920edddb710aa5f939133107e9f5cf4",
+      "provider_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+      "network": "bitcoin-mainnet",
+      "sequence": 2,
+      "period_end": "2027-01-13T00:00:00Z",
+      "total_base_units": "136",
+      "cumulative_base_units": "10608",
+      "receipts_root": "7f0b4118e1530800d11e80d9d412108ee17789bde19676fb134a856603a6cbd8",
+      "credit_base_units": "9989392",
+      "witnessed_at": "2027-01-13T12:00:00Z",
+      "witness_signature": "aPW5dPCGFzIi0o1ND6ISlBEfMGDnCX0oWoIvbZhPgBcfeptOxEtrWmvntTIj7c12Fpa7HDPSQ-nxnW0qqFM1Cw"
+    }
+  ],
+  "settlement_refusal_example": {
+    "witness_id": "did:key:z6MkrPuMzSSYYddw1BKtyrH5mMJzQmUX42Lr8eiKpsPVb3C1",
+    "claim_id": "fysc2:dd758891f1f325147a1ad219c7f5366184ab89208db6b4ecb1a113f9a695850e",
+    "provider_id": "did:key:z6MkuPRZNRtUkrhBZ1L119iGW2rmWNhPiqovUGDfhSzBDC1D",
+    "network": "bitcoin-mainnet",
+    "sequence": 1,
+    "reason": "bad_period",
+    "refused_at": "2027-01-13T00:00:00Z",
+    "witness_signature": "sZ1nN1Z3_newW8q8GgfiH67XH-ThOVi0B4ECpsij88N3xiotU7heqxpR0QglFpt7FAamDbHzzz5wvjUc6NV2Ag"
+  },
+  "foundation_log_head": {
+    "foundation_id": "did:key:z6MktFovzcapNZyZBWzFJpCXf26B8XLKdXtwfwnXXFebPgzM",
+    "size": 1,
+    "root": "fc0c8abdb2df1ed2e6d03d5da956a503839103e8a0a6d2c557e3d8d99174b6a5",
+    "signed_at": "2027-01-20T00:00:00Z",
+    "foundation_signature": "TFdTscVwnmYdTYuMo2sgVVWeZToyxsAYtMTkyN2sn0eWvgH6tCmKI_qeJv1dxnPTlhKLLvXwA-hmYzH7ls--Bg"
+  },
+  "vault_receipt": {
+    "foundation_id": "did:key:z6MktFovzcapNZyZBWzFJpCXf26B8XLKdXtwfwnXXFebPgzM",
+    "message_id": "fy1:a61585d751d87c693cafd0126a624e0223c6241405ddcdbe2ef6a84e801938fc",
+    "stored_at": "2027-01-07T00:00:00Z",
+    "foundation_signature": "UEFJHG_WoWk0u0Lai01EFHuQNvxKlkxGkbQyJUQEOHWRFAi3_nEcEVZ6wJqcRlxvNk9jmPNCa9Lz2-ayumY6Cw"
+  },
+  "distribution_statement": {
+    "foundation_id": "did:key:z6MktFovzcapNZyZBWzFJpCXf26B8XLKdXtwfwnXXFebPgzM",
+    "network": "bitcoin-mainnet",
+    "period_start": "2027-01-01T00:00:00Z",
+    "period_end": "2027-04-01T00:00:00Z",
+    "policy_id": "fydp2:1653998b4c4e2cc1ea65cfd738ebdf79ef631e711df09e202df3b617fb662a2e",
+    "received_base_units": "11424",
+    "distributed_base_units": "0",
+    "monitor_payments": [
+      {
+        "monitor_id": "did:key:z6Mkin4R28N2tfcsvUfuX52peTmvPGz99aA4585EtYvALN5W",
+        "amount_base_units": "114",
+        "payout": null
+      },
+      {
+        "monitor_id": "did:key:z6Mkjsv23KiDw67aC9qfNVUcNwM19nj8GZPvEMMEBuv3ZpT3",
+        "amount_base_units": "114",
+        "payout": null
+      },
+      {
+        "monitor_id": "did:key:z6MkksB6V1wxz1SWEgct2qdqVSk6a7E24fuifo62BgYFsEc6",
+        "amount_base_units": "114",
+        "payout": null
+      },
+      {
+        "monitor_id": "did:key:z6MknRVAmZWhgiDdFgGcm6Q1npBZtsdA3Y5zU3p3fc1Ez4wo",
+        "amount_base_units": "114",
+        "payout": null
+      },
+      {
+        "monitor_id": "did:key:z6MkrPuMzSSYYddw1BKtyrH5mMJzQmUX42Lr8eiKpsPVb3C1",
+        "amount_base_units": "114",
+        "payout": null
+      }
+    ],
+    "entries": [
+      {
+        "provider_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+        "settled_fees_base_units": "10608",
+        "quality_bp": 9800,
+        "report_ids": [],
+        "retention_years": 1,
+        "proven_quarters": 0,
+        "amount_base_units": "2858",
+        "accrued_base_units": "2858",
+        "payout": null
+      },
+      {
+        "provider_id": "did:key:z6Mkjppjwd12cSzdhduNMf3reWgxgkUn7WFM3pnA5f3gFcLj",
+        "settled_fees_base_units": "816",
+        "quality_bp": 9000,
+        "report_ids": [],
+        "retention_years": 1,
+        "proven_quarters": 0,
+        "amount_base_units": "201",
+        "accrued_base_units": "201",
+        "payout": null
+      }
+    ],
+    "statement_id": "fyds2:79bd581f9293f49eac5b1e71e4ebf3bbda26e5477b1aba9183b87d388e7f1b81",
+    "foundation_signature": "20r6vXKWaoyEtr4IsVSYjsz08hzDc1e4vMeUq9IAIvCtIm330wjeu7QHTa7aaBU8Dn3hhBmVQL3mPy1hsrs5AQ"
+  },
+  "vault_status": {
+    "foundation_id": "did:key:z6MktFovzcapNZyZBWzFJpCXf26B8XLKdXtwfwnXXFebPgzM",
+    "period_start": "2027-01-01T00:00:00Z",
+    "period_end": "2027-04-01T00:00:00Z",
+    "record_count": 6,
+    "stored_bytes": 81234,
+    "funding": [
+      {
+        "network": "bitcoin-mainnet",
+        "received_base_units": "6000",
+        "spent_base_units": "1000"
+      }
+    ],
+    "foundation_signature": "TJOx8JajnvGRg5hXawuNIrkyrM0DTASc9zCq857zezFdOr2jobsJpp7QPcwUYq0k9KpGoyMO-S-MkInbfZg_CQ"
+  },
+  "key_succession": {
+    "old_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+    "new_id": "did:key:z6MkuPRZNRtUkrhBZ1L119iGW2rmWNhPiqovUGDfhSzBDC1D",
+    "effective_at": "2027-06-01T00:00:00Z",
+    "succession_id": "fyks2:c5437bb4980ba3cf570384385c5114eb7d37d5fe9fec8780adaf5ec4ebff0889",
+    "old_signature": "olbn5jpKTybjrk80iQA2_heJiZ0WgpIsu2EmxSejobLJYmlimFBLR897WU269jRjVBUqcwV658uwbW1JDN_TAA",
+    "new_signature": "P37jik0znP9ekg9IOrXGbnLts8dd1VjmsSvOEEIY9fMXuom4elaL-e9pnJ-uD4ARqEc0RHny9SCJhCCtKADrCA"
+  }
+}
