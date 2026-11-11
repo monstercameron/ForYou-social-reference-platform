@@ -35,6 +35,7 @@ Lower layers never import higher ones. `internal/wire` holds data only; rules li
 | 1 | `internal/quality` | Quality reports and the reference score |
 | 1 | `internal/distribution` | Distribution policy and the quarterly statement calculation |
 | 1 | `internal/faux` | The faux chain: ledger, HTTP API and Go client |
+| 1 | `internal/names` | The optional display names profile: `NameRecord`, name rules, current-record selection |
 | 1 | `internal/store` | Storage interfaces and the in-memory implementation with a JSON journal |
 | 2 | `internal/devnet` | Deterministic dev identities and the dev genesis |
 | 2 | `internal/funding` | Deposit invoices, credits, balances, custody cap, withdrawals |
@@ -46,6 +47,7 @@ Lower layers never import higher ones. `internal/wire` holds data only; rules li
 | 3 | `internal/sdk` | Go client for every service, with the full verification a client must do |
 | 4 | `internal/server` | The client web application |
 | any | `internal/transport`, `cmd/foryou` | Listeners and the role runner |
+| any | `cmd/foryou-seed` | Publishes demo content to a running dev network through the real flow |
 
 ### Roles and ports
 
