@@ -1,0 +1,3520 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://foryousocial.network/schemas/operations.schema.json",
+  "title": "Operations 1.0 schema library",
+  "description": "Reference a named definition. These schemas define structure for specification release 1.0; the owning documents define semantics. A schema alone activates no payment rail, schedule or deployment.",
+  "$defs": {
+    "IntakeForm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operator_id",
+        "form_id",
+        "form_version",
+        "kind",
+        "fields",
+        "instructions"
+      ],
+      "properties": {
+        "operator_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "form_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,128}$"
+        },
+        "form_version": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        },
+        "kind": {
+          "enum": [
+            "notice",
+            "rights_request",
+            "appeal"
+          ]
+        },
+        "fields": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "required",
+              "max_utf8_bytes",
+              "description"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{1,128}$"
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "max_utf8_bytes": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 4096
+              },
+              "description": {
+                "type": "string",
+                "maxLength": 2048
+              }
+            }
+          }
+        },
+        "instructions": {
+          "type": "string",
+          "maxLength": 65536
+        }
+      }
+    },
+    "IntakeRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operator_id",
+        "request_id",
+        "accept_until",
+        "kind",
+        "form_id",
+        "form_version",
+        "form_digest",
+        "locators",
+        "statement",
+        "evidence_refs",
+        "regional_fields"
+      ],
+      "properties": {
+        "operator_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "request_id": {
+          "$ref": "#/$defs/FinancialNonce"
+        },
+        "accept_until": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "kind": {
+          "enum": [
+            "notice",
+            "rights_request",
+            "appeal"
+          ]
+        },
+        "form_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,128}$"
+        },
+        "form_version": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        },
+        "form_digest": {
+          "$ref": "#/$defs/FinancialHash"
+        },
+        "locators": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "type": "string",
+            "maxLength": 4096
+          }
+        },
+        "statement": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "evidence_refs": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "locator",
+              "description"
+            ],
+            "properties": {
+              "locator": {
+                "type": "string",
+                "maxLength": 4096
+              },
+              "description": {
+                "type": "string",
+                "maxLength": 2048
+              }
+            }
+          }
+        },
+        "regional_fields": {
+          "type": "object",
+          "maxProperties": 32,
+          "propertyNames": {
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "additionalProperties": {
+            "type": "string",
+            "maxLength": 4096
+          }
+        },
+        "contact": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "address"
+          ],
+          "properties": {
+            "kind": {
+              "const": "email"
+            },
+            "address": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 320,
+              "pattern": "^[\\u0021-\\u007e]+$"
+            }
+          }
+        },
+        "requested_right": {
+          "enum": [
+            "access",
+            "export",
+            "correction",
+            "erasure",
+            "restriction"
+          ]
+        },
+        "decision_reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "rights_request"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "requested_right"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "requested_right"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "appeal"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "decision_reference"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "decision_reference"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "IntakeReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operator_id",
+        "request_id",
+        "request_digest",
+        "received_at",
+        "status",
+        "signature"
+      ],
+      "properties": {
+        "operator_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "request_id": {
+          "$ref": "#/$defs/FinancialNonce"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/FinancialHash"
+        },
+        "received_at": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "status": {
+          "const": "received"
+        },
+        "signature": {
+          "$ref": "#/$defs/FinancialSignature"
+        }
+      }
+    },
+    "IntakeRecovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request",
+        "receipt"
+      ],
+      "properties": {
+        "request": {
+          "$ref": "#/$defs/IntakeRequest"
+        },
+        "receipt": {
+          "$ref": "#/$defs/IntakeReceipt"
+        }
+      }
+    },
+    "OperatorManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operator_id",
+        "manifest_version",
+        "issued_at",
+        "expires_at",
+        "service_roles",
+        "service_endpoints",
+        "supported_profiles",
+        "policy_url",
+        "policy_digest",
+        "legal_contact",
+        "abuse_contact",
+        "privacy_contact",
+        "appeal_url",
+        "markets_assessed",
+        "signature"
+      ],
+      "properties": {
+        "operator_id": {
+          "type": "string",
+          "pattern": "^did:key:z6Mk[1-9A-HJ-NP-Za-km-z]+$"
+        },
+        "manifest_version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "issued_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+        },
+        "service_roles": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "ingress",
+              "storage",
+              "index",
+              "client",
+              "payments",
+              "vault"
+            ]
+          },
+          "uniqueItems": true,
+          "minItems": 1
+        },
+        "service_endpoints": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https://"
+          },
+          "uniqueItems": true,
+          "minItems": 1
+        },
+        "supported_profiles": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "minItems": 1
+        },
+        "policy_url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https://"
+        },
+        "policy_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "legal_contact": {
+          "type": "string",
+          "minLength": 1
+        },
+        "abuse_contact": {
+          "type": "string",
+          "minLength": 1
+        },
+        "privacy_contact": {
+          "type": "string",
+          "minLength": 1
+        },
+        "appeal_url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https://"
+        },
+        "markets_assessed": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "signature": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{86}$"
+        }
+      }
+    },
+    "ExportEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "media_type",
+        "byte_length",
+        "sha256",
+        "category"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "media_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "byte_length": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2097152
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "category": {
+          "enum": [
+            "public_message",
+            "service_evidence"
+          ]
+        }
+      }
+    },
+    "ServiceChallenge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "challenge",
+        "service_id",
+        "author_id",
+        "method",
+        "resource",
+        "body_hash",
+        "expires_at"
+      ],
+      "properties": {
+        "challenge": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{43}$"
+        },
+        "service_id": {
+          "type": "string",
+          "pattern": "^did:key:z6Mk[1-9A-HJ-NP-Za-km-z]+$"
+        },
+        "author_id": {
+          "type": "string",
+          "pattern": "^did:key:z6Mk[1-9A-HJ-NP-Za-km-z]+$"
+        },
+        "method": {
+          "enum": [
+            "GET",
+            "POST",
+            "PUT"
+          ]
+        },
+        "resource": {
+          "type": "string",
+          "pattern": "^/v1/[^?#]+$"
+        },
+        "body_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+        }
+      }
+    },
+    "ExportRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "author_id",
+        "request_id"
+      ],
+      "properties": {
+        "author_id": {
+          "type": "string",
+          "pattern": "^did:key:z6Mk[1-9A-HJ-NP-Za-km-z]+$"
+        },
+        "request_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{43}$"
+        }
+      }
+    },
+    "ExportPartManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile",
+        "snapshot_id",
+        "author_id",
+        "created_at",
+        "part_number",
+        "entries"
+      ],
+      "properties": {
+        "profile": {
+          "const": "ForYouExportPart-1"
+        },
+        "snapshot_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{43}$"
+        },
+        "author_id": {
+          "type": "string",
+          "pattern": "^did:key:z6Mk[1-9A-HJ-NP-Za-km-z]+$"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+        },
+        "part_number": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 999
+        },
+        "entries": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "$ref": "#/$defs/ExportEntry"
+          }
+        }
+      }
+    },
+    "ExportPartDescriptor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "part_number",
+        "byte_length",
+        "sha256",
+        "entry_count"
+      ],
+      "properties": {
+        "part_number": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 999
+        },
+        "byte_length": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4194304
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "entry_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        }
+      }
+    },
+    "ExportSetIndex": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile",
+        "snapshot_id",
+        "author_id",
+        "created_at",
+        "total_entries",
+        "total_bytes",
+        "coverage",
+        "parts"
+      ],
+      "properties": {
+        "profile": {
+          "const": "ForYouExportSet-1"
+        },
+        "snapshot_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{43}$"
+        },
+        "author_id": {
+          "type": "string",
+          "pattern": "^did:key:z6Mk[1-9A-HJ-NP-Za-km-z]+$"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+        },
+        "total_entries": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000000
+        },
+        "total_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "parts": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "$ref": "#/$defs/ExportPartDescriptor"
+          }
+        },
+        "coverage": {
+          "enum": [
+            "complete",
+            "incomplete",
+            "unknown"
+          ]
+        }
+      }
+    },
+    "ExportSetManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile",
+        "snapshot_id",
+        "author_id",
+        "created_at",
+        "total_entries",
+        "total_bytes",
+        "coverage",
+        "parts",
+        "source_index_sha256",
+        "signature"
+      ],
+      "properties": {
+        "profile": {
+          "const": "ForYouExportSet-1"
+        },
+        "snapshot_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{43}$"
+        },
+        "author_id": {
+          "type": "string",
+          "pattern": "^did:key:z6Mk[1-9A-HJ-NP-Za-km-z]+$"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+        },
+        "total_entries": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000000
+        },
+        "total_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "parts": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "$ref": "#/$defs/ExportPartDescriptor"
+          }
+        },
+        "signature": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{86}$"
+        },
+        "source_index_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "coverage": {
+          "enum": [
+            "complete",
+            "incomplete",
+            "unknown"
+          ]
+        }
+      }
+    },
+    "ExportJobStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "job_id",
+        "status"
+      ],
+      "properties": {
+        "job_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{43}$"
+        },
+        "status": {
+          "enum": [
+            "preparing",
+            "ready",
+            "invalidated",
+            "failed"
+          ]
+        },
+        "snapshot_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{43}$"
+        },
+        "index_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+        },
+        "ready_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "ready"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "required": [
+              "snapshot_id",
+              "index_sha256",
+              "expires_at",
+              "ready_at"
+            ]
+          },
+          "else": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "snapshot_id"
+                  ]
+                },
+                {
+                  "required": [
+                    "index_sha256"
+                  ]
+                },
+                {
+                  "required": [
+                    "expires_at"
+                  ]
+                },
+                {
+                  "required": [
+                    "ready_at"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "ExportJobCreated": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "job_id",
+        "status"
+      ],
+      "properties": {
+        "job_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{43}$"
+        },
+        "status": {
+          "enum": [
+            "preparing",
+            "ready"
+          ]
+        }
+      }
+    },
+    "NameRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Optional display names profile. Structural check only: NFC, general-category, White_Space, UTF-8 byte-length, name_id, signature and clock rules require semantic validation.",
+      "required": [
+        "name_id",
+        "author_id",
+        "display_name",
+        "issued_at",
+        "previous_name_id",
+        "author_signature"
+      ],
+      "properties": {
+        "name_id": {
+          "type": "string",
+          "pattern": "^fynr2:[0-9a-f]{64}$"
+        },
+        "author_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "display_name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^(?!.*  )[^\\s\\u0000-\\u001f\\u007f-\\u009f](?:[^\\u0000-\\u001f\\u007f-\\u009f]*[^\\s\\u0000-\\u001f\\u007f-\\u009f])?$",
+          "description": "Null withdraws the name. Otherwise 1 to 64 Unicode scalar values, at most 256 UTF-8 bytes, already NFC, one line, no Cc, Cf, Cn, Co, Cs, Zl or Zp character, no leading or trailing White_Space and no two consecutive spaces."
+        },
+        "issued_at": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "previous_name_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^fynr2:[0-9a-f]{64}$"
+        },
+        "author_signature": {
+          "$ref": "#/$defs/FinancialSignature"
+        }
+      }
+    },
+    "NamesPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Optional display names profile. Advisory lookup candidates from one holder; never a claim of uniqueness.",
+      "required": [
+        "names",
+        "next_cursor"
+      ],
+      "properties": {
+        "names": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 50,
+          "items": {
+            "$ref": "#/$defs/NameRecord"
+          },
+          "description": "Current, non-withdrawn records ordered by author_id ascending by ASCII, one per author; enforce semantically."
+        },
+        "next_cursor": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Za-z0-9_-]{43}$",
+          "minLength": 43,
+          "maxLength": 43
+        }
+      }
+    },
+    "PublicReadError": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "policy_restricted",
+            "legal_restricted",
+            "restricted",
+            "not_found",
+            "retention_expired",
+            "export_expired",
+            "invalid_query",
+            "invalid_cursor",
+            "unauthenticated",
+            "id_collision",
+            "id_mismatch",
+            "not_ready",
+            "export_invalidated",
+            "quote_conflict",
+            "stale_state",
+            "message_too_large",
+            "invalid_message",
+            "rate_limited",
+            "unavailable",
+            "insufficient_balance",
+            "delegation_revoked",
+            "quote_expired",
+            "bad_authorization",
+            "request_conflict",
+            "range_not_satisfiable",
+            "too_large"
+          ]
+        },
+        "retry_after_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400
+        }
+      }
+    },
+    "FinancialAmount": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)$",
+      "maxLength": 78
+    },
+    "FinancialPositiveAmount": {
+      "type": "string",
+      "pattern": "^[1-9][0-9]*$",
+      "maxLength": 78
+    },
+    "FinancialTime": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    },
+    "FinancialDid": {
+      "type": "string",
+      "pattern": "^did:key:z6Mk[1-9A-HJ-NP-Za-km-z]+$"
+    },
+    "FinancialSignature": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{86}$"
+    },
+    "FinancialNonce": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{43}$"
+    },
+    "FinancialHash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "ProviderServiceEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider_id",
+        "author_id",
+        "evidence_type",
+        "payload",
+        "provider_signature"
+      ],
+      "properties": {
+        "provider_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "author_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "evidence_type": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        },
+        "payload": {
+          "type": "string",
+          "maxLength": 1048576
+        },
+        "provider_signature": {
+          "$ref": "#/$defs/FinancialSignature"
+        }
+      }
+    },
+    "ServiceEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "object"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "fee_schedule",
+            "fee_quote",
+            "receipt",
+            "terms",
+            "prepared_admission",
+            "provider_evidence",
+            "deposit_invoice",
+            "deposit_credit",
+            "balance_status"
+          ]
+        },
+        "object": {}
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "terms"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "object": {
+                "type": "string"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "object": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "FeeSchedule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schedule_id",
+        "profile_major",
+        "profile_minor",
+        "revision",
+        "network",
+        "denomination",
+        "base_fee_base_units",
+        "per_kib_fee_base_units",
+        "effective_at",
+        "expires_at"
+      ],
+      "properties": {
+        "schedule_id": {
+          "type": "string",
+          "pattern": "^fyfs2:[0-9a-f]{64}$"
+        },
+        "profile_major": {
+          "type": "integer",
+          "const": 2
+        },
+        "profile_minor": {
+          "const": 0
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "network": {
+          "enum": [
+            "bitcoin-mainnet",
+            "ethereum-mainnet"
+          ]
+        },
+        "denomination": {
+          "enum": [
+            "millisatoshi",
+            "wei"
+          ]
+        },
+        "base_fee_base_units": {
+          "$ref": "#/$defs/FinancialAmount"
+        },
+        "per_kib_fee_base_units": {
+          "$ref": "#/$defs/FinancialAmount"
+        },
+        "effective_at": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "expires_at": {
+          "$ref": "#/$defs/FinancialTime"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "network": {
+                "const": "bitcoin-mainnet"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "denomination": {
+                "const": "millisatoshi"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "network": {
+                "const": "ethereum-mainnet"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "denomination": {
+                "const": "wei"
+              }
+            }
+          }
+        },
+        {
+          "not": {
+            "properties": {
+              "base_fee_base_units": {
+                "const": "0"
+              },
+              "per_kib_fee_base_units": {
+                "const": "0"
+              }
+            },
+            "required": [
+              "base_fee_base_units",
+              "per_kib_fee_base_units"
+            ]
+          }
+        }
+      ]
+    },
+    "FeePreflightRequest": {
+      "type": "object",
+      "description": "The intent is cross-validated against the launch schema's AdmissionRequest intent; the authorization covers the computed message ID, provider, author and schedule.",
+      "additionalProperties": false,
+      "required": [
+        "provider_id",
+        "author_id",
+        "schedule_id",
+        "intent",
+        "authorization"
+      ],
+      "properties": {
+        "provider_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "author_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "schedule_id": {
+          "type": "string",
+          "pattern": "^fyfs2:[0-9a-f]{64}$"
+        },
+        "intent": {
+          "type": "object"
+        },
+        "authorization": {
+          "$ref": "#/$defs/FinancialSignature"
+        }
+      }
+    },
+    "FeeQuote": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider_id",
+        "author_id",
+        "message_id",
+        "schedule_id",
+        "quote_id",
+        "billable_bytes",
+        "network",
+        "amount_base_units",
+        "preflight_at",
+        "expires_at",
+        "provider_signature"
+      ],
+      "properties": {
+        "provider_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "author_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "message_id": {
+          "type": "string",
+          "pattern": "^fy1:[0-9a-f]{64}$"
+        },
+        "schedule_id": {
+          "type": "string",
+          "pattern": "^fyfs2:[0-9a-f]{64}$"
+        },
+        "quote_id": {
+          "type": "string",
+          "pattern": "^fyfq2:[0-9a-f]{64}$"
+        },
+        "billable_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1048576
+        },
+        "network": {
+          "enum": [
+            "bitcoin-mainnet",
+            "ethereum-mainnet"
+          ]
+        },
+        "amount_base_units": {
+          "$ref": "#/$defs/FinancialPositiveAmount"
+        },
+        "preflight_at": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "expires_at": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "provider_signature": {
+          "$ref": "#/$defs/FinancialSignature"
+        }
+      }
+    },
+    "DepositRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider_id",
+        "author_id",
+        "network",
+        "amount_chain_units",
+        "request_id",
+        "not_after"
+      ],
+      "properties": {
+        "provider_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "author_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "network": {
+          "enum": [
+            "bitcoin-mainnet",
+            "ethereum-mainnet"
+          ]
+        },
+        "amount_chain_units": {
+          "$ref": "#/$defs/FinancialPositiveAmount"
+        },
+        "request_id": {
+          "$ref": "#/$defs/FinancialNonce"
+        },
+        "not_after": {
+          "$ref": "#/$defs/FinancialTime"
+        }
+      }
+    },
+    "DepositInvoice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "deposit_id",
+        "provider_id",
+        "author_id",
+        "network",
+        "amount_chain_units",
+        "recipient",
+        "issued_at",
+        "expires_at",
+        "provider_signature"
+      ],
+      "properties": {
+        "deposit_id": {
+          "type": "string",
+          "pattern": "^fydi2:[0-9a-f]{64}$"
+        },
+        "provider_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "author_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "network": {
+          "enum": [
+            "bitcoin-mainnet",
+            "ethereum-mainnet"
+          ]
+        },
+        "amount_chain_units": {
+          "$ref": "#/$defs/FinancialPositiveAmount"
+        },
+        "recipient": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[\\u0021-\\u007e]+$"
+        },
+        "issued_at": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "expires_at": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "provider_signature": {
+          "$ref": "#/$defs/FinancialSignature"
+        }
+      }
+    },
+    "DepositTransfer": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "network",
+            "txid",
+            "output_index"
+          ],
+          "properties": {
+            "network": {
+              "const": "bitcoin-mainnet"
+            },
+            "txid": {
+              "$ref": "#/$defs/FinancialHash"
+            },
+            "output_index": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "network",
+            "tx_hash"
+          ],
+          "properties": {
+            "network": {
+              "const": "ethereum-mainnet"
+            },
+            "tx_hash": {
+              "$ref": "#/$defs/FinancialHash"
+            }
+          }
+        }
+      ]
+    },
+    "DepositProof": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "An untrusted chain lookup hint, not proof of ownership, finality, payment or authorization.",
+      "required": [
+        "provider_id",
+        "author_id",
+        "deposit_id",
+        "transfer"
+      ],
+      "properties": {
+        "provider_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "author_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "deposit_id": {
+          "type": "string",
+          "pattern": "^fydi2:[0-9a-f]{64}$"
+        },
+        "transfer": {
+          "$ref": "#/$defs/DepositTransfer"
+        }
+      }
+    },
+    "DepositCredit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "credit_id",
+        "provider_id",
+        "author_id",
+        "deposit_id",
+        "network",
+        "transfer",
+        "amount_chain_units",
+        "amount_accounting_units",
+        "credit_sequence",
+        "credited_at",
+        "provider_signature"
+      ],
+      "properties": {
+        "credit_id": {
+          "type": "string",
+          "pattern": "^fydc2:[0-9a-f]{64}$"
+        },
+        "provider_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "author_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "deposit_id": {
+          "type": "string",
+          "pattern": "^fydi2:[0-9a-f]{64}$"
+        },
+        "network": {
+          "enum": [
+            "bitcoin-mainnet",
+            "ethereum-mainnet"
+          ]
+        },
+        "transfer": {
+          "$ref": "#/$defs/DepositTransfer"
+        },
+        "amount_chain_units": {
+          "$ref": "#/$defs/FinancialPositiveAmount"
+        },
+        "amount_accounting_units": {
+          "$ref": "#/$defs/FinancialPositiveAmount"
+        },
+        "credit_sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "credited_at": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "provider_signature": {
+          "$ref": "#/$defs/FinancialSignature"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "network": {
+                "const": "bitcoin-mainnet"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "transfer": {
+                "properties": {
+                  "network": {
+                    "const": "bitcoin-mainnet"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "network": {
+                "const": "ethereum-mainnet"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "transfer": {
+                "properties": {
+                  "network": {
+                    "const": "ethereum-mainnet"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "BalanceStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Provider assertion of a private liability; not proof of custody, ownership, finality, completeness or solvency.",
+      "required": [
+        "provider_id",
+        "author_id",
+        "network",
+        "denomination",
+        "available",
+        "frozen",
+        "reserved",
+        "revision",
+        "updated_at",
+        "provider_signature"
+      ],
+      "properties": {
+        "provider_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "author_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "network": {
+          "enum": [
+            "bitcoin-mainnet",
+            "ethereum-mainnet"
+          ]
+        },
+        "denomination": {
+          "enum": [
+            "millisatoshi",
+            "wei"
+          ]
+        },
+        "available": {
+          "$ref": "#/$defs/FinancialAmount"
+        },
+        "frozen": {
+          "$ref": "#/$defs/FinancialAmount"
+        },
+        "reserved": {
+          "$ref": "#/$defs/FinancialAmount"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "updated_at": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "provider_signature": {
+          "$ref": "#/$defs/FinancialSignature"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "network": {
+                "const": "bitcoin-mainnet"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "denomination": {
+                "const": "millisatoshi"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "network": {
+                "const": "ethereum-mainnet"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "denomination": {
+                "const": "wei"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "QualityReport": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Signed monitor assertions; count and timing relations, sample verification and source trust require semantic validation.",
+      "required": [
+        "report_id",
+        "monitor_id",
+        "provider_id",
+        "period_start",
+        "period_end",
+        "created_at",
+        "methodology_digest",
+        "observations_digest",
+        "sample_seed",
+        "sample_seed_commitment",
+        "sample_coverage",
+        "availability_attempts",
+        "availability_successes",
+        "retrieval_attempts",
+        "retrieval_passes",
+        "restore_attempts",
+        "restore_passes",
+        "latency_p50_ms",
+        "latency_p95_ms",
+        "latency_p99_ms",
+        "replica_operators",
+        "independent_controllers",
+        "sponsors",
+        "conflicts",
+        "monitor_signature",
+        "sample_frame_digest"
+      ],
+      "properties": {
+        "report_id": {
+          "type": "string",
+          "pattern": "^fyqr2:[0-9a-f]{64}$"
+        },
+        "monitor_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "provider_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "period_start": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "period_end": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "created_at": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "methodology_digest": {
+          "$ref": "#/$defs/FinancialHash"
+        },
+        "observations_digest": {
+          "$ref": "#/$defs/FinancialHash"
+        },
+        "sample_seed": {
+          "$ref": "#/$defs/FinancialNonce"
+        },
+        "sample_seed_commitment": {
+          "$ref": "#/$defs/FinancialHash"
+        },
+        "sample_coverage": {
+          "enum": [
+            "complete",
+            "incomplete",
+            "unknown"
+          ]
+        },
+        "availability_attempts": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "availability_successes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "retrieval_attempts": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "retrieval_passes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "restore_attempts": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "restore_passes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "latency_p50_ms": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 86400000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "latency_p95_ms": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 86400000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "latency_p99_ms": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 86400000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "replica_operators": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "independent_controllers": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "sponsors": {
+          "type": "array",
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/FinancialDid"
+          }
+        },
+        "conflicts": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "monitor_signature": {
+          "$ref": "#/$defs/FinancialSignature"
+        },
+        "sample_frame_digest": {
+          "$ref": "#/$defs/FinancialHash"
+        }
+      }
+    },
+    "QualityObservationSet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider_id",
+        "monitor_id",
+        "period_start",
+        "period_end",
+        "observations"
+      ],
+      "properties": {
+        "provider_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "monitor_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "period_start": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "period_end": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "observations": {
+          "type": "array",
+          "maxItems": 10000,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "message_id",
+              "started_at",
+              "duration_ms",
+              "outcome",
+              "http_status",
+              "within_limits"
+            ],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "availability",
+                  "retrieval",
+                  "restore"
+                ]
+              },
+              "message_id": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^fy1:[0-9a-f]{64}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "started_at": {
+                "$ref": "#/$defs/FinancialTime"
+              },
+              "duration_ms": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 86400000
+              },
+              "outcome": {
+                "enum": [
+                  "pass",
+                  "fail",
+                  "restricted",
+                  "rate_limited",
+                  "unavailable",
+                  "unknown"
+                ]
+              },
+              "http_status": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 599
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "within_limits": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    },
+    "FeeScheduleApproval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schedule_id",
+        "approved_at",
+        "drift",
+        "release_signatures"
+      ],
+      "properties": {
+        "schedule_id": {
+          "type": "string",
+          "pattern": "^fyfs2:[0-9a-f]{64}$"
+        },
+        "approved_at": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "drift": {
+          "type": "boolean"
+        },
+        "release_signatures": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "release_key_id",
+              "signature"
+            ],
+            "properties": {
+              "release_key_id": {
+                "$ref": "#/$defs/FinancialDid"
+              },
+              "signature": {
+                "$ref": "#/$defs/FinancialSignature"
+              }
+            }
+          },
+          "description": "Sorted by release_key_id, each key once; at least the release threshold of the set in force at the signed time MUST verify."
+        }
+      }
+    },
+    "SettlementLeaf": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt_hash",
+        "schedule_id",
+        "amount_base_units",
+        "issued_at"
+      ],
+      "properties": {
+        "receipt_hash": {
+          "$ref": "#/$defs/FinancialHash"
+        },
+        "schedule_id": {
+          "type": "string",
+          "pattern": "^fyfs2:[0-9a-f]{64}$"
+        },
+        "amount_base_units": {
+          "$ref": "#/$defs/FinancialPositiveAmount"
+        },
+        "issued_at": {
+          "$ref": "#/$defs/FinancialTime"
+        }
+      }
+    },
+    "SettlementClaim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "provider_id",
+        "network",
+        "sequence",
+        "previous_claim_id",
+        "period_start",
+        "period_end",
+        "declaration_id",
+        "succession_id",
+        "receipt_count",
+        "total_base_units",
+        "cumulative_base_units",
+        "receipts_root",
+        "provider_signature"
+      ],
+      "properties": {
+        "claim_id": {
+          "type": "string",
+          "pattern": "^fysc2:[0-9a-f]{64}$"
+        },
+        "provider_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "network": {
+          "enum": [
+            "bitcoin-mainnet",
+            "ethereum-mainnet"
+          ]
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "previous_claim_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^fysc2:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "period_start": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "period_end": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "declaration_id": {
+          "type": "string",
+          "pattern": "^fyrd2:[0-9a-f]{64}$"
+        },
+        "succession_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^fyks2:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "receipt_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "total_base_units": {
+          "$ref": "#/$defs/FinancialPositiveAmount"
+        },
+        "cumulative_base_units": {
+          "$ref": "#/$defs/FinancialPositiveAmount"
+        },
+        "receipts_root": {
+          "$ref": "#/$defs/FinancialHash"
+        },
+        "provider_signature": {
+          "$ref": "#/$defs/FinancialSignature"
+        }
+      },
+      "description": "previous_claim_id is null exactly when sequence is 1; the period is at most 7 days; enforce semantically."
+    },
+    "SettlementProof": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim",
+        "leaf",
+        "leaf_index",
+        "audit_path",
+        "witnesses"
+      ],
+      "properties": {
+        "claim": {
+          "$ref": "#/$defs/SettlementClaim"
+        },
+        "leaf": {
+          "$ref": "#/$defs/SettlementLeaf"
+        },
+        "leaf_index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "audit_path": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 14,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "hash",
+              "sum"
+            ],
+            "properties": {
+              "hash": {
+                "$ref": "#/$defs/FinancialHash"
+              },
+              "sum": {
+                "$ref": "#/$defs/FinancialAmount"
+              }
+            }
+          }
+        },
+        "witnesses": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 512,
+          "items": {
+            "$ref": "#/$defs/SettlementWitness"
+          }
+        },
+        "chain": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1000,
+          "items": {
+            "$ref": "#/$defs/SettlementClaim"
+          }
+        }
+      }
+    },
+    "DistributionPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy_id",
+        "revision",
+        "vault_share_bp",
+        "monitor_share_bp",
+        "max_retention_years",
+        "min_reports",
+        "monitors",
+        "approved_at",
+        "effective_at",
+        "release_signatures"
+      ],
+      "properties": {
+        "policy_id": {
+          "type": "string",
+          "pattern": "^fydp2:[0-9a-f]{64}$"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "vault_share_bp": {
+          "type": "integer",
+          "minimum": 2500,
+          "maximum": 10000
+        },
+        "monitor_share_bp": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "max_retention_years": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "min_reports": {
+          "type": "integer",
+          "minimum": 3,
+          "maximum": 1000
+        },
+        "monitors": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 256,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/FinancialDid"
+          }
+        },
+        "approved_at": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "effective_at": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "release_signatures": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "release_key_id",
+              "signature"
+            ],
+            "properties": {
+              "release_key_id": {
+                "$ref": "#/$defs/FinancialDid"
+              },
+              "signature": {
+                "$ref": "#/$defs/FinancialSignature"
+              }
+            }
+          },
+          "description": "Sorted by release_key_id, each key once; at least the release threshold of the set in force at the signed time MUST verify."
+        }
+      }
+    },
+    "DistributionStatement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "statement_id",
+        "foundation_id",
+        "network",
+        "period_start",
+        "period_end",
+        "policy_id",
+        "received_base_units",
+        "distributed_base_units",
+        "monitor_payments",
+        "entries",
+        "foundation_signature"
+      ],
+      "properties": {
+        "statement_id": {
+          "type": "string",
+          "pattern": "^fyds2:[0-9a-f]{64}$"
+        },
+        "foundation_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "network": {
+          "enum": [
+            "bitcoin-mainnet",
+            "ethereum-mainnet"
+          ]
+        },
+        "period_start": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "period_end": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "policy_id": {
+          "type": "string",
+          "pattern": "^fydp2:[0-9a-f]{64}$"
+        },
+        "received_base_units": {
+          "$ref": "#/$defs/FinancialAmount"
+        },
+        "distributed_base_units": {
+          "$ref": "#/$defs/FinancialAmount"
+        },
+        "monitor_payments": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 256,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "monitor_id",
+              "amount_base_units",
+              "payout"
+            ],
+            "properties": {
+              "monitor_id": {
+                "$ref": "#/$defs/FinancialDid"
+              },
+              "amount_base_units": {
+                "$ref": "#/$defs/FinancialAmount"
+              },
+              "payout": {
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/DepositTransfer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "entries": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 100000,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "provider_id",
+              "settled_fees_base_units",
+              "quality_bp",
+              "report_ids",
+              "retention_years",
+              "proven_quarters",
+              "amount_base_units",
+              "accrued_base_units",
+              "payout"
+            ],
+            "properties": {
+              "provider_id": {
+                "$ref": "#/$defs/FinancialDid"
+              },
+              "settled_fees_base_units": {
+                "$ref": "#/$defs/FinancialAmount"
+              },
+              "quality_bp": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 10000
+              },
+              "report_ids": {
+                "type": "array",
+                "minItems": 0,
+                "maxItems": 4096,
+                "items": {
+                  "type": "string",
+                  "pattern": "^fyqr2:[0-9a-f]{64}$"
+                },
+                "uniqueItems": true
+              },
+              "retention_years": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000
+              },
+              "proven_quarters": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "amount_base_units": {
+                "$ref": "#/$defs/FinancialAmount"
+              },
+              "accrued_base_units": {
+                "$ref": "#/$defs/FinancialAmount"
+              },
+              "payout": {
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/DepositTransfer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "foundation_signature": {
+          "$ref": "#/$defs/FinancialSignature"
+        }
+      }
+    },
+    "RetentionDeclaration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "declaration_id",
+        "provider_id",
+        "retention_seconds",
+        "payout_recipients",
+        "effective_at",
+        "provider_signature"
+      ],
+      "properties": {
+        "declaration_id": {
+          "type": "string",
+          "pattern": "^fyrd2:[0-9a-f]{64}$"
+        },
+        "provider_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "retention_seconds": {
+          "type": "integer",
+          "minimum": 31536000,
+          "maximum": 9007199254740991
+        },
+        "payout_recipients": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "bitcoin-mainnet": {
+              "type": "string",
+              "minLength": 26,
+              "maxLength": 90,
+              "pattern": "^[A-Za-z0-9]+$"
+            },
+            "ethereum-mainnet": {
+              "type": "string",
+              "pattern": "^0x[0-9a-f]{40}$"
+            }
+          }
+        },
+        "effective_at": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "provider_signature": {
+          "$ref": "#/$defs/FinancialSignature"
+        }
+      }
+    },
+    "SettlementWitness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "witness_id",
+        "claim_id",
+        "provider_id",
+        "network",
+        "sequence",
+        "period_end",
+        "total_base_units",
+        "cumulative_base_units",
+        "receipts_root",
+        "credit_base_units",
+        "witnessed_at",
+        "witness_signature"
+      ],
+      "properties": {
+        "witness_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "claim_id": {
+          "type": "string",
+          "pattern": "^fysc2:[0-9a-f]{64}$"
+        },
+        "provider_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "network": {
+          "enum": [
+            "bitcoin-mainnet",
+            "ethereum-mainnet"
+          ]
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "period_end": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "total_base_units": {
+          "$ref": "#/$defs/FinancialPositiveAmount"
+        },
+        "cumulative_base_units": {
+          "$ref": "#/$defs/FinancialPositiveAmount"
+        },
+        "receipts_root": {
+          "$ref": "#/$defs/FinancialHash"
+        },
+        "credit_base_units": {
+          "$ref": "#/$defs/FinancialAmount"
+        },
+        "witnessed_at": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "witness_signature": {
+          "$ref": "#/$defs/FinancialSignature"
+        }
+      }
+    },
+    "FoundationKeyCertificate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "certificate_id",
+        "foundation_id",
+        "recipients",
+        "issued_at",
+        "valid_from",
+        "valid_until",
+        "release_signatures"
+      ],
+      "properties": {
+        "certificate_id": {
+          "type": "string",
+          "pattern": "^fyfc2:[0-9a-f]{64}$"
+        },
+        "foundation_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "recipients": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "bitcoin-mainnet",
+            "ethereum-mainnet"
+          ],
+          "properties": {
+            "bitcoin-mainnet": {
+              "type": "string",
+              "minLength": 26,
+              "maxLength": 90,
+              "pattern": "^[A-Za-z0-9]+$"
+            },
+            "ethereum-mainnet": {
+              "type": "string",
+              "pattern": "^0x[0-9a-f]{40}$"
+            }
+          }
+        },
+        "issued_at": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "valid_from": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "valid_until": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "release_signatures": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "release_key_id",
+              "signature"
+            ],
+            "properties": {
+              "release_key_id": {
+                "$ref": "#/$defs/FinancialDid"
+              },
+              "signature": {
+                "$ref": "#/$defs/FinancialSignature"
+              }
+            }
+          },
+          "description": "Sorted by release_key_id, each key once; at least the release threshold of the set in force at the signed time MUST verify."
+        }
+      },
+      "description": "valid_from is at least 30 days after issued_at except in the genesis manifest; valid_until is at most 366 days after valid_from."
+    },
+    "VaultStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "foundation_id",
+        "period_start",
+        "period_end",
+        "record_count",
+        "stored_bytes",
+        "funding",
+        "foundation_signature"
+      ],
+      "properties": {
+        "foundation_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "period_start": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "period_end": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "record_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "stored_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "funding": {
+          "type": "array",
+          "maxItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "network",
+              "received_base_units",
+              "spent_base_units"
+            ],
+            "properties": {
+              "network": {
+                "enum": [
+                  "bitcoin-mainnet",
+                  "ethereum-mainnet"
+                ]
+              },
+              "received_base_units": {
+                "$ref": "#/$defs/FinancialAmount"
+              },
+              "spent_base_units": {
+                "$ref": "#/$defs/FinancialAmount"
+              }
+            }
+          }
+        },
+        "foundation_signature": {
+          "$ref": "#/$defs/FinancialSignature"
+        }
+      }
+    },
+    "FoundationKeyClosure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "foundation_id",
+        "closed_at",
+        "head",
+        "voided",
+        "release_signatures"
+      ],
+      "properties": {
+        "foundation_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "closed_at": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "head": {
+          "$ref": "#/$defs/FoundationLogHead"
+        },
+        "voided": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 100000,
+          "items": {
+            "$ref": "#/$defs/FinancialHash"
+          },
+          "uniqueItems": true
+        },
+        "release_signatures": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "release_key_id",
+              "signature"
+            ],
+            "properties": {
+              "release_key_id": {
+                "$ref": "#/$defs/FinancialDid"
+              },
+              "signature": {
+                "$ref": "#/$defs/FinancialSignature"
+              }
+            }
+          },
+          "description": "Sorted by release_key_id, each key once; at least the release threshold of the set in force at the signed time MUST verify."
+        }
+      }
+    },
+    "FoundationLogEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "index",
+        "kind",
+        "object_hash"
+      ],
+      "properties": {
+        "index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "kind": {
+          "enum": [
+            "vault_receipt",
+            "statement",
+            "vault_status"
+          ]
+        },
+        "object_hash": {
+          "$ref": "#/$defs/FinancialHash"
+        }
+      }
+    },
+    "VaultReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "foundation_id",
+        "message_id",
+        "stored_at",
+        "foundation_signature"
+      ],
+      "properties": {
+        "foundation_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "message_id": {
+          "type": "string",
+          "pattern": "^fy1:[0-9a-f]{64}$"
+        },
+        "stored_at": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "foundation_signature": {
+          "$ref": "#/$defs/FinancialSignature"
+        }
+      }
+    },
+    "GenesisManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "release",
+        "release_key_ids",
+        "release_threshold",
+        "foundation_key_certificates",
+        "fee_schedules",
+        "fee_schedule_approvals",
+        "distribution_policy",
+        "signed_at",
+        "release_signatures"
+      ],
+      "properties": {
+        "release": {
+          "const": "1.0"
+        },
+        "release_key_ids": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/FinancialDid"
+          }
+        },
+        "release_threshold": {
+          "type": "integer",
+          "minimum": 4,
+          "maximum": 64
+        },
+        "foundation_key_certificates": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/FoundationKeyCertificate"
+          }
+        },
+        "fee_schedules": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "$ref": "#/$defs/FeeSchedule"
+          }
+        },
+        "fee_schedule_approvals": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "$ref": "#/$defs/FeeScheduleApproval"
+          }
+        },
+        "distribution_policy": {
+          "$ref": "#/$defs/DistributionPolicy"
+        },
+        "signed_at": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "release_signatures": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "release_key_id",
+              "signature"
+            ],
+            "properties": {
+              "release_key_id": {
+                "$ref": "#/$defs/FinancialDid"
+              },
+              "signature": {
+                "$ref": "#/$defs/FinancialSignature"
+              }
+            }
+          },
+          "description": "Sorted by release_key_id, each key once; at least the release threshold of the set in force at the signed time MUST verify."
+        }
+      },
+      "description": "release_threshold is at least two-thirds of release_key_ids, rounded up; enforce semantically."
+    },
+    "WithdrawalRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider_id",
+        "author_id",
+        "network",
+        "amount_base_units",
+        "recipient",
+        "request_id"
+      ],
+      "properties": {
+        "provider_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "author_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "network": {
+          "enum": [
+            "bitcoin-mainnet",
+            "ethereum-mainnet"
+          ]
+        },
+        "amount_base_units": {
+          "$ref": "#/$defs/FinancialPositiveAmount"
+        },
+        "recipient": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 26,
+              "maxLength": 90,
+              "pattern": "^[A-Za-z0-9]+$"
+            },
+            {
+              "type": "string",
+              "pattern": "^0x[0-9a-f]{40}$"
+            }
+          ]
+        },
+        "request_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{43}$"
+        }
+      }
+    },
+    "WithdrawalStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider_id",
+        "author_id",
+        "network",
+        "amount_base_units",
+        "recipient",
+        "request_id",
+        "status",
+        "transfer",
+        "updated_at",
+        "provider_signature"
+      ],
+      "properties": {
+        "provider_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "author_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "network": {
+          "enum": [
+            "bitcoin-mainnet",
+            "ethereum-mainnet"
+          ]
+        },
+        "amount_base_units": {
+          "$ref": "#/$defs/FinancialPositiveAmount"
+        },
+        "recipient": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 26,
+              "maxLength": 90,
+              "pattern": "^[A-Za-z0-9]+$"
+            },
+            {
+              "type": "string",
+              "pattern": "^0x[0-9a-f]{40}$"
+            }
+          ]
+        },
+        "request_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{43}$"
+        },
+        "status": {
+          "enum": [
+            "pending",
+            "sent",
+            "failed"
+          ]
+        },
+        "transfer": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/DepositTransfer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "updated_at": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "provider_signature": {
+          "$ref": "#/$defs/FinancialSignature"
+        }
+      }
+    },
+    "FoundationLogHead": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "foundation_id",
+        "size",
+        "root",
+        "signed_at",
+        "foundation_signature"
+      ],
+      "properties": {
+        "foundation_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "root": {
+          "$ref": "#/$defs/FinancialHash"
+        },
+        "signed_at": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "foundation_signature": {
+          "$ref": "#/$defs/FinancialSignature"
+        }
+      }
+    },
+    "FoundationLogProof": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "index",
+        "size",
+        "audit_path"
+      ],
+      "properties": {
+        "index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "audit_path": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/FinancialHash"
+          }
+        }
+      }
+    },
+    "FoundationLogPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entries",
+        "head"
+      ],
+      "properties": {
+        "entries": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 1000,
+          "items": {
+            "$ref": "#/$defs/FoundationLogEntry"
+          }
+        },
+        "head": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/FoundationLogHead"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "SettlementClaimsPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claims"
+      ],
+      "properties": {
+        "claims": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/SettlementClaim"
+          }
+        }
+      }
+    },
+    "SettlementLeavesPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "offset",
+        "leaves"
+      ],
+      "properties": {
+        "claim_id": {
+          "type": "string",
+          "pattern": "^fysc2:[0-9a-f]{64}$"
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "leaves": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 2000,
+          "items": {
+            "$ref": "#/$defs/SettlementLeaf"
+          }
+        }
+      }
+    },
+    "RetentionDeclarationsPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "declarations"
+      ],
+      "properties": {
+        "declarations": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 1000,
+          "items": {
+            "$ref": "#/$defs/RetentionDeclaration"
+          }
+        }
+      }
+    },
+    "ReleaseKeySetUpdate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "update_id",
+        "sequence",
+        "previous_update_id",
+        "release_key_ids",
+        "release_threshold",
+        "prior_objects",
+        "effective_at",
+        "release_signatures"
+      ],
+      "properties": {
+        "update_id": {
+          "type": "string",
+          "pattern": "^fyku2:[0-9a-f]{64}$"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "previous_update_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^fyku2:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "release_key_ids": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/FinancialDid"
+          }
+        },
+        "release_threshold": {
+          "type": "integer",
+          "minimum": 4,
+          "maximum": 64
+        },
+        "prior_objects": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 100000,
+          "items": {
+            "$ref": "#/$defs/FinancialHash"
+          },
+          "uniqueItems": true
+        },
+        "effective_at": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "release_signatures": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "release_key_id",
+              "signature"
+            ],
+            "properties": {
+              "release_key_id": {
+                "$ref": "#/$defs/FinancialDid"
+              },
+              "signature": {
+                "$ref": "#/$defs/FinancialSignature"
+              }
+            }
+          },
+          "description": "Sorted by release_key_id, each key once; at least the release threshold of the set in force at the signed time MUST verify."
+        }
+      },
+      "description": "Signed by the threshold of the previous set. The threshold is at least two-thirds of the set, rounded up."
+    },
+    "FoundationCertificatesPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "certificates",
+        "closures",
+        "key_set_updates"
+      ],
+      "properties": {
+        "certificates": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/FoundationKeyCertificate"
+          }
+        },
+        "closures": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/FoundationKeyClosure"
+          }
+        },
+        "key_set_updates": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/ReleaseKeySetUpdate"
+          }
+        }
+      }
+    },
+    "FeeSchedulesPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schedules"
+      ],
+      "properties": {
+        "schedules": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 1000,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "schedule",
+              "approval"
+            ],
+            "properties": {
+              "schedule": {
+                "$ref": "#/$defs/FeeSchedule"
+              },
+              "approval": {
+                "$ref": "#/$defs/FeeScheduleApproval"
+              }
+            }
+          }
+        }
+      }
+    },
+    "DistributionPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policies",
+        "statements"
+      ],
+      "properties": {
+        "policies": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/DistributionPolicy"
+          }
+        },
+        "statements": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/DistributionStatement"
+          }
+        }
+      }
+    },
+    "VaultStatusPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "statuses"
+      ],
+      "properties": {
+        "statuses": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/VaultStatus"
+          }
+        }
+      }
+    },
+    "QualityReportsPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reports"
+      ],
+      "properties": {
+        "reports": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 4096,
+          "items": {
+            "$ref": "#/$defs/QualityReport"
+          }
+        }
+      }
+    },
+    "SettlementWitnessesPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "witnesses"
+      ],
+      "properties": {
+        "witnesses": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 512,
+          "items": {
+            "$ref": "#/$defs/SettlementWitness"
+          }
+        }
+      }
+    },
+    "SettlementRefusal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "witness_id",
+        "claim_id",
+        "provider_id",
+        "network",
+        "sequence",
+        "reason",
+        "refused_at",
+        "witness_signature"
+      ],
+      "properties": {
+        "witness_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "claim_id": {
+          "type": "string",
+          "pattern": "^fysc2:[0-9a-f]{64}$"
+        },
+        "provider_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "network": {
+          "enum": [
+            "bitcoin-mainnet",
+            "ethereum-mainnet"
+          ]
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "reason": {
+          "enum": [
+            "bad_signature",
+            "bad_chain",
+            "bad_period",
+            "bad_leaf",
+            "duplicate_receipt",
+            "bad_totals",
+            "unfunded",
+            "unknown_provider_key"
+          ]
+        },
+        "refused_at": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "witness_signature": {
+          "$ref": "#/$defs/FinancialSignature"
+        }
+      }
+    },
+    "MonitorWitnessesPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "witnesses",
+        "refusals",
+        "holds",
+        "claims"
+      ],
+      "properties": {
+        "witnesses": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 1000,
+          "items": {
+            "$ref": "#/$defs/SettlementWitness"
+          }
+        },
+        "refusals": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 1000,
+          "items": {
+            "$ref": "#/$defs/SettlementRefusal"
+          }
+        },
+        "holds": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 1000,
+          "items": {
+            "$ref": "#/$defs/SettlementHold"
+          }
+        },
+        "claims": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 1000,
+          "items": {
+            "$ref": "#/$defs/SettlementClaim"
+          }
+        }
+      }
+    },
+    "EquivocationsPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "proofs"
+      ],
+      "properties": {
+        "proofs": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 1000,
+          "items": {
+            "$ref": "#/$defs/EquivocationProof"
+          }
+        }
+      }
+    },
+    "EquivocationProof": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claims",
+        "predecessor",
+        "successions"
+      ],
+      "properties": {
+        "claims": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "$ref": "#/$defs/SettlementClaim"
+          }
+        },
+        "predecessor": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/SettlementClaim"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "successions": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 2,
+          "items": {
+            "$ref": "#/$defs/KeySuccession"
+          }
+        }
+      }
+    },
+    "KeySuccession": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "succession_id",
+        "old_id",
+        "new_id",
+        "effective_at",
+        "old_signature",
+        "new_signature"
+      ],
+      "description": "The KeySuccession of launch.schema.json. old_id and new_id MUST differ; enforce semantically.",
+      "properties": {
+        "succession_id": {
+          "type": "string",
+          "pattern": "^fyks2:[0-9a-f]{64}$"
+        },
+        "old_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "new_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "effective_at": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "old_signature": {
+          "$ref": "#/$defs/FinancialSignature"
+        },
+        "new_signature": {
+          "$ref": "#/$defs/FinancialSignature"
+        }
+      }
+    },
+    "VaultDelivery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "message",
+        "proof"
+      ],
+      "properties": {
+        "message": {
+          "type": "object"
+        },
+        "proof": {
+          "$ref": "#/$defs/SettlementProof"
+        }
+      },
+      "description": "message is a complete public TransportMessage of the launch schema."
+    },
+    "FoundationLogHeadsPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "heads"
+      ],
+      "properties": {
+        "heads": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 1000,
+          "items": {
+            "$ref": "#/$defs/FoundationLogHead"
+          }
+        }
+      }
+    },
+    "SettlementHold": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "witness_id",
+        "provider_id",
+        "network",
+        "sequence",
+        "claim_ids",
+        "held_at",
+        "witness_signature"
+      ],
+      "properties": {
+        "witness_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "provider_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "network": {
+          "enum": [
+            "bitcoin-mainnet",
+            "ethereum-mainnet"
+          ]
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "claim_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^fysc2:[0-9a-f]{64}$"
+          }
+        },
+        "held_at": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "witness_signature": {
+          "$ref": "#/$defs/FinancialSignature"
+        }
+      }
+    }
+  }
+}
