@@ -11,5 +11,5 @@
 </section>
 {{end}}
 {{define "results"}}<div class="posts">{{if .Posts}}{{template "post-list" .Posts}}{{if .HasMore}}{{template "load-more" .}}{{else}}{{template "end-feed"}}{{end}}{{else}}{{template "empty-results" .}}{{end}}</div><div id="feed-status" class="feed-status" role="status" aria-live="polite" aria-atomic="true"></div>{{end}}
-{{define "empty-results"}}<div class="empty-results"><h2>No posts found</h2><p>Try changing your search or filter.</p><a href="{{if eq .Section "explore"}}/explore{{else}}/{{end}}?filter={{.Filter}}&amp;theme={{.Theme}}">Clear search</a></div>{{end}}
+{{define "empty-results"}}<div class="empty-results">{{if and (eq .Filter "following") (not .Query)}}<h2>No followed posts yet</h2><p>Follow a signed name on a post and posts by that key collect here.</p><a href="{{if eq .Section "explore"}}/explore{{else}}/{{end}}?filter=all&amp;theme={{.Theme}}">Browse all posts</a>{{else}}<h2>No posts found</h2><p>Try changing your search or filter.</p><a href="{{if eq .Section "explore"}}/explore{{else}}/{{end}}?filter={{.Filter}}&amp;theme={{.Theme}}">Clear search</a>{{end}}</div>{{end}}
 {{define "search-response"}}<fragment target="#post-results(innerHTML)">{{template "results" .}}</fragment><fragment target="#search-status(innerHTML)">{{if .Query}}Showing results for “{{.Query}}”.{{end}}</fragment>{{end}}

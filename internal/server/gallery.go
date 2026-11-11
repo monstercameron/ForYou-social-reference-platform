@@ -5,29 +5,56 @@ import (
 	"strconv"
 )
 
+// demoImages lists the bundled images each image post shows, in slide order.
+// A post with one image opens in the same viewer as a slideshow.
+var demoImages = map[string][]int{
+	"sofia":       {1, 2, 3},
+	"travel":      {3},
+	"photography": {2},
+}
+
 type galleryPage struct {
-	ID                            string
-	Slide, Prev, Next             int
+	ID, Caption                   string
+	Slide, Count, Image           int
+	Prev, Next                    int
 	Standalone                    bool
 	Theme, Section, Filter, Query string
 }
 
-func readGallery(r *http.Request) (galleryPage, bool) {
-	if r.URL.Query().Get("id") != "sofia" {
-		return galleryPage{}, false
-	}
-	slide, err := strconv.Atoi(r.URL.Query().Get("slide"))
-	if err != nil || slide < 1 || slide > 3 {
+func gallerySlide(id string, slide int) (galleryPage, bool) {
+	images := demoImages[id]
+	if slide < 1 || slide > len(images) {
 		return galleryPage{}, false
 	}
 	prev, next := slide-1, slide+1
 	if prev < 1 {
-		prev = 3
+		prev = len(images)
 	}
-	if next > 3 {
+	if next > len(images) {
 		next = 1
 	}
-	return galleryPage{ID: "sofia", Slide: slide, Prev: prev, Next: next}, true
+	return galleryPage{ID: id, Slide: slide, Count: len(images), Image: images[slide-1], Prev: prev, Next: next}, true
+}
+
+// Gallery returns the first slide of a post's images for the feed.
+func (p post) Gallery() galleryPage {
+	page, _ := gallerySlide(p.ID, 1)
+	return page
+}
+
+func readGallery(r *http.Request) (galleryPage, bool) {
+	slide, err := strconv.Atoi(r.URL.Query().Get("slide"))
+	if err != nil {
+		return galleryPage{}, false
+	}
+	page, ok := gallerySlide(r.URL.Query().Get("id"), slide)
+	if !ok {
+		return galleryPage{}, false
+	}
+	if p, found := postByID(page.ID); found {
+		page.Caption = p.Text
+	}
+	return page, true
 }
 
 func galleryPageHandler(w http.ResponseWriter, r *http.Request) {

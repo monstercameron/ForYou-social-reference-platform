@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"sync"
 	"unicode/utf8"
@@ -18,7 +19,12 @@ type demoStore struct {
 	posts   []post // Immutable snapshots, newest first.
 	byToken map[string]post
 	byID    map[string]post
+	replies map[string][]addedReply
+	replied int
 }
+
+// addedReply is a reply written in this session; parent is the path of the reply it answers, or empty for the post.
+type addedReply struct{ parent, text string }
 type demoStoreKey struct{}
 
 // list returns an immutable snapshot. Callers must not modify it.
@@ -29,6 +35,7 @@ func (s *demoStore) list() []post {
 }
 
 const demoPostLimit = 1000
+const demoReplyLimit = 5000
 
 var (
 	errDraftConflict = errors.New("draft already submitted with different text")
@@ -53,7 +60,7 @@ func (s *demoStore) add(text, token string) (post, error) {
 	}
 	p := post{ID: "demo-" + hex.EncodeToString(id[:]), Kind: "text", Color: "violet", Time: "Just now", Text: text}
 	p.Receipt = mockReceipt(p.ID)
-	p.ReplyCount = len(demoReplies(p.ID))
+	p.ReplyCount = countReplies(demoReplies(p.ID))
 	posts := make([]post, len(s.posts)+1)
 	posts[0] = p
 	copy(posts[1:], s.posts)
@@ -79,13 +86,59 @@ func (s *demoStore) get(id string) (post, bool) {
 	return p, ok
 }
 
-func requestPost(r *http.Request, id string) (post, bool) {
-	if s := storeFor(r); s != nil {
-		if p, ok := s.get(id); ok {
-			return p, true
+func (s *demoStore) addReply(postID, parent, text string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.replied >= demoReplyLimit {
+		return errDemoStoreFull
+	}
+	if s.replies == nil {
+		s.replies = make(map[string][]addedReply)
+	}
+	s.replies[postID] = append(s.replies[postID], addedReply{parent: parent, text: text})
+	s.replied++
+	return nil
+}
+
+// repliesTo returns a snapshot in the order the replies were written.
+func (s *demoStore) repliesTo(postID string) []addedReply {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return slices.Clip(s.replies[postID])
+}
+
+func (s *demoStore) replyCount(postID string) int {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return len(s.replies[postID])
+}
+
+// forReader adds what only this request knows: the reader's own choices and
+// the replies written in this session.
+func forReader(r *http.Request, posts []post) {
+	feedback, followed, store := feedbackSelections(r), followSet(r), storeFor(r)
+	for i := range posts {
+		posts[i].Feedback = feedback[posts[i].ID]
+		posts[i].Following = followed[posts[i].AuthorID]
+		if store != nil {
+			posts[i].ReplyCount += store.replyCount(posts[i].ID)
 		}
 	}
-	return postByID(id)
+}
+
+func requestPost(r *http.Request, id string) (post, bool) {
+	p, ok := postByID(id)
+	if s := storeFor(r); s != nil {
+		if added, found := s.get(id); found {
+			p, ok = added, true
+		}
+	}
+	if !ok {
+		return post{}, false
+	}
+	one := []post{p}
+	forReader(r, one)
+	return one[0], true
 }
 
 func publishDemo(w http.ResponseWriter, r *http.Request) {

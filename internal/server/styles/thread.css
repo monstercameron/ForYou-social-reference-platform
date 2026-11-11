@@ -17,9 +17,6 @@
 
   .detail-thread { margin-top:24px; }
   .thread-region { min-width:0; }
-  .thread-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:4px 0 12px; }
-  .thread-head h2 { margin:0; color:var(--text); font-size:16px; font-weight:700; }
-  .thread-head h2 span { margin-left:4px; color:var(--muted); font-weight:400; }
   .thread-action { display:inline-flex; margin:0; }
   .thread-action button {
     display:inline-flex; align-items:center; gap:6px; min-height:44px; padding:0 12px; border:0; border-radius:999px;
@@ -30,10 +27,57 @@
   .detail-more-form { margin-top:8px; }
 
   .replies { display:grid; gap:16px; min-width:0; margin:0; padding:0 0 0 12px; border-left:2px solid var(--line); }
-  .replies.nested-replies { margin:12px 0 0; padding-left:12px; }
+  .replies.nested-replies { margin:8px 0 0; padding-left:12px; }
   .reply { display:flex; gap:10px; min-width:0; }
   .replies > .reply > .identicon { flex:none; width:32px; height:32px; margin:0; border:0; background-size:12px 12px; }
   .reply-content { flex:1; min-width:0; }
+  .thread-toggle[aria-expanded="true"] { background:var(--accent-soft); color:var(--accent); }
+  .detail-thread .thread-panel { padding-top:12px; }
+  .thread-empty { margin:0; color:var(--muted); font-size:14px; }
+  /* Deep threads stop indenting after the fourth level so the text keeps its width. */
+  .nested-replies .nested-replies .nested-replies .nested-replies { margin-left:0; padding-left:0; border-left:0; }
+  @media(min-width:541px) { .nested-replies .nested-replies .nested-replies .nested-replies { margin-left:-42px; } }
+
+  .reply-form { display:flex; align-items:flex-end; gap:8px; margin-top:16px; }
+  .reply-form textarea {
+    flex:1; min-width:0; min-height:44px; max-height:240px; padding:10px 14px; border:1px solid var(--line); border-radius:22px;
+    background:var(--bg); color:var(--text); font-size:15px; line-height:1.45; resize:none; field-sizing:content;
+    transition:border-color var(--dur-fast) ease,box-shadow var(--dur-fast) ease;
+  }
+  .reply-form textarea::placeholder { color:var(--muted); }
+  .reply-form textarea:focus-visible { outline:0; border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 28%,transparent); }
+  .reply-form button {
+    flex:none; min-height:44px; padding:0 18px; border:0; border-radius:999px; background:var(--accent); color:var(--on-accent);
+    font-size:14px; font-weight:600; transition:filter var(--dur-fast) ease,transform var(--dur-fast) var(--ease-out);
+  }
+  .reply-form button:hover { filter:brightness(1.08); }
+  .reply-form button:active { transform:scale(.97); }
+  .reply-compose { margin-top:4px; }
+  .reply-branch { margin-top:2px; }
+  .branch-action { display:block; margin:0; }
+  .branch-toggle {
+    display:inline-flex; align-items:center; gap:4px; min-height:32px; margin-left:-10px; padding:0 12px 0 6px; border:0; border-radius:999px;
+    background:transparent; color:var(--accent); font-size:13px; font-weight:600; transition:background-color var(--dur-fast) ease;
+  }
+  .branch-toggle:hover { background:var(--accent-soft); }
+  .branch-toggle:focus-visible { outline:3px solid var(--accent); outline-offset:2px; }
+  .branch-icon { width:16px; height:16px; transition:transform var(--dur) var(--ease-out); }
+  .branch-toggle[aria-expanded="true"] .branch-icon { transform:rotate(90deg); }
+  .reply-branch > .nested-replies { animation:spawn-rise var(--dur) var(--ease-out) both; }
+  @media(hover:none) { .branch-toggle { min-height:44px; } }
+  .reply-compose > summary {
+    display:inline-flex; align-items:center; min-height:32px; margin-left:-10px; padding:0 10px; border-radius:999px;
+    color:var(--muted); font-size:13px; font-weight:600; cursor:pointer; list-style:none; transition:background-color var(--dur-fast) ease,color var(--dur-fast) ease;
+  }
+  .reply-compose > summary::-webkit-details-marker { display:none; }
+  .reply-compose > summary:hover, .reply-compose[open] > summary { background:var(--accent-soft); color:var(--accent); }
+  .reply-compose > summary:focus-visible { outline:3px solid var(--accent); outline-offset:2px; }
+  .reply-compose > .reply-form { margin-top:8px; animation:spawn-rise var(--dur) var(--ease-out) both; }
+  @media(hover:none) { .reply-compose > summary { min-height:44px; } }
+
+  .gallery-viewer .detail-gallery-image { aspect-ratio:auto; }
+  .gallery-viewer .detail-gallery-image img { height:auto; max-height:78vh; object-fit:contain; }
+  .gallery-viewer .gallery-post-link { margin-top:16px; }
   .reply-by { display:flex; flex-wrap:wrap; align-items:center; gap:6px; min-height:32px; font-size:13px; }
   .reply-by strong { font-size:14px; font-weight:600; }
   .reply-by .receipt-badge, .detail-embed .receipt-badge { padding:1px 8px; border:1px solid var(--line); background:transparent; font-size:13px; }

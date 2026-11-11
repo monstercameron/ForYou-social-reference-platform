@@ -10,8 +10,6 @@
   .post-time, .example-label { @apply text-[11px] text-[var(--muted)]; }
   .post-text { @apply mt-2 mb-3 whitespace-pre-wrap text-sm leading-[1.55] [overflow-wrap:anywhere] max-[540px]:text-[13px]; }
   .post-bottom { @apply flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[var(--muted)]; }
-  .post-bottom:has(.thread-head) { @apply flex-wrap; }
-  .post-bottom:has(.thread-head) .thread-region { @apply order-3 basis-full; }
   .post-bottom button, .post-link { @apply border-0 bg-transparent py-[5px] text-xs text-[var(--muted)]; }
   .post-bottom button:hover, .post-link:hover { @apply text-[var(--accent)]; }
   .posts { display:flex; flex-direction:column; gap:12px; padding:0 16px; }
@@ -48,7 +46,8 @@
   .posts > .post .post-gallery-frame > div { position:relative; width:100%; height:100%; margin:0 !important; }
   .posts > .post .post-gallery-frame > div > [role="group"] { position:absolute; inset:0; width:100%; height:100%; border-radius:0 !important; }
   .posts > .post .post-gallery-frame > div > [aria-hidden="true"] { display:none; }
-  .posts > .post .post-bottom:has(.thread-head) > .thread-region { display:block; grid-column:1/-1; }
+  /* An open thread keeps its control in the action row and unfolds on a row of its own below. */
+  .posts > .post .post-bottom .thread-panel { grid-column:1/-1; order:1; min-width:0; padding-top:12px; }
   .posts > .post .thread-toggle:not(button), .posts > .post .thread-toggle:not(button):hover { cursor:default; background:transparent; color:var(--muted); }
   .feed-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:20px 16px 16px; }
   .feed-heading h1 { margin:0; color:var(--text); font-size:24px; font-weight:700; line-height:2rem; letter-spacing:-.025em; }

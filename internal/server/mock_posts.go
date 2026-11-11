@@ -13,7 +13,7 @@ func extraPosts() []post {
 		{ID: "harassment", Kind: "text", Color: "lilac", Time: "55 min ago", Topic: "Harassment", Text: "Nobody likes you. Stop posting here. You are embarrassing yourself and everyone is laughing at you."},
 		{ID: "music", Kind: "text", Color: "blue", Time: "1 hour ago", Topic: "Music", Text: "What album do you always return to on long train rides? Looking for something new for the weekend."},
 		{ID: "ad-bike", Kind: "text", Color: "mint", Time: "1 hour ago", Topic: "Sponsored", Text: "Make the commute yours. Explore refurbished city bikes and accessories at our spring sale."},
-		{ID: "travel", Kind: "text", Color: "peach", Time: "2 hours ago", Topic: "Travel", Text: "Found a quiet footpath along the harbor, far from the crowds. The ferry at sunset was the highlight."},
+		{ID: "travel", Kind: "images", Art: "gallery", Color: "peach", Time: "2 hours ago", Topic: "Travel", Text: "Found a quiet footpath along the harbor, far from the crowds. The ferry at sunset was the highlight."},
 		{ID: "gaming", Kind: "text", Color: "lilac", Time: "2 hours ago", Topic: "Gaming", Text: "Our co-op team finally solved the puzzle after an hour of confidently following the wrong map."},
 		{ID: "adult-2", Kind: "text", Color: "blue", Time: "3 hours ago", Topic: "Adult content", Text: "Adults only: a creator shares a link to an explicit video. Viewer discretion advised."},
 		{ID: "open-source", Kind: "text", Color: "mint", Time: "3 hours ago", Topic: "Technology", Text: "Released a small open-source tool for checking broken links in documentation. Feedback and issue reports welcome."},
@@ -23,7 +23,7 @@ func extraPosts() []post {
 		{ID: "weather-alert", Kind: "text", Color: "mint", Time: "4 hours ago", Topic: "Weather", Text: "Heavy rain is expected this evening. Check local alerts before traveling and bring an umbrella."},
 		{ID: "ad-app", Kind: "text", Color: "peach", Time: "5 hours ago", Topic: "Sponsored", Text: "Organize your week with a simple planner. Try the free version and see whether it fits your routine."},
 		{ID: "bullying", Kind: "text", Color: "lilac", Time: "5 hours ago", Topic: "Harassment", Text: "You are pathetic and should quit. Nobody wants to hear your opinion."},
-		{ID: "photography", Kind: "text", Color: "blue", Time: "6 hours ago", Topic: "Photography", Text: "Experimenting with long exposures after dark: wet pavement and passing buses make wonderful streaks of color."},
+		{ID: "photography", Kind: "images", Art: "gallery", Color: "blue", Time: "6 hours ago", Topic: "Photography", Text: "Experimenting with long exposures after dark: wet pavement and passing buses make wonderful streaks of color."},
 		{ID: "finance", Kind: "text", Color: "mint", Time: "6 hours ago", Topic: "Personal finance", Text: "A small emergency fund can make an unexpected repair less stressful. What budgeting habit helped you most?"},
 		{ID: "news", Kind: "text", Color: "peach", Time: "7 hours ago", Topic: "Local news", Text: "The library will stay open later on Thursdays after residents asked for more evening hours."},
 		{ID: "fitness", Kind: "text", Color: "lilac", Time: "7 hours ago", Topic: "Fitness", Text: "First comfortable five-kilometer run in months. Slow progress is still progress."},
@@ -56,8 +56,9 @@ func buildDemoPosts() []post {
 	posts = append(posts[:2:2], append(extraPosts(), posts[2:]...)...)
 	for i := range posts {
 		posts[i].Receipt = mockReceipt(posts[i].ID)
-		posts[i].ReplyCount = len(demoReplies(posts[i].ID))
+		posts[i].ReplyCount = countReplies(demoReplies(posts[i].ID))
 	}
+	signDemoPosts(posts)
 	return posts
 }
 

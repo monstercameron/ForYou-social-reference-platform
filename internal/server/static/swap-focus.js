@@ -42,6 +42,9 @@ document.addEventListener('submit', event => {
       pendingFocus = { root, button, trigger };
       swapObserver.observe(root, { childList: true, subtree: true });
     }
+  } else if (form.classList.contains('branch-action')) {
+    const root = form.closest('.reply-branch');
+    if (root) pendingFocus = { root, button, selector: '.branch-toggle' };
   } else if (threadTarget === 'open' || threadTarget === 'hide') {
     const root = form.closest('[id^="thread-"]');
     if (root) pendingFocus = { root, button, selector: `button[data-thread-control="${threadTarget}"]` };

@@ -22,7 +22,7 @@ type feedPage struct {
 
 // matchingPosts counts through the requested limit but retains only the window.
 // One extra match determines whether another page exists.
-func matchingPosts(filter, query, anchor string, offset, limit int, added []post) ([]post, string, int, bool) {
+func matchingPosts(filter, query, anchor string, offset, limit int, added []post, followed map[string]bool) ([]post, string, int, bool) {
 	capacity := len(added) + len(staticDemoPosts)
 	if capacity > limit-offset {
 		capacity = limit - offset
@@ -34,7 +34,7 @@ func matchingPosts(filter, query, anchor string, offset, limit int, added []post
 	count := 0
 	appendMatches := func(posts []post) bool {
 		for _, p := range posts {
-			matchesFilter := filter == "all" || filter == p.Kind || (filter == "notes" && !p.IsReply) || (filter == "replies" && p.IsReply)
+			matchesFilter := filter == "all" || filter == p.Kind || (filter == "notes" && !p.IsReply) || (filter == "replies" && p.IsReply) || (filter == "following" && followed[p.AuthorID])
 			if !matchesFilter {
 				continue
 			}
@@ -75,7 +75,7 @@ func readFeedRequest(r *http.Request, more bool) (feedPage, bool) {
 	if filter == "" {
 		filter = "all"
 	}
-	if filter != "all" && filter != "notes" && filter != "replies" && filter != "text" && filter != "images" && filter != "video" {
+	if filter != "all" && filter != "notes" && filter != "replies" && filter != "text" && filter != "images" && filter != "video" && filter != "following" {
 		return feedPage{}, false
 	}
 	query := strings.TrimSpace(values.Get("q"))
@@ -109,14 +109,11 @@ func readFeedRequest(r *http.Request, more bool) (feedPage, bool) {
 	if store := storeFor(r); store != nil {
 		added = store.list()
 	}
-	posts, first, count, found := matchingPosts(filter, query, anchor, offset, limit, added)
+	posts, first, count, found := matchingPosts(filter, query, anchor, offset, limit, added, followSet(r))
 	if !found {
 		return feedPage{}, false
 	}
-	feedback := feedbackSelections(r)
-	for i := range posts {
-		posts[i].Feedback = feedback[posts[i].ID]
-	}
+	forReader(r, posts)
 	page := feedPage{Section: "home", Filter: filter, Query: query, Posts: posts, Anchor: first}
 	page.Theme = requestTheme(r)
 	page.HasMore = count > limit

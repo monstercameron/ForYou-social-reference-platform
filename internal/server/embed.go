@@ -103,7 +103,6 @@ func postPageHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(status), status)
 		return
 	}
-	details.Post.Feedback = feedbackSelections(r)[details.Post.ID]
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "private, no-store")
 	_ = home.ExecuteTemplate(w, "post-page", details)

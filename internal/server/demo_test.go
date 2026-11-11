@@ -26,7 +26,7 @@ func TestDemoViews(t *testing.T) {
 	t.Run("invalid gallery", func(t *testing.T) {
 		check(t, "/gallery/fragment?id=sofia&slide=8", "404", "landscape", http.StatusNotFound)
 	})
-	t.Run("dark appearance", func(t *testing.T) { check(t, "/?theme=dark", `data-theme="dark"`, "Maya Chen", http.StatusOK) })
+	t.Run("dark appearance", func(t *testing.T) { check(t, "/?theme=dark", `data-theme="dark"`, "maya.c", http.StatusOK) })
 	t.Run("mock quote counts UTF-8", func(t *testing.T) { check(t, "/quote/fragment?text=caf%C3%A9", "5 bytes", "6 bytes", http.StatusOK) })
 }
 

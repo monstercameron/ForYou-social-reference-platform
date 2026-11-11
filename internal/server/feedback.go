@@ -3,7 +3,6 @@ package server
 import (
 	"encoding/base64"
 	"encoding/json"
-	"mime"
 	"net/http"
 	"net/url"
 	"sort"
@@ -157,33 +156,11 @@ func sameOriginFeedback(r *http.Request) bool {
 }
 
 func feedbackHandler(w http.ResponseWriter, r *http.Request) {
-	if !sameOriginFeedback(r) {
-		http.Error(w, "invalid origin", http.StatusForbidden)
+	form, ok := readActionForm(w, r, "id", "vote")
+	if !ok {
 		return
 	}
-	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
-	if err != nil || (mediaType != "application/x-www-form-urlencoded" && mediaType != "multipart/form-data") {
-		http.Error(w, "invalid feedback format", http.StatusUnsupportedMediaType)
-		return
-	}
-	r.Body = http.MaxBytesReader(w, r.Body, 8192)
-	if mediaType == "multipart/form-data" {
-		err = r.ParseMultipartForm(8192)
-		if r.MultipartForm != nil {
-			defer r.MultipartForm.RemoveAll()
-			if len(r.MultipartForm.File) != 0 {
-				http.Error(w, "invalid feedback", http.StatusBadRequest)
-				return
-			}
-		}
-	} else {
-		err = r.ParseForm()
-	}
-	if err != nil || len(r.PostForm["id"]) != 1 || len(r.PostForm["vote"]) != 1 {
-		http.Error(w, "invalid feedback", http.StatusBadRequest)
-		return
-	}
-	id, vote := r.PostForm.Get("id"), r.PostForm.Get("vote")
+	id, vote := form.Get("id"), form.Get("vote")
 	if _, ok := requestPost(r, id); !ok {
 		http.NotFound(w, r)
 		return

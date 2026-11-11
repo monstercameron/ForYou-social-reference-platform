@@ -108,7 +108,7 @@ func TestFeedbackRejectsInvalidRequests(t *testing.T) {
 		}
 	})
 	t.Run("oversized request", func(t *testing.T) {
-		r := httptest.NewRequest(http.MethodPost, "/feedback/fragment", strings.NewReader("id=maya&vote=up&padding="+strings.Repeat("x", 8192)))
+		r := httptest.NewRequest(http.MethodPost, "/feedback/fragment", strings.NewReader("id=maya&vote=up&padding="+strings.Repeat("x", actionFormLimit)))
 		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		w := httptest.NewRecorder()
 		feedbackHandler(w, r)

@@ -2,12 +2,42 @@ package server
 
 import (
 	"net/http"
+	"net/url"
+	"strconv"
+	"strings"
+	"unicode/utf8"
 )
 
+// replyDepthLimit is the deepest reply a thread shows or accepts.
+const replyDepthLimit = 8
+
+const replyRuneLimit = 1000
+
 type reply struct {
-	Name, Initials, Color, Time, Text string
-	Receipt                           string
-	Children                          []reply
+	Color, Time, Text string
+	Receipt           string
+	// PostID and Path address a reply inside its thread; Path is the index at each level, joined by dots.
+	PostID, Path string
+	// Mine marks a reply written in this session; Open means the reply can still be answered.
+	Mine, Open bool
+	// Descendants counts every reply below this one. The answers stay folded
+	// until the reader asks for them, unless Unfolded is set.
+	Descendants int
+	Unfolded    bool
+	Children    []reply
+}
+
+// BranchID names the element that holds a reply's answers.
+func (r reply) BranchID() string {
+	return "branch-" + r.PostID + "-" + strings.ReplaceAll(r.Path, ".", "-")
+}
+
+func (r reply) ParentPath() string {
+	cut := strings.LastIndex(r.Path, ".")
+	if cut < 0 {
+		return ""
+	}
+	return r.Path[:cut]
 }
 
 type thread struct {
@@ -21,16 +51,98 @@ type thread struct {
 	Static                 bool
 }
 
+// Target addresses the post itself, for the form that adds a top-level reply.
+func (t thread) Target() reply {
+	return reply{PostID: t.Parent.ID}
+}
+
+func childPath(parent string, index int) string {
+	if parent == "" {
+		return strconv.Itoa(index)
+	}
+	return parent + "." + strconv.Itoa(index)
+}
+
+// prepareReplies copies a fixture thread down to depth levels and fills in what
+// the templates need. The fixtures themselves are shared and never changed.
+func prepareReplies(replies []reply, postID, parent string, depth int) []reply {
+	if depth <= 0 || len(replies) == 0 {
+		return nil
+	}
+	result := make([]reply, len(replies))
+	for i, r := range replies {
+		r.PostID, r.Path = postID, childPath(parent, i)
+		r.Receipt = mockReceipt(r.Text)
+		r.Open = depth > 1
+		r.Children = prepareReplies(r.Children, postID, r.Path, depth-1)
+		r.Descendants = countReplies(r.Children)
+		result[i] = r
+	}
+	return result
+}
+
+// replyChain returns the replies from the top of a thread down to the one at
+// path, or nil when no reply has that path.
+func replyChain(replies []reply, path string) []*reply {
+	var chain []*reply
+	for _, part := range strings.Split(path, ".") {
+		i, err := strconv.Atoi(part)
+		if err != nil || i < 0 || i >= len(replies) || strconv.Itoa(i) != part {
+			return nil
+		}
+		chain = append(chain, &replies[i])
+		replies = replies[i].Children
+	}
+	return chain
+}
+
+// threadReplies returns a post's fixture replies with the replies added in this
+// session attached where they were written.
+func threadReplies(r *http.Request, postID string) []reply {
+	replies := prepareReplies(demoReplies(postID), postID, "", replyDepthLimit)
+	store := storeFor(r)
+	if store == nil {
+		return replies
+	}
+	for _, added := range store.repliesTo(postID) {
+		siblings := &replies
+		depth := 1
+		if added.parent != "" {
+			chain := replyChain(replies, added.parent)
+			if chain == nil {
+				continue
+			}
+			for _, ancestor := range chain {
+				ancestor.Descendants++
+			}
+			siblings = &chain[len(chain)-1].Children
+			depth = len(chain) + 1
+		}
+		path := childPath(added.parent, len(*siblings))
+		*siblings = append(*siblings, reply{Color: "violet", Time: "Just now", Text: added.text, Receipt: mockReceipt(postID + "/" + path + "/" + added.text), PostID: postID, Path: path, Mine: true, Open: depth < replyDepthLimit})
+	}
+	return replies
+}
+
 func readThread(r *http.Request) (thread, int) {
 	id := r.URL.Query().Get("id")
 	parent, ok := requestPost(r, id)
 	if !ok {
 		return thread{}, http.StatusNotFound
 	}
-	replies := demoReplies(id)
+	replies := threadReplies(r, id)
 	page := r.URL.Query().Get("page")
 	if page != "" && page != "1" && page != "2" {
 		return thread{}, http.StatusBadRequest
+	}
+	if open := r.URL.Query().Get("open"); open != "" {
+		chain := replyChain(replies, open)
+		if chain == nil {
+			return thread{}, http.StatusBadRequest
+		}
+		for _, unfolded := range chain {
+			unfolded.Unfolded = true
+		}
 	}
 	expanded := page == "2" && len(replies) > 2
 	more := !expanded && len(replies) > 2
@@ -41,20 +153,7 @@ func readThread(r *http.Request) (thread, int) {
 	} else if more {
 		replies = replies[:2]
 	}
-	return thread{Theme: requestTheme(r), Filter: "all", Parent: parent, Replies: limitReplyDepth(replies, 3), Extra: limitReplyDepth(extra, 3), HasMore: more, Expanded: expanded}, http.StatusOK
-}
-
-func limitReplyDepth(replies []reply, depth int) []reply {
-	if depth <= 0 {
-		return nil
-	}
-	result := make([]reply, len(replies))
-	for i, r := range replies {
-		result[i] = r
-		result[i].Receipt = mockReceipt(r.Text)
-		result[i].Children = limitReplyDepth(r.Children, depth-1)
-	}
-	return result
+	return thread{Theme: requestTheme(r), Filter: "all", Parent: parent, Replies: replies, Extra: extra, HasMore: more, Expanded: expanded}, http.StatusOK
 }
 
 func threadPageHandler(w http.ResponseWriter, r *http.Request) {
@@ -67,7 +166,6 @@ func threadPageHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(status), status)
 		return
 	}
-	t.Parent.Feedback = feedbackSelections(r)[t.Parent.ID]
 	t.Static = true
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
@@ -95,5 +193,79 @@ func threadFragmentHandler(w http.ResponseWriter, r *http.Request) {
 		_ = home.ExecuteTemplate(w, "thread-closing", t)
 		return
 	}
+	_ = home.ExecuteTemplate(w, "thread-open", t)
+}
+
+// branchFragmentHandler answers a reader who opens or folds the answers to one reply.
+func branchFragmentHandler(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+	id, view := query.Get("id"), query.Get("view")
+	if view != "" && view != "closed" {
+		http.Error(w, "invalid view", http.StatusBadRequest)
+		return
+	}
+	if _, found := requestPost(r, id); !found {
+		http.NotFound(w, r)
+		return
+	}
+	chain := replyChain(threadReplies(r, id), query.Get("branch"))
+	if chain == nil || len(chain[len(chain)-1].Children) == 0 {
+		http.NotFound(w, r)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	name := "branch-open"
+	if view == "closed" {
+		name = "branch-closed"
+	}
+	_ = home.ExecuteTemplate(w, name, *chain[len(chain)-1])
+}
+
+// replyHandler adds a reply to a post or to another reply. The fragment answer
+// is the whole thread, opened far enough to show the new reply.
+func replyHandler(w http.ResponseWriter, r *http.Request) {
+	form, ok := readActionForm(w, r, "id", "parent", "text")
+	if !ok {
+		return
+	}
+	id, parent, text := form.Get("id"), form.Get("parent"), strings.TrimSpace(form.Get("text"))
+	if _, found := requestPost(r, id); !found {
+		http.NotFound(w, r)
+		return
+	}
+	if text == "" || !utf8.ValidString(text) || utf8.RuneCountInString(text) > replyRuneLimit {
+		http.Error(w, "Write a reply of up to 1,000 characters.", http.StatusBadRequest)
+		return
+	}
+	if parent != "" {
+		if chain := replyChain(threadReplies(r, id), parent); chain == nil || !chain[len(chain)-1].Open {
+			http.Error(w, "This reply cannot be answered.", http.StatusBadRequest)
+			return
+		}
+	}
+	store := storeFor(r)
+	if store == nil || store.addReply(id, parent, text) != nil {
+		http.Error(w, "Demo storage is full or unavailable.", http.StatusServiceUnavailable)
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	shown := url.Values{"id": {id}, "page": {"2"}}
+	if parent != "" {
+		shown.Set("open", parent)
+	}
+	whole := shown.Encode()
+	if r.URL.Path != "/reply/fragment" {
+		http.Redirect(w, r, "/thread?"+whole, http.StatusSeeOther)
+		return
+	}
+	threadRequest := r.Clone(r.Context())
+	threadRequest.URL = &url.URL{Path: "/thread/fragment", RawQuery: whole}
+	t, status := readThread(threadRequest)
+	if status != http.StatusOK {
+		http.Error(w, http.StatusText(status), status)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_ = home.ExecuteTemplate(w, "thread-open", t)
 }

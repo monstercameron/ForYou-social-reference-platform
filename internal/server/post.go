@@ -8,8 +8,10 @@ import (
 type post struct {
 	ID, Name, Handle, Initials, Color, Time, Text, Topic, Art string
 	Receipt, Kind, Feedback                                   string
-	ReplyCount                                                int
-	IsReply                                                   bool
+	// SignedName is a display name the author key signed; AuthorID is that key.
+	SignedName, AuthorID, Fingerprint string
+	ReplyCount                        int
+	IsReply, Following                bool
 }
 
 func mockReceipt(seed string) string {
