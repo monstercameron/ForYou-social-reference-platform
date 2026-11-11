@@ -311,6 +311,7 @@ func TestAuditLoopCommitteeHandoverBoundaries(t *testing.T) {
 		now := time.Date(2027, 1, 1, 2, 0, 0, 0, time.UTC)
 		members := []keys.PrivateKey{devnet.MonitorKey(1), devnet.MonitorKey(2), devnet.MonitorKey(3), devnet.MonitorKey(4), devnet.ProviderKey(40)}
 		service, stub, _, _ := alNewAuditFixture(t, &now, true, members)
+		service.config.Peers["monitor"] = peerServePages(t, service)
 		alAddCommitteeChange(t, service, true, now.Add(-2*time.Hour))
 		if err := service.RunOnce(context.Background()); err != nil {
 			t.Fatal(err)

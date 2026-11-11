@@ -75,6 +75,9 @@ func alAudit(s *Service, ctx context.Context) error {
 			}
 			joinedAt, joined := s.View().JoinedAt(member.DID(), now)
 			for _, network := range []string{wire.BitcoinMainnet, wire.EthereumMainnet} {
+				if peerAuditBlocked(s, member, providerURL, network, now) {
+					continue
+				}
 				alAuditNetwork(s, ctx, member, client, providerURL, network, now, joinedAt, joined)
 			}
 		}
