@@ -18,6 +18,7 @@ import (
 	"foryou.local/foryou/internal/monitor"
 	"foryou.local/foryou/internal/provider"
 	"foryou.local/foryou/internal/replica"
+	"foryou.local/foryou/internal/sdk"
 	"foryou.local/foryou/internal/server"
 )
 
@@ -169,7 +170,19 @@ func buildProvider(config roleConfig) (service, error) {
 	if config.ClaimPeriod != 0 {
 		coreConfig.ClaimPeriod = config.ClaimPeriod
 	}
-	return provider.New(coreConfig)
+	core, err := provider.New(coreConfig)
+	if err != nil {
+		return nil, err
+	}
+	if foundation := config.Peers["foundation"]; foundation != "" {
+		vault, err := sdk.New(foundation, sdk.Options{ServiceID: keys.DIDOf(devnet.FoundationKey()), AllowLoopbackHTTP: true, HTTPClient: serviceHTTPClient, Now: coreConfig.Now})
+		if err != nil {
+			_ = core.Close()
+			return nil, fmt.Errorf("provider: Foundation vault: %w", err)
+		}
+		core.SetVault(vault)
+	}
+	return core, nil
 }
 
 func buildReplica(config roleConfig) (service, error) {
