@@ -1,0 +1,197 @@
+{
+  "p1-useful-answer": {
+    "text": "Use `errors.Is` instead of comparing error strings. The wrapped error keeps its cause:\n\n```go\nif errors.Is(err, fs.ErrNotExist) {\n\treturn nil\n}\n```\n",
+    "format": "text/markdown",
+    "context": {"author_id": "A", "is_reply": true, "depth": 4},
+    "fields": {
+      "prose_chars": 75, "length": "short", "readability": 1, "code_block": true, "code_span": true,
+      "code_ratio": 0.440299, "language": "en", "topics": ["tech"],
+      "profanity": {"mild": 0, "strong": 0, "rate": 0}
+    },
+    "indicators": ["code:block", "key:A", "lang:en", "len:short", "thread:deep", "thread:reply", "topic:tech"],
+    "floor": {"action": "none"}
+  },
+  "p2-profanity": {
+    "text": "Yeah, this argument is bullshit, but the personal insults aren't helping.",
+    "context": {"is_reply": true, "depth": 1},
+    "fields": {"prose_chars": 73, "profanity": {"mild": 0, "strong": 1, "rate": 0.181818}, "harass": 0},
+    "indicators": ["key:C", "lang:en", "len:short", "prof:strong", "thread:reply"],
+    "floor": {"action": "none"}
+  },
+  "p3-threat": {
+    "text": "Keep talking and I will find you and hurt you.",
+    "context": {"is_reply": true, "depth": 1},
+    "fields": {"prose_chars": 46, "threat": 1},
+    "indicators": ["key:C", "lang:en", "len:short", "thread:reply"],
+    "floor": {"action": "hide", "reasons": ["threat"]}
+  },
+  "p4-leaked-key": {
+    "text": "Here is the config that finally worked for me after the upgrade:\n\n```ini\naws_access_key_id = AKIA2E0A8F3B244C9D71\n```\n",
+    "format": "text/markdown",
+    "context": {"is_reply": true, "depth": 1},
+    "fields": {
+      "prose_chars": 64, "code_ratio": 0.390476, "topics": ["tech"],
+      "secrets": [{"kind": "aws_access_key_id", "text": "AKIA2E0A8F3B244C9D71"}]
+    },
+    "indicators": ["code:block", "key:C", "lang:en", "len:short", "thread:reply", "topic:tech"],
+    "floor": {
+      "action": "collapse", "reasons": ["secret:aws_access_key_id"],
+      "secrets": [{"kind": "aws_access_key_id", "text": "AKIA2E0A8F3B244C9D71"}]
+    }
+  },
+  "p5-dehumanizing": {
+    "text": "Immigrants are vermin and should be driven out of this town.",
+    "fields": {"prose_chars": 60, "hate": {"slurs": 0, "directed": false, "dehumanizing": true}},
+    "indicators": ["key:C", "lang:en", "len:short"],
+    "floor": {"action": "hide", "reasons": ["hate:dehumanizing"]}
+  },
+  "p6-spam": {
+    "text": "FREE DEALS!! FOLLOW ME NOW!!",
+    "context": {"is_reply": true, "depth": 1},
+    "fields": {
+      "prose_chars": 28, "length": "tiny", "readability_nil": true, "caps_ratio": 1, "bang_runs": 0,
+      "rep3": 0, "promo_hits": 2
+    },
+    "indicators": ["key:C", "lang:en", "len:tiny", "promo", "spam:caps", "thread:reply"],
+    "floor": {"action": "none"}
+  },
+  "p7-deep-chatter": {
+    "text": "Following along for the details.",
+    "context": {"is_reply": true, "depth": 4},
+    "fields": {"prose_chars": 32},
+    "indicators": ["key:C", "lang:en", "len:tiny", "thread:deep", "thread:reply"],
+    "floor": {"action": "none"}
+  },
+  "p8-shouted-insult": {
+    "text": "WHAT A SHIT TAKE. ABSOLUTE GARBAGE.",
+    "context": {"author_id": "B", "is_reply": true, "depth": 1},
+    "fields": {"prose_chars": 35, "caps_ratio": 1, "profanity": {"mild": 0, "strong": 1, "rate": 0.333333}, "harass": 0},
+    "indicators": ["key:B", "lang:en", "len:tiny", "prof:strong", "spam:caps", "thread:reply"],
+    "floor": {"action": "none"}
+  },
+  "scam-fixture": {
+    "text": "I 10x'd my savings with a trading bot. Send me your seed phrase and I'll set it up for you.",
+    "fields": {"solicit_secret": true, "topics": ["crypto", "money"]},
+    "indicators": ["key:C", "lang:en", "len:short", "topic:crypto", "topic:money"],
+    "floor": {"action": "hide", "reasons": ["solicit_secret"]}
+  },
+  "exporter-fixture": {
+    "text": "My exporter config if it helps anyone:\n```ini\nAWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE\nAWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY\nREGION=eu-west-1\n```",
+    "format": "text/markdown",
+    "fields": {
+      "prose_chars": 38, "code_ratio": 0.757962,
+      "secrets": [
+        {"kind": "assigned_secret", "text": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"},
+        {"kind": "aws_access_key_id", "text": "AKIAIOSFODNN7EXAMPLE"}
+      ]
+    },
+    "indicators": ["code:block", "key:C", "lang:en", "len:tiny", "topic:tech"],
+    "floor": {
+      "action": "collapse", "reasons": ["secret:assigned_secret", "secret:aws_access_key_id"],
+      "secrets": [
+        {"kind": "assigned_secret", "text": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"},
+        {"kind": "aws_access_key_id", "text": "AKIAIOSFODNN7EXAMPLE"}
+      ]
+    }
+  },
+  "kick-fixture": {
+    "text": "Kick his head in. Wish I'd been there to help.",
+    "fields": {"threat": 0.5},
+    "indicators": ["key:C", "lang:en", "len:short"],
+    "floor": {"action": "collapse", "reasons": ["threat:indirect"]}
+  },
+  "pathetic-fixture": {
+    "text": "Make me, you pathetic little shit.",
+    "fields": {"harass": 0.5, "profanity": {"mild": 0, "strong": 1, "rate": 0.333333}},
+    "indicators": ["harass", "key:C", "lang:en", "len:tiny", "prof:strong"],
+    "floor": {"action": "collapse", "reasons": ["harass"]}
+  },
+  "nsfw-label": {
+    "text": "NSFW: photos from the life drawing class.",
+    "fields": {"adult_label": true, "topics": ["art"]},
+    "indicators": ["adult", "key:C", "lang:en", "len:short", "topic:art"],
+    "floor": {"action": "collapse", "reasons": ["adult"]}
+  },
+  "extreme-spam": {
+    "text": "BUY NOW BUY NOW BUY NOW BUY NOW BUY NOW",
+    "fields": {
+      "prose_chars": 39, "caps_ratio": 1, "rep3": 0.75, "char_repeat": 1, "promo_hits": 5, "language": "und",
+      "profanity": {"mild": 0, "strong": 0, "rate": 0}
+    },
+    "indicators": ["key:C", "lang:und", "len:tiny", "promo", "spam:caps", "spam:repeat"],
+    "floor": {"action": "collapse", "reasons": ["spam:extreme"]}
+  },
+  "release-notes": {
+    "text": "# Release notes\n\n- Faster sync\n- Fewer retries\n\nSee [the changelog](https://example.com/changelog), <https://docs.example.org/sync> and <https://example.com/faq>. Mirror at http://old.example.net/notes.\n\n![diagram](fy-media:fig1)\n",
+    "format": "text/markdown",
+    "context": {"media": [{"kind": "image", "hasAlt": true}, {"kind": "video", "hasAlt": false}]},
+    "fields": {
+      "prose_chars": 109, "structured": true, "images": 1, "videos": 1, "alt_coverage": 0.5,
+      "active_links": 3, "distinct_hosts": 2, "bare_urls": 1, "language": "en"
+    },
+    "indicators": ["key:C", "lang:en", "len:short", "link:any", "link:many", "media:image", "media:noalt", "media:video", "struct:rich"],
+    "floor": {"action": "none"}
+  },
+  "dense-prose": {
+    "text": "Maintainers reviewing replication changes should compare acknowledgement latency, retransmission counts and persistence guarantees across several realistic deployments before approving anything that alters ordering semantics or weakens durability assumptions for operators",
+    "fields": {"prose_chars": 272, "readability": 0.15},
+    "indicators": ["key:C", "lang:en", "len:short", "read:dense"],
+    "floor": {"action": "none"}
+  },
+  "spanish": {
+    "text": "El perro de mi vecino está en el jardín y no quiere salir.",
+    "fields": {"language": "es", "profanity_nil": true, "readability": 1},
+    "indicators": ["key:C", "lang:es", "len:short"],
+    "floor": {"action": "none"}
+  },
+  "russian": {
+    "text": "Собака соседа сидит в саду и не хочет выходить.",
+    "fields": {"script": "cyrillic", "language": "und", "readability": 1, "profanity": {"mild": 0, "strong": 0, "rate": 0}},
+    "indicators": ["key:C", "lang:und", "len:short", "script:cyrillic"],
+    "floor": {"action": "none"}
+  },
+  "japanese": {
+    "text": "隣の犬は庭にいます。",
+    "fields": {"prose_chars": 10, "script": "hiragana", "readability_nil": true},
+    "indicators": ["key:C", "lang:und", "len:tiny", "script:hiragana"],
+    "floor": {"action": "none"}
+  },
+  "context": {
+    "text": "Thanks, that fixed it.",
+    "context": {
+      "named": true, "root_signed": false, "is_reply": true, "self_reply": true, "depth": 2, "known_replies": 4,
+      "age_hours": 36, "billable_bytes": 1025, "settlement": "pending_settlement"
+    },
+    "fields": {
+      "age_hours": 36, "freshness": 0.353553, "kib_units": 2, "named": true, "delegate": true,
+      "settlement": "pending_settlement"
+    },
+    "indicators": ["author:delegate", "author:named", "key:C", "lang:und", "len:tiny", "thread:busy", "thread:reply", "thread:self"],
+    "floor": {"action": "none"}
+  },
+  "inline-code": {
+    "text": "Run `go vet` before you push.",
+    "format": "text/markdown",
+    "fields": {"code_block": false, "code_span": true, "code_ratio": 0.222222},
+    "indicators": ["code:inline", "key:C", "lang:und", "len:tiny"],
+    "floor": {"action": "none"}
+  },
+  "three-paragraphs": {
+    "text": "Our community garden opens on Saturday morning.\n\nBring gloves and a trowel; we have compost, seedlings and tea.\n\nIf it rains we move to the hall next door and plan the spring beds instead.",
+    "fields": {"prose_chars": 188, "structured": true, "topics": ["garden"]},
+    "indicators": ["key:C", "lang:en", "len:short", "struct:rich", "topic:garden"],
+    "floor": {"action": "none"}
+  },
+  "emoji-spam": {
+    "text": "🔥🔥🔥🚀🚀🎉 launch day",
+    "fields": {"emoji": 6, "emoji_ratio": 0.4},
+    "indicators": ["key:C", "lang:und", "len:tiny", "spam:emoji"],
+    "floor": {"action": "none"}
+  },
+  "punct-spam": {
+    "text": "What?!?! No way!!! Really???",
+    "fields": {"bang_runs": 3},
+    "indicators": ["key:C", "lang:und", "len:tiny", "spam:punct"],
+    "floor": {"action": "none"}
+  }
+}
