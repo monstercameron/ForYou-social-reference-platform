@@ -1,0 +1,36 @@
+@layer components {
+  .receipt-badge { @apply inline-block rounded-full bg-[var(--control)] px-2 py-[3px] text-[10px] text-[var(--muted)]; }
+  .notice { @apply mx-6 mb-3 flex items-start gap-3 rounded-[10px] bg-[var(--accent-soft)] px-[15px] py-[13px] text-xs leading-[1.45] text-[var(--text)] max-[1100px]:mx-[18px]; }
+  .notice > span { @apply text-[19px]; }
+  .notice p { @apply m-0; }
+  .search-status { @apply mx-6 min-h-3 text-[11px] text-[var(--muted)] max-[1100px]:mx-[18px]; }
+  .identicon { @apply h-[42px] w-[42px] shrink-0 rounded-full bg-[#a88af4] max-[540px]:h-[34px] max-[540px]:w-[34px]; background-image:linear-gradient(45deg,transparent 25%,#ffffffad 25%,#ffffffad 50%,transparent 50%,transparent 75%,#ffffffad 75%); background-size:15px 15px; }
+  .identicon.small { @apply h-8 w-8; background-size:12px 12px; }
+  .identicon.peach { @apply bg-[#eeaa5a]; }
+  .identicon.mint { @apply bg-[#47bda7]; }
+  .identicon.blue { @apply bg-[#528be8]; }
+  .identicon.violet { @apply bg-[#7768e5]; }
+  .embed-action { @apply inline; }
+  .landscape-1 { background-image:url('/static/demo-landscape-1.svg'); }
+  .landscape-2 { background-image:url('/static/demo-landscape-2.svg'); }
+  .landscape-3 { background-image:url('/static/demo-landscape-3.svg'); }
+  .standalone-thread { @apply mx-auto my-[50px] max-w-[720px] px-5; }
+  .standalone-thread .post, .embed-body .post { @apply block rounded-[10px] border border-[var(--line)]; }
+  .standalone-thread .post-top, .embed-body .post-top { @apply flex items-center gap-2.5; }
+  .post-by { @apply grid gap-1; }
+  .post-by span { @apply text-[11px] text-[var(--muted)]; }
+  .embed-body { @apply bg-transparent p-2; }
+  .embed-credit { @apply mt-2.5 inline-block text-[11px]; }
+  .back-link { @apply mb-[22px] inline-block text-xs font-bold; }
+  .end-feed, .empty-results { @apply p-[30px] text-center text-xs text-[var(--muted)]; }
+  .end-feed p { @apply text-[11px]; }
+  .end-feed span { @apply text-[var(--accent)]; }
+  .thread-action button, .embed-action button { transition:color .18s,background-color .18s; }
+  @media(max-width:540px) {
+    .nested-replies { margin-left:8px; padding-left:16px; }
+    .reply > .identicon { margin-left:-33px; }
+  }
+  @media(prefers-reduced-motion:reduce) { .thread-collapsing { display:none; } }
+}
+@keyframes thread-grow { from {grid-template-rows:0fr;opacity:0} to {grid-template-rows:1fr;opacity:1} }
+@keyframes thread-shrink { from {grid-template-rows:1fr;opacity:1} to {grid-template-rows:0fr;opacity:0} }

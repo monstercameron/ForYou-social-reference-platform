@@ -1,0 +1,29 @@
+@layer components {
+  .thread-region { @apply min-w-0; }
+  .thread-head { @apply flex items-center justify-between gap-[15px] pt-4 pb-3 text-xs font-bold; }
+  .thread-head small { @apply font-normal text-[var(--muted)]; }
+  .thread-action { @apply inline; }
+  .thread-action button { @apply border-0 bg-transparent py-[5px] text-xs text-[var(--muted)]; }
+  .thread-action button:hover { @apply text-[var(--accent)]; }
+  .replies { @apply ml-[15px] grid gap-[15px] border-l border-[var(--line)] pl-5; }
+  .reply { @apply flex gap-2.5; }
+  .reply > .identicon { @apply -ml-[37px] border-[3px] border-[var(--bg)]; }
+  .reply-content { @apply min-w-0 flex-1; }
+  .reply-by { @apply flex flex-wrap items-center gap-1.5; }
+  .reply-by strong { @apply text-xs; }
+  .reply-by > span:last-child { @apply text-[11px] text-[var(--muted)]; }
+  .reply p { @apply mt-1.5 mb-0 whitespace-pre-wrap text-[13px] leading-normal [overflow-wrap:anywhere]; }
+  .nested-replies { @apply mt-[15px]; }
+  .more-replies { @apply mt-3 ml-[18px]; }
+  .thread-error { @apply text-xs text-[#c55050]; }
+  .thread-grow, .thread-collapsing { display:grid; grid-template-rows:1fr; }
+  .thread-grow { animation:thread-grow .26s ease-out both; }
+  .thread-grow > div, .thread-collapsing > div { @apply min-h-0 overflow-hidden; }
+  .thread-static { animation:none; }
+  .more-grow { @apply mt-[15px]; }
+  .thread-collapsing { animation:thread-shrink .25s ease-in both; pointer-events:none; }
+  .thread-collapsing:has(> .error) { display:grid; animation:none; opacity:1; grid-template-rows:auto 1fr; pointer-events:auto; }
+  .thread-collapsing .thread-grow { animation:none; }
+  .reply-context { @apply my-[7px] text-[11px] text-[var(--muted)]; }
+  .no-replies { @apply py-[5px] text-xs text-[var(--muted)]; }
+}

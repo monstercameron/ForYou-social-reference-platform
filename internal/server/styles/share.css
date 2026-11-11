@@ -1,0 +1,8 @@
+@layer components {
+  .share-panel { @apply mt-3.5 rounded-[10px] border border-[var(--line)] bg-[var(--subtle)] p-[15px]; }
+  .share-heading { @apply flex justify-between; }
+  .share-heading a, .embed-action, .embed-credit, .back-link { @apply text-[var(--accent)]; }
+  .share-panel label { @apply mt-2.5 mb-[5px] block text-[11px] font-bold text-[var(--muted)]; }
+  .share-panel input, .share-panel textarea { @apply w-full rounded-md border border-[var(--line)] bg-[var(--bg)] p-2 font-mono text-[11px] leading-[1.4] text-[var(--text)]; }
+  .share-panel p, .thread-disclaimer { @apply text-[11px] text-[var(--muted)]; }
+}

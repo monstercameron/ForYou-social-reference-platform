@@ -1,0 +1,21 @@
+# Local settings and secrets
+.env
+.env.*
+!.env.example
+.local/
+*.pem
+*.key
+
+# Go build output and coverage
+/bin/
+*.exe
+*.test
+*.out
+coverage/
+
+# Editors and OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+/node_modules/

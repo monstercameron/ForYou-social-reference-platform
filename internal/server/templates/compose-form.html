@@ -1,0 +1,27 @@
+{{define "compose-form"}}
+<main id="compose-main" class="min-w-0 rounded-xl border border-[var(--line)] bg-[var(--panel)] p-5 sm:p-6">
+  <h1 class="m-0 text-2xl font-bold tracking-tight">Create a post</h1>
+  <p class="mt-2 text-sm leading-relaxed text-[var(--muted)]">Write a draft and check its text size.</p>
+  <form class="mt-6" data-compose-submit action="/compose" method="post" post="/compose/fragment" target="#compose-main(outerHTML)" timeout="5000" onerror="#publish-status(innerHTML)">
+    <input type="hidden" name="draft_token" value="{{.Token}}">
+    <label class="mb-2 block font-bold" for="draft">Your post</label>
+    <textarea class="w-full resize-y rounded-lg border border-[var(--line)] bg-[var(--bg)] p-3.5 text-[var(--text)]" id="draft" name="text" rows="9" maxlength="4000" required placeholder="What would you like to share?">{{.Text}}</textarea>
+    <div class="mt-4 flex flex-wrap gap-3">
+      <button class="min-h-11 rounded-lg border-0 bg-[var(--accent)] px-5 py-3 font-bold text-[var(--on-accent)] transition-opacity hover:opacity-80 focus-visible:outline-2" type="submit">Add demo post</button>
+      <button class="js-only min-h-11 rounded-lg border border-[var(--line)] bg-[var(--control)] px-5 py-3 font-bold text-[var(--text)] transition-colors hover:bg-[var(--accent-soft)] focus-visible:outline-2" type="button" post="/quote/fragment" source="#draft" target="#quote-result(innerHTML)" timeout="5000" loading="#quote-status(innerHTML)" onerror="#quote-status(innerHTML)">Count bytes</button>
+      <noscript><button class="min-h-11 rounded-lg border border-[var(--line)] bg-[var(--control)] px-5 py-3 font-bold text-[var(--text)]" type="submit" formaction="/quote" formmethod="post" formnovalidate>Count bytes</button></noscript>
+    </div>
+  </form>
+  <div id="publish-status" class="mt-2 text-sm" role="status" aria-live="polite"></div>
+  <div class="mt-6 border-t border-[var(--line)] pt-5"><strong>External media</strong><p class="text-sm leading-relaxed text-[var(--muted)]">Image and video links are not available yet.</p></div>
+  <div class="notice"><span>ⓘ</span><p><strong>Public and permanent in practice.</strong> Posts may be copied, and edits cannot erase existing copies.</p></div>
+</main>
+{{end}}
+{{define "compose-success"}}
+<main id="compose-main" class="min-w-0 rounded-xl border border-[var(--line)] bg-[var(--panel)] p-5 sm:p-6">
+  <h1 class="m-0 text-2xl font-bold tracking-tight" tabindex="-1" data-compose-result>Post added</h1>
+  <p class="mt-2 text-sm leading-relaxed text-[var(--muted)]">Your demo post is visible on this server until it restarts.</p>
+  <p><a class="mt-3 inline-flex min-h-11 items-center rounded-lg bg-[var(--accent)] px-5 py-3 font-bold text-[var(--on-accent)] transition-opacity hover:opacity-80" href="/posts/{{.ID}}">View post</a></p>
+  <p><a class="back-link" href="/">View feed</a> · <a class="back-link" href="/compose">Write another</a></p>
+</main>
+{{end}}

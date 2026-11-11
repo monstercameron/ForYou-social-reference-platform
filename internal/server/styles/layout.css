@@ -1,0 +1,13 @@
+@layer components {
+  .layout {
+    @apply mx-auto grid min-h-screen max-w-[1440px] grid-cols-[250px_minmax(0,780px)_minmax(260px,390px)];
+    @apply max-[1100px]:grid-cols-[200px_minmax(0,1fr)_300px] max-[850px]:grid-cols-[72px_minmax(0,1fr)] max-[540px]:block;
+  }
+  .center { @apply min-w-0 border-r border-[var(--line)] max-[850px]:border-r-0; }
+  .brand { @apply flex items-center gap-2.5 text-[27px] font-bold tracking-[-1.2px]; }
+  .brand-icon { @apply grid h-8 w-8 place-items-center rounded-[9px] bg-[var(--accent)] text-[21px] text-[var(--on-accent)]; }
+  .mobile-top { @apply hidden max-[850px]:flex max-[850px]:border-b max-[850px]:border-[var(--line)] max-[850px]:px-4 max-[850px]:py-3.5; }
+  .mobile-top .brand { @apply max-[540px]:text-xl; }
+  .mobile-top .brand-icon { @apply max-[540px]:h-[27px] max-[540px]:w-[27px] max-[540px]:text-lg; }
+  .mobile-theme { @apply hidden max-[850px]:ml-auto max-[850px]:flex max-[850px]:items-center max-[850px]:gap-2.5 max-[850px]:text-xs max-[850px]:text-[var(--accent)]; }
+}

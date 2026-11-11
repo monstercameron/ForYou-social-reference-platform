@@ -1,0 +1,2 @@
+demo-flower.mp4: MDN interactive example, CC0; https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4
+The demo-landscape SVG illustrations are original project mock assets.

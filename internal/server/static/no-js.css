@@ -1,0 +1,2 @@
+/* The interactive byte-count button needs JavaScript; use its native fallback. */
+.js-only { display: none !important; }

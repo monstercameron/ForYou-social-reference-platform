@@ -1,0 +1,13 @@
+@layer components {
+  .post-bottom .feedback-control button {
+    @apply grid min-h-11 min-w-11 place-items-center rounded-full p-2 text-sm;
+    transition:background-color .18s,box-shadow .18s,transform .18s;
+  }
+  .post-bottom .feedback-control button:hover { @apply bg-[var(--accent-soft)]; }
+  .post-bottom .feedback-control button:active { transform:scale(.94); }
+  .feedback-control > .error { @apply basis-full text-xs text-[#c55050]; }
+  .post-bottom .feedback-control button[aria-pressed="true"] {
+    @apply bg-[var(--accent-soft)];
+    box-shadow:inset 0 0 0 2px var(--accent);
+  }
+}

@@ -1,0 +1,14 @@
+{{define "compose-quote-panel"}}
+<aside class="min-w-0 rounded-xl border border-[var(--line)] bg-[var(--panel)] p-5 sm:p-6">
+  <div id="quote-result">{{template "quote-result" .}}</div>
+  <div id="quote-status" class="mt-2 text-xs text-[var(--muted)]" role="status" aria-live="polite"></div>
+  <p class="text-sm leading-relaxed text-[var(--muted)]">Demo posts are shared with visitors to this server and disappear when it restarts. No payment is made.</p>
+</aside>
+{{end}}
+{{define "quote-result"}}
+<h2 class="m-0 text-xl font-bold tracking-tight">Post quote</h2>
+<p class="text-sm leading-relaxed text-[var(--muted)]">Pricing is not available yet.</p>
+<div class="flex justify-between gap-3 border-b border-[var(--line)] py-3"><span>Last checked size (UTF-8)</span><strong>{{.Bytes}} bytes</strong></div>
+{{end}}
+
+{{define "quote-response"}}<fragment target="#quote-result(innerHTML)">{{template "quote-result" .}}</fragment><fragment target="#quote-status(innerHTML)">Byte count updated. Check again after editing.</fragment>{{end}}

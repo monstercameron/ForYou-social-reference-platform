@@ -1,0 +1,7 @@
+{{define "post-video"}}
+{{if eq .Art "video"}}
+<video class="block aspect-[16/8.2] max-h-[360px] w-full rounded-xl bg-[#dce2ed] object-cover" poster="/static/demo-flower-poster.svg" controls preload="none" aria-label="Flower video"><source src="/static/demo-flower.mp4" type="video/mp4">Your browser does not support video.</video>
+{{else if eq .Art "tech-video"}}
+<video class="block aspect-[16/8.2] max-h-[360px] w-full rounded-xl bg-[#dce2ed] object-cover" controls preload="none" aria-label="Home server monitor video"><source src="/static/demo-tech.mp4" type="video/mp4">Your browser does not support video.</video>
+{{end}}
+{{end}}

@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="ForYou is an early-stage project for a decentralized social network built around public, signed text posts.">
+  <meta name="color-scheme" content="light">
+  <title>ForYou — A more open social network</title>
+  <style>
+    :root { --ink:#10283f; --blue:#2558a8; --blue-dark:#193d76; --pale:#e7f0fa; --paper:#f8fafc; --white:#fff; --muted:#4c6072; --line:#c5d3df; }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; color:var(--ink); background:var(--paper); font-family:"Trebuchet MS", "Segoe UI", sans-serif; font-size:17px; line-height:1.6; }
+    a { color:inherit; text-underline-offset:.2em; }
+    a:focus-visible { outline:3px solid #ac3d52; outline-offset:5px; }
+    .wrap { width:min(100% - 3rem, 1160px); margin-inline:auto; }
+    header { border-bottom:1px solid var(--line); }
+    .nav { min-height:76px; display:flex; align-items:center; justify-content:space-between; gap:1.5rem; }
+    .brand { font-size:1.55rem; font-weight:800; letter-spacing:-.08em; text-decoration:none; }
+    .brand span { color:var(--blue); }
+    nav { display:flex; flex-wrap:wrap; gap:clamp(1rem,3vw,2.2rem); align-items:center; font-size:.9rem; font-weight:700; }
+    nav a { text-decoration:none; }
+    nav a:hover, .text-link:hover { text-decoration:underline; }
+    .hero { padding:clamp(4rem,9vw,8rem) 0 clamp(4rem,8vw,7rem); overflow:hidden; }
+    .hero-grid { display:grid; grid-template-columns:1.08fr .92fr; gap:clamp(2rem,6vw,6rem); align-items:center; }
+    .status { display:inline-flex; align-items:center; gap:.55rem; color:var(--blue-dark); font-size:.85rem; font-weight:700; }
+    .status::before { content:""; width:.6rem; height:.6rem; background:#4386d2; border-radius:50%; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { max-width:11ch; margin:.75rem 0 1.5rem; font-size:clamp(3.4rem,7vw,6.8rem); line-height:.99; letter-spacing:-.065em; font-weight:800; }
+    .lead { max-width:35rem; font-size:clamp(1.1rem,1.6vw,1.3rem); color:var(--muted); line-height:1.65; }
+    .actions { display:flex; flex-wrap:wrap; align-items:center; gap:1.5rem; margin-top:2rem; }
+    .button { display:inline-block; padding:.8rem 1.25rem; background:var(--blue); color:var(--white); border-radius:.45rem; text-decoration:none; font-weight:700; }
+    .button:hover { background:var(--blue-dark); }
+    .text-link { color:var(--blue-dark); font-weight:700; }
+    .visual { position:relative; min-height:430px; background:var(--pale); border-radius:1.25rem; padding:2rem; display:flex; flex-direction:column; justify-content:center; gap:1rem; }
+    .visual::before { content:""; position:absolute; left:calc(2rem + 19px); top:22%; bottom:20%; width:2px; background:#8fb3df; }
+    .node { position:relative; display:flex; align-items:flex-start; gap:1rem; }
+    .dot { flex:0 0 40px; height:40px; border-radius:50%; background:var(--blue); border:6px solid var(--pale); }
+    .note { background:var(--white); border:1px solid #d2dfec; border-radius:.65rem; box-shadow:0 7px 18px #1d466510; padding:1rem 1.15rem; flex:1; }
+    .note strong { display:block; font-size:.96rem; line-height:1.3; }
+    .note span { color:var(--muted); font-size:.85rem; }
+    .node:nth-child(2) { margin-left:2.2rem; } .node:nth-child(3) { margin-left:.7rem; }
+    .visual::before { left:3.22rem; }
+    .statement { background:var(--ink); color:var(--white); padding:4.8rem 0; }
+    .statement-inner { display:grid; grid-template-columns:.8fr 1.2fr; gap:3rem; align-items:start; }
+    .statement h2 { max-width:13ch; font-size:clamp(2rem,4vw,3.5rem); line-height:1.08; letter-spacing:-.045em; }
+    .statement p { max-width:38rem; color:#d7e5f4; font-size:1.1rem; }
+    section { scroll-margin-top:2rem; }
+    .section { padding:clamp(4rem,8vw,7rem) 0; }
+    .section-head { display:grid; grid-template-columns:.8fr 1.2fr; gap:2rem; margin-bottom:3rem; }
+    .section-head h2 { max-width:14ch; margin-bottom:0; font-size:clamp(2.2rem,4vw,3.8rem); line-height:1.05; letter-spacing:-.045em; }
+    .section-head p { max-width:38rem; color:var(--muted); font-size:1.1rem; }
+    .comparison { border-top:2px solid var(--ink); }
+    .row { display:grid; grid-template-columns:.7fr 1.15fr 1.15fr; gap:2rem; border-bottom:1px solid var(--line); padding:1.5rem 0; }
+    .row h3, .row p { margin:0; } .row h3 { font-size:1rem; } .row p { font-size:.96rem; color:var(--muted); }
+    .row .ours { color:var(--ink); } .row.labels { font-size:.85rem; font-weight:700; color:var(--blue-dark); padding:1rem 0; }
+    .process { background:#e9f2fa; }
+    .steps { display:grid; grid-template-columns:repeat(4,1fr); gap:2rem; counter-reset:step; }
+    .step { counter-increment:step; border-top:2px solid var(--blue); padding-top:1.2rem; }
+    .step::before { content:counter(step, decimal-leading-zero); color:var(--blue); font-weight:700; font-size:.85rem; }
+    .step h3 { margin:.7rem 0 .5rem; font-size:1.2rem; }
+    .step p { margin:0; color:var(--muted); font-size:.96rem; }
+    .details { display:grid; grid-template-columns:1fr 1fr; gap:clamp(3rem,7vw,7rem); }
+    .details h2 { font-size:clamp(2.1rem,4vw,3.4rem); line-height:1.1; letter-spacing:-.04em; }
+    .details p { color:var(--muted); }
+    .details ul { padding-left:1.15rem; } .details li { margin-bottom:.9rem; }
+    .notice { background:var(--white); border-left:4px solid var(--blue); padding:1.4rem 1.6rem; margin-top:2rem; }
+    .notice p:last-child { margin-bottom:0; }
+    footer { border-top:1px solid var(--line); padding:2rem 0; }
+    .foot { display:flex; justify-content:space-between; flex-wrap:wrap; gap:1rem 2rem; color:var(--muted); font-size:.9rem; }
+    .foot p { margin:0; }
+    @media(max-width:760px) { .wrap { width:min(100% - 2rem, 1160px); } .nav { padding:1rem 0; align-items:flex-start; flex-direction:column; gap:.6rem; } nav { gap:1rem; } .hero-grid,.statement-inner,.section-head,.details { grid-template-columns:1fr; } .hero { padding-top:3.5rem; } .visual { min-height:340px; } .statement-inner { gap:1rem; } .statement h2 { max-width:18ch; } .row { grid-template-columns:1fr; gap:.45rem; padding:1.2rem 0; } .row.labels { display:none; } .row p::before { display:block; font-size:.8rem; font-weight:700; color:var(--blue-dark); } .row .conventional::before { content:"Common platforms"; } .row .ours::before { content:"ForYou's direction"; } .steps { grid-template-columns:1fr 1fr; gap:2rem 1.5rem; } }
+    @media(max-width:420px) { h1 { font-size:3.4rem; } .steps { grid-template-columns:1fr; } .node:nth-child(2) { margin-left:1rem; } .visual { padding:1.2rem; } .visual::before { left:2.42rem; } }
+    @media(prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap nav">
+      <a class="brand" href="#top" aria-label="ForYou home">For<span>You</span></a>
+      <nav aria-label="Main navigation"><a href="#difference">What’s different</a><a href="#how">How it works</a><a href="#status">Project status</a><a href="https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification">Specification</a></nav>
+    </div>
+  </header>
+  <main id="top">
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div>
+          <span class="status">An open project in early development</span>
+          <h1>Social, on your terms.</h1>
+          <p class="lead">ForYou is an idea for a public social network where you choose your provider, control your identity, and can take part without depending on a single platform.</p>
+          <div class="actions"><a class="button" href="#how">See how it works</a><a class="text-link" href="#difference">Explore the difference</a></div>
+        </div>
+        <div class="visual" aria-label="Concept: authors publish signed posts through providers, and readers choose where to read them">
+          <div class="node"><span class="dot" aria-hidden="true"></span><div class="note"><strong>Your identity</strong><span>Held by you, not one platform</span></div></div>
+          <div class="node"><span class="dot" aria-hidden="true"></span><div class="note"><strong>A post you sign</strong><span>Public text with a verifiable author</span></div></div>
+          <div class="node"><span class="dot" aria-hidden="true"></span><div class="note"><strong>Many ways to read</strong><span>Apps and readers choose their sources</span></div></div>
+        </div>
+      </div>
+    </section>
+    <section class="statement" aria-labelledby="purpose-title"><div class="wrap statement-inner"><h2 id="purpose-title">A network built around the message.</h2><div><p>Today, social platforms often bundle your identity, your content, and the way people find it into one service. ForYou explores a different foundation: signed public posts that independent providers can store and independent apps can present.</p><p>The aim is to make the core small and open to participation, while leaving room for people to build the social experiences they want.</p></div></div></section>
+    <section id="difference" class="section"><div class="wrap">
+      <div class="section-head"><h2>Different choices, by design.</h2><p>Platforms vary, and decentralization involves trade-offs. These are the choices ForYou intends to make—not features available in the current starter.</p></div>
+      <div class="comparison" role="table" aria-label="Comparing common platforms and the intended ForYou design">
+        <div class="row labels" role="row"><span role="columnheader">Area</span><span role="columnheader">Common platforms</span><span role="columnheader">ForYou’s direction</span></div>
+        <div class="row" role="row"><h3 role="rowheader">Identity</h3><p class="conventional" role="cell">An account and its identity are usually controlled by the platform.</p><p class="ours" role="cell">Your signing identity is yours to hold and use with a provider you choose.</p></div>
+        <div class="row" role="row"><h3 role="rowheader">Reading</h3><p class="conventional" role="cell">Access and discovery are typically mediated by the platform’s app and rules.</p><p class="ours" role="cell">Anyone can retrieve available public records, and different apps can build their own views.</p></div>
+        <div class="row" role="row"><h3 role="rowheader">Media</h3><p class="conventional" role="cell">Images and video are often uploaded to and hosted by the platform.</p><p class="ours" role="cell">You or your app choose the host; a post carries up to 16 external media links and content hashes.</p></div>
+        <div class="row" role="row"><h3 role="rowheader">Business model</h3><p class="conventional" role="cell">Platforms may rely on advertising, subscriptions or other models.</p><p class="ours" role="cell">The intended model uses a small fee per post, paid to the admitting provider. The economics still need validation.</p></div>
+      </div>
+    </div></section>
+    <section id="how" class="section process"><div class="wrap">
+      <div class="section-head"><h2>One post, many possibilities.</h2><p>Here’s the intended path from author to reader. The network is still being designed and these steps are not available yet.</p></div>
+      <div class="steps">
+        <div class="step"><h3>Choose</h3><p>Create and back up a signing identity, then choose and fund a provider.</p></div>
+        <div class="step"><h3>Write</h3><p>Compose text and, if you like, add links to media hosted separately.</p></div>
+        <div class="step"><h3>Publish</h3><p>Approve the quoted fee. The provider admits the post and issues a receipt for the signed record.</p></div>
+        <div class="step"><h3>Read</h3><p>Readers and apps retrieve available posts from chosen providers and verify their proofs.</p></div>
+      </div>
+    </div></section>
+    <section id="status" class="section"><div class="wrap details">
+      <div><h2>A small core.<br>Room to build.</h2><p>Replies are posts linked to an exact parent. Edits are new signed versions, so the original record stays distinct. Apps can create their own feeds, discovery and other features on top.</p><p>Providers are intended to retain finalized posts without a scheduled expiration, but providers can fail and local legal restrictions can affect access. Copies already downloaded by others may persist.</p><a class="text-link" href="https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification">Read the evolving specification</a></div>
+      <div><h2>Where we are now.</h2><p>ForYou is a project in its earliest stages—not a working network. The current implementation is a starter server; posting, payments and public retrieval are not yet built.</p><ul><li>There is an aspirational target of about $0.0001 per post, but the fee schedule and cost of long-term storage are unresolved.</li><li>The current specification differs from the intended fee and retention model described here and needs reconciliation.</li><li>Key custody, payment safety, accessibility and regional legal requirements need careful implementation and review.</li></ul><div class="notice"><strong>Public means public.</strong><p>There is no intended routine author-delete operation. Posts and their versions may be copied indefinitely, so an edit cannot erase what has already been shared.</p></div></div>
+    </div></section>
+  </main>
+  <footer><div class="wrap foot"><p><strong>ForYou</strong> · An open project in development</p><p><a href="https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification">Specification on GitHub</a> &nbsp; <a href="#top">Back to top</a></p></div></footer>
+</body>
+</html>

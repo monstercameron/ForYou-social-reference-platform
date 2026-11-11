@@ -1,0 +1,8 @@
+{{define "feed-search"}}
+<form class="mx-4 mb-2 flex items-center gap-2 rounded-lg border border-[var(--line)] bg-[var(--panel)] px-3 min-[1101px]:mx-6" action="/" method="get">
+  <input type="hidden" name="filter" value="{{.Filter}}"><input type="hidden" name="theme" value="{{.Theme}}">
+  <label for="feed-search-input" class="sr-only">Search posts</label>
+  <input class="min-h-10 min-w-0 flex-1 border-0 bg-transparent py-2 text-xs text-[var(--text)]" id="feed-search-input" name="q" type="search" maxlength="120" value="{{.Query}}" placeholder="Search posts">
+  <button class="min-h-10 border-0 bg-transparent px-2 text-xs font-semibold text-[var(--accent)] hover:underline" type="submit">Search</button>
+</form>
+{{end}}

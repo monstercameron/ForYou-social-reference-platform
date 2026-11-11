@@ -1,0 +1,6 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#f6f7fb"><title>ForYou · Home</title><link rel="stylesheet" href="/static/tailwind.css"><script type="module" src="/static/app.js"></script></head>
+<body data-theme="{{.Theme}}"><div class="layout">
+{{template "sidebar" .}}
+<main class="center">{{template "mobile-header" .}}{{template "feed" .}}</main>
+{{template "rightbar" .}}</div></body></html>

@@ -1,0 +1,2 @@
+HTMLeX browser runtime from https://github.com/monstercameron/HTMLeX at commit bd0c84e599dad0265cc41474ea8cfcd425ad2043 (ISC license; see LICENSE).
+Local patch: registration.js binds event methods to the original event when invoking them, so native preventDefault works.
