@@ -1,0 +1,26 @@
+{
+  "status": "SYNTHETIC ONLY: public test key. A signed name proves only which key signed it; it is not unique and not an identity claim.",
+  "description": "A display name record with an avatar reference, and a later withdrawal record that replaces it. The avatar commits to the 35 ASCII bytes \"ForYou synthetic avatar image bytes\".",
+  "record": {
+    "name_id": "fynr2:9d81b977f01a420f3cace01c30cdab9a87402e8b94c1283639f2a1bd2f4eeee7",
+    "author_id": "did:key:z6MkehRgf7yJbgaGfYsdoAsKdBPE3dj2CYhowQdcjqSJgvVd",
+    "display_name": "Zoë Example",
+    "avatar": {
+      "url": "https://media.example/avatars/zoe.png",
+      "sha256": "08b860e2b03a68a952acf3d1c63b988f251a509aca0420ce984de33f31c8bf28",
+      "size_bytes": 35
+    },
+    "issued_at": "2026-11-11T00:00:00Z",
+    "previous_name_id": null,
+    "author_signature": "k6HCo-NZ4zaqGNF7VWL0rTiDMfzM2G7LKy4xgUw7U0LtYmT0itI32jaCfM8aR7FvR7d4m_1FZLoyahFsXwU1Bw"
+  },
+  "withdrawal": {
+    "name_id": "fynr2:5ba2f24eb0a71569aac3449354233dc11523a070ab65a24200a3b4b64e2e51b9",
+    "author_id": "did:key:z6MkehRgf7yJbgaGfYsdoAsKdBPE3dj2CYhowQdcjqSJgvVd",
+    "display_name": null,
+    "avatar": null,
+    "issued_at": "2026-11-12T00:00:00Z",
+    "previous_name_id": "fynr2:9d81b977f01a420f3cace01c30cdab9a87402e8b94c1283639f2a1bd2f4eeee7",
+    "author_signature": "AS2h-5_28AHh40hV9keA7CEIBCAEZ2hQ1hvOZ9HF1Nb7Aa850WowDJStlV1B8YglLa5JwgvxDwMCYSqUIpFeCg"
+  }
+}
