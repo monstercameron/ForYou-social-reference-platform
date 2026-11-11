@@ -1,0 +1,9 @@
+{
+  "source": "ForYou-Social-Ecosystem-Specification/tests/economics_model.py key_succession(AUTHOR, DELEGATE, \"2026-12-01T00:00:00Z\"); cross-checked against that model, which reproduces succession_id and both signatures.",
+  "old_id": "did:key:z6MkehRgf7yJbgaGfYsdoAsKdBPE3dj2CYhowQdcjqSJgvVd",
+  "new_id": "did:key:z6Mkgxj2R3HLtQRpPnvfvpuKEceSqf3tZHBjdmZ3fFz3JHGG",
+  "effective_at": "2026-12-01T00:00:00Z",
+  "succession_id": "fyks2:a3156461bf70d3de6fa794f8f1d1cb6a0c7ac71674aa717c26004612b0c808b6",
+  "old_signature": "r_Zxt-fw5D9i8N9UgSaYi1FBeRALA9FbfZQF6MnO2nnX8kf8cBBT0jcu-1LhC4LUCbc46yQIyaEGL5Yqk1ZuDw",
+  "new_signature": "0JyWdFLhAHFOQKimHD13oKxTVvbW45tm3YR43wo94KM1FihVlMDGUarOv-3mk0ZLFWVz1qyD3ViRB5yb06S4BQ"
+}
