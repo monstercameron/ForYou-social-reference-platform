@@ -195,6 +195,17 @@ func TestSigningInputAndDigestID(t *testing.T) {
 			t.Fatal("DigestID accepted unknown prefix")
 		}
 	})
+	t.Run("display name record", func(t *testing.T) {
+		// The first record of examples/name-record.example.json in the specification, without name_id and author_signature.
+		record, err := hex.DecodeString("7b22617574686f725f6964223a226469643a6b65793a7a364d6b656852676637794a62676147665973646f41734b6442504533646a324359686f775164636a71534a67765664222c22646973706c61795f6e616d65223a225a6fc3ab204578616d706c65222c226973737565645f6174223a22323032362d31312d31315430303a30303a30305a222c2270726576696f75735f6e616d655f6964223a6e756c6c7d")
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := "fynr2:ef06e1a717b60c8bef8f21d78ddea36ce8ec2a99232d044acf9a90f07a8af7c6"
+		if got, err := DigestID("fynr2:", "name-record-id", record); err != nil || got != want {
+			t.Fatalf("DigestID() = %q, %v; want %q", got, err, want)
+		}
+	})
 }
 
 func TestSigningRoundTrip(t *testing.T) {

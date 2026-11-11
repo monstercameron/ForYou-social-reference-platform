@@ -18,6 +18,7 @@ var idPrefixes = map[string]struct{}{
 	"fy1:": {}, "fyd1:": {}, "fye1:": {}, "fyfs2:": {}, "fydi2:": {},
 	"fydc2:": {}, "fyfq2:": {}, "fyqr2:": {}, "fydp2:": {}, "fyds2:": {},
 	"fyrd2:": {}, "fyks2:": {}, "fyfc2:": {}, "fysc2:": {}, "fyku2:": {},
+	"fynr2:": {},
 }
 
 // NewKeyFromSeed creates a pure Ed25519 private key from a 32-byte seed.
