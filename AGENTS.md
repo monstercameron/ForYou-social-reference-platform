@@ -8,6 +8,11 @@
 - Follow the [testing strategy](docs/adr/0002-testing-strategy.md) when writing or reviewing tests.
 - For client UI work, consult the [design concepts](docs/concepts/), including the light and dark feed references. Treat them as visual direction, not evidence that depicted features or privacy claims exist.
 - Treat protocol, key handling and payments as security-sensitive. Never claim that passing tests establishes security or production readiness.
+- Follow the [architecture decision](docs/adr/0003-architecture.md): package boundaries, layering, dev mode and the faux chain. Do not add a package, a dependency or a role without changing that decision first.
+- Work from a GitHub issue. Change only the files the issue names as yours. If the issue cannot be done without touching another file, stop and report it instead of editing that file.
+- Write self-documenting code. Give exported identifiers a doc comment and explain a non-obvious reason or a specification rule in one line where it matters. Do not narrate what the code does, do not leave commented-out code, and do not add banner or section comments.
+- Do not commit generated CSS, binaries, `.local/` or anything under `node_modules/`. Do not commit at all when an issue says the integrator commits.
+- Git hooks live in `.githooks` (`git config core.hooksPath .githooks`). Do not bypass them.
 
 ## Project context: the specification
 

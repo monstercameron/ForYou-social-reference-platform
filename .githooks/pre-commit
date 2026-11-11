@@ -1,0 +1,16 @@
+#!/bin/sh
+# Checks only what is staged, so it stays fast. Enable with: git config core.hooksPath .githooks
+set -e
+files=$(git diff --cached --name-only --diff-filter=ACMR -- '*.go')
+[ -z "$files" ] && exit 0
+
+unformatted=$(gofmt -l $files)
+if [ -n "$unformatted" ]; then
+  echo "pre-commit: run gofmt on:" >&2
+  echo "$unformatted" >&2
+  exit 1
+fi
+
+packages=$(for f in $files; do dirname "$f"; done | sort -u | sed 's|^|./|')
+go vet $packages
+go test -count=1 $packages

@@ -157,7 +157,9 @@ go test ./...
 go vet ./...
 ```
 
-Follow the [Go style decision](docs/adr/0001-go-style.md) and [testing strategy](docs/adr/0002-testing-strategy.md). Format Go files with `gofmt`. The [GitHub Actions workflow](.github/workflows/ci.yml) checks formatting, runs tests, and runs `go vet` on pushes and pull requests.
+Enable the pre-commit hook once per clone with `git config core.hooksPath .githooks`. It formats-checks, vets and tests only the Go packages you staged.
+
+Follow the [Go style decision](docs/adr/0001-go-style.md), the [testing strategy](docs/adr/0002-testing-strategy.md) and the [architecture decision](docs/adr/0003-architecture.md). Format Go files with `gofmt`. The [GitHub Actions workflow](.github/workflows/ci.yml) checks formatting, runs tests, and runs `go vet` on pushes and pull requests.
 
 ## Repository layout
 
