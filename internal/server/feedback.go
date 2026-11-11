@@ -11,6 +11,14 @@ import (
 	"time"
 )
 
+func init() { routeGroups = append(routeGroups, registerFeedback) }
+
+func registerFeedback(a *App, mux *http.ServeMux) {
+	mux.HandleFunc("POST /feedback", a.feedbackHandler)
+	mux.HandleFunc("POST /feedback/fragment", a.feedbackHandler)
+	mux.HandleFunc("POST /feedback/clear", a.feedbackClearHandler)
+}
+
 const feedbackCookie = "foryou_feedback"
 const feedbackPrefix = "foryou_vote_"
 const feedbackLimit = 24
@@ -145,23 +153,13 @@ func feedbackSelections(r *http.Request) map[string]string {
 	return selections
 }
 
-func sameOriginFeedback(r *http.Request) bool {
-	if origin := r.Header.Get("Origin"); origin != "" {
-		u, err := url.Parse(origin)
-		if err != nil || u.Host != r.Host || (u.Scheme != "http" && u.Scheme != "https") {
-			return false
-		}
-	}
-	return r.Header.Get("Sec-Fetch-Site") != "cross-site"
-}
-
-func feedbackHandler(w http.ResponseWriter, r *http.Request) {
+func (a *App) feedbackHandler(w http.ResponseWriter, r *http.Request) {
 	form, ok := readActionForm(w, r, "id", "vote")
 	if !ok {
 		return
 	}
 	id, vote := form.Get("id"), form.Get("vote")
-	if _, ok := requestPost(r, id); !ok {
+	if _, ok := a.requestPost(r, id); !ok {
 		http.NotFound(w, r)
 		return
 	}
@@ -199,15 +197,14 @@ func feedbackHandler(w http.ResponseWriter, r *http.Request) {
 		if selected == "clear" {
 			selected = ""
 		}
-		_ = home.ExecuteTemplate(w, "feedback-controls", struct{ ID, Feedback string }{id, selected})
+		a.fragment(w, r, "card-feedback-controls", struct{ ID, Feedback string }{id, selected})
 		return
 	}
 	http.Redirect(w, r, "/posts/"+url.PathEscape(id), http.StatusSeeOther)
 }
 
-func feedbackClearHandler(w http.ResponseWriter, r *http.Request) {
-	if !sameOriginFeedback(r) {
-		http.Error(w, "invalid origin", http.StatusForbidden)
+func (a *App) feedbackClearHandler(w http.ResponseWriter, r *http.Request) {
+	if !requireSameOrigin(w, r) {
 		return
 	}
 	expireFeedbackCookie(w, r, feedbackCookie)

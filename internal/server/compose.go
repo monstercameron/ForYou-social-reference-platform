@@ -3,19 +3,26 @@ package server
 import (
 	"crypto/rand"
 	"encoding/hex"
-	"errors"
-	"mime"
 	"net/http"
 	"unicode/utf8"
 )
 
+func init() { routeGroups = append(routeGroups, registerCompose) }
+
+func registerCompose(a *App, mux *http.ServeMux) {
+	mux.HandleFunc("GET /compose", a.composeHandler)
+	mux.HandleFunc("GET /quote", a.quoteHandler)
+	mux.HandleFunc("POST /quote", a.quoteHandler)
+	mux.HandleFunc("GET /quote/fragment", a.quoteHandler)
+	mux.HandleFunc("POST /quote/fragment", a.quoteHandler)
+}
+
 type quotePreview struct {
-	Cost    postCost
-	Bytes   int
-	Text    string
-	Token   string
-	Theme   string
-	Section string
+	Layout Layout
+	Cost   postCost
+	Bytes  int
+	Text   string
+	Token  string
 }
 
 func draftToken() (string, error) {
@@ -26,7 +33,7 @@ func draftToken() (string, error) {
 	return hex.EncodeToString(id[:]), nil
 }
 
-func composeHandler(w http.ResponseWriter, r *http.Request) {
+func (a *App) composeHandler(w http.ResponseWriter, r *http.Request) {
 	token, err := draftToken()
 	if err != nil {
 		http.Error(w, "unable to prepare draft", http.StatusServiceUnavailable)
@@ -35,28 +42,14 @@ func composeHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
 	rememberTheme(w, r)
-	_ = home.ExecuteTemplate(w, "compose-page", quotePreview{Token: token, Theme: requestTheme(r), Section: "compose"})
+	a.page(w, r, "compose-page", quotePreview{Layout: a.layout(r, "compose", "New post"), Token: token})
 }
 
-func quoteHandler(w http.ResponseWriter, r *http.Request) {
+func (a *App) quoteHandler(w http.ResponseWriter, r *http.Request) {
 	text := r.URL.Query().Get("text")
 	if r.Method == http.MethodPost {
-		mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
-		if err != nil || (mediaType != "multipart/form-data" && mediaType != "application/x-www-form-urlencoded") {
-			http.Error(w, "unsupported draft format", http.StatusUnsupportedMediaType)
+		if !parseSmallForm(w, r, 50000) {
 			return
-		}
-		r.Body = http.MaxBytesReader(w, r.Body, 50000)
-		if err := r.ParseMultipartForm(20000); err != nil && !errors.Is(err, http.ErrNotMultipart) {
-			http.Error(w, "invalid draft", http.StatusBadRequest)
-			return
-		}
-		if r.MultipartForm != nil {
-			defer r.MultipartForm.RemoveAll()
-			if len(r.MultipartForm.File) != 0 {
-				http.Error(w, "attachments are not supported", http.StatusBadRequest)
-				return
-			}
 		}
 		text = r.PostForm.Get("text")
 	}
@@ -69,7 +62,7 @@ func quoteHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "No fee quote is available.", http.StatusServiceUnavailable)
 		return
 	}
-	preview := quotePreview{Cost: cost, Bytes: len(text), Text: text, Theme: requestTheme(r), Section: "compose"}
+	preview := quotePreview{Layout: a.layout(r, "compose", "New post"), Cost: cost, Bytes: len(text), Text: text}
 	if r.URL.Path == "/quote" {
 		token, err := draftToken()
 		if err != nil {
@@ -81,8 +74,8 @@ func quoteHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
 	if r.URL.Path == "/quote" {
-		_ = home.ExecuteTemplate(w, "compose-page", preview)
+		a.page(w, r, "compose-page", preview)
 		return
 	}
-	_ = home.ExecuteTemplate(w, "quote-response", preview)
+	a.fragment(w, r, "compose-quote-response", preview)
 }

@@ -2,7 +2,6 @@ package server
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"mime/multipart"
 	"net/http"
@@ -14,7 +13,7 @@ import (
 
 func TestDemoPublish(t *testing.T) {
 	t.Run("native form uses redirect and displays escaped content", func(t *testing.T) {
-		h := newHandler("client", nil)
+		h := testClientHandler(t)
 		r := httptest.NewRequest(http.MethodPost, "/compose", strings.NewReader(url.Values{"text": {"Hello <script>demo</script>"}, "draft_token": {"11111111111111111111111111111111"}}.Encode()))
 		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		w := httptest.NewRecorder()
@@ -48,7 +47,7 @@ func TestDemoPublish(t *testing.T) {
 		r := httptest.NewRequest(http.MethodPost, "/compose/fragment", &body)
 		r.Header.Set("Content-Type", writer.FormDataContentType())
 		w := httptest.NewRecorder()
-		newHandler("client", nil).ServeHTTP(w, r)
+		testClientHandler(t).ServeHTTP(w, r)
 		if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "Post added") || !strings.Contains(w.Body.String(), "/posts/demo-") {
 			t.Errorf("unexpected response: %d %s", w.Code, w.Body.String())
 		}
@@ -61,7 +60,7 @@ func TestDemoPublish(t *testing.T) {
 			r.Header.Set("Origin", origin)
 		}
 		w := httptest.NewRecorder()
-		newHandler("client", nil).ServeHTTP(w, r)
+		testClientHandler(t).ServeHTTP(w, r)
 		if w.Code != status {
 			t.Errorf("status = %d; want %d", w.Code, status)
 		}
@@ -72,7 +71,7 @@ func TestDemoPublish(t *testing.T) {
 }
 
 func TestPaginationRetainsOriginalBoundary(t *testing.T) {
-	h := newHandler("client", nil)
+	h := testClientHandler(t)
 	r := httptest.NewRequest(http.MethodPost, "/compose", strings.NewReader(url.Values{"text": {"A new post"}, "draft_token": {"44444444444444444444444444444444"}}.Encode()))
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	created := httptest.NewRecorder()
@@ -88,7 +87,7 @@ func TestPaginationRetainsOriginalBoundary(t *testing.T) {
 }
 
 func TestDemoPublishRetry(t *testing.T) {
-	h := newHandler("client", nil)
+	h := testClientHandler(t)
 	submit := func(text string) *httptest.ResponseRecorder {
 		data := url.Values{"text": {text}, "draft_token": {"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}
 		r := httptest.NewRequest(http.MethodPost, "/compose", strings.NewReader(data.Encode()))
@@ -193,16 +192,17 @@ func TestFullDemoStore(t *testing.T) {
 	form := url.Values{"text": {"new draft"}, "draft_token": {"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}}
 	r := httptest.NewRequest(http.MethodPost, "/compose", strings.NewReader(form.Encode()))
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	r = r.WithContext(context.WithValue(r.Context(), demoStoreKey{}, store))
+	client := newTestClient(t, false)
+	client.app.store = store
 	w := httptest.NewRecorder()
-	publishDemo(w, r)
+	client.app.publishDemo(w, r)
 	if w.Code != http.StatusServiceUnavailable {
 		t.Errorf("publish at capacity: status %d; want 503", w.Code)
 	}
 }
 
 func TestComposerAndMobileActions(t *testing.T) {
-	h := newHandler("client", nil)
+	h := testClientHandler(t)
 	check := func(path, want string) {
 		t.Helper()
 		w := httptest.NewRecorder()
@@ -223,7 +223,7 @@ func TestComposerAndMobileActions(t *testing.T) {
 
 func TestHomeHasOneSearchForm(t *testing.T) {
 	w := httptest.NewRecorder()
-	newHandler("client", nil).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/", nil))
+	testClientHandler(t).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/", nil))
 	body := w.Body.String()
 	if w.Code != http.StatusOK || strings.Count(body, `type="search"`) != 1 || strings.Contains(body, "Search ForYou") {
 		t.Errorf("home has %d search inputs; status %d", strings.Count(body, `type="search"`), w.Code)
@@ -231,7 +231,7 @@ func TestHomeHasOneSearchForm(t *testing.T) {
 }
 
 func TestNoScriptComposerFallback(t *testing.T) {
-	h := newHandler("client", nil)
+	h := testClientHandler(t)
 	page := httptest.NewRecorder()
 	h.ServeHTTP(page, httptest.NewRequest(http.MethodGet, "/compose", nil))
 	body := page.Body.String()
@@ -248,7 +248,7 @@ func TestNoScriptComposerFallback(t *testing.T) {
 }
 
 func TestDraftBytesAndNativeUnicode(t *testing.T) {
-	h := newHandler("client", nil)
+	h := testClientHandler(t)
 	text := "  café  "
 	quote := httptest.NewRecorder()
 	h.ServeHTTP(quote, httptest.NewRequest(http.MethodGet, "/quote?text="+url.QueryEscape(text), nil))
@@ -279,7 +279,7 @@ func TestDraftBytesAndNativeUnicode(t *testing.T) {
 }
 
 func TestDraftRejectsAttachmentsAndOversize(t *testing.T) {
-	h := newHandler("client", nil)
+	h := testClientHandler(t)
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
 	if err := writer.WriteField("text", "hello"); err != nil {
@@ -314,7 +314,7 @@ func TestDraftRejectsAttachmentsAndOversize(t *testing.T) {
 
 func TestQuoteFeedback(t *testing.T) {
 	w := httptest.NewRecorder()
-	newHandler("client", nil).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/quote/fragment?text=caf%C3%A9", nil))
+	testClientHandler(t).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/quote/fragment?text=caf%C3%A9", nil))
 	body := w.Body.String()
 	if w.Code != http.StatusOK || !strings.Contains(body, `target="#quote-result(innerHTML)"`) || !strings.Contains(body, `target="#quote-status(innerHTML)"`) || !strings.Contains(body, "5 bytes") {
 		t.Errorf("quote feedback missing expected fragments or bytes, status %d", w.Code)
@@ -323,7 +323,7 @@ func TestQuoteFeedback(t *testing.T) {
 
 func TestQuoteDescribesLastCheck(t *testing.T) {
 	w := httptest.NewRecorder()
-	newHandler("client", nil).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/quote/fragment?text=hello", nil))
+	testClientHandler(t).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/quote/fragment?text=hello", nil))
 	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "Size (UTF-8)") || !strings.Contains(w.Body.String(), "Check again after editing.") {
 		t.Errorf("quote does not describe its snapshot; status %d", w.Code)
 	}
@@ -341,7 +341,7 @@ func TestQuoteFragmentPost(t *testing.T) {
 	r := httptest.NewRequest(http.MethodPost, "/quote/fragment", &body)
 	r.Header.Set("Content-Type", writer.FormDataContentType())
 	w := httptest.NewRecorder()
-	newHandler("client", nil).ServeHTTP(w, r)
+	testClientHandler(t).ServeHTTP(w, r)
 	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "16000 bytes") || !strings.Contains(w.Body.String(), "Check again after editing.") {
 		t.Errorf("large quote: status %d; expected 16000-byte response", w.Code)
 	}
@@ -359,7 +359,7 @@ func TestQuoteFragmentPostReturnsUTF8ByteCount(t *testing.T) {
 	r := httptest.NewRequest(http.MethodPost, "/quote/fragment", &body)
 	r.Header.Set("Content-Type", writer.FormDataContentType())
 	w := httptest.NewRecorder()
-	newHandler("client", nil).ServeHTTP(w, r)
+	testClientHandler(t).ServeHTTP(w, r)
 	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `<fragment target="#byte-count(innerHTML)">6 bytes</fragment>`) {
 		t.Errorf("quote fragment = %d %q; want byte-count fragment with 6 bytes", w.Code, w.Body.String())
 	}
@@ -380,7 +380,7 @@ func TestQuoteFragmentRejectsAttachment(t *testing.T) {
 	r := httptest.NewRequest(http.MethodPost, "/quote/fragment", &body)
 	r.Header.Set("Content-Type", writer.FormDataContentType())
 	w := httptest.NewRecorder()
-	newHandler("client", nil).ServeHTTP(w, r)
+	testClientHandler(t).ServeHTTP(w, r)
 	if w.Code != http.StatusBadRequest {
 		t.Errorf("quote with attachment = %d; want 400", w.Code)
 	}
@@ -390,14 +390,14 @@ func TestQuoteFragmentRejectsUnsupportedFormat(t *testing.T) {
 	r := httptest.NewRequest(http.MethodPost, "/quote/fragment", strings.NewReader(`{"text":"hello"}`))
 	r.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
-	newHandler("client", nil).ServeHTTP(w, r)
+	testClientHandler(t).ServeHTTP(w, r)
 	if w.Code != http.StatusUnsupportedMediaType {
 		t.Errorf("unsupported quote format = %d; want 415", w.Code)
 	}
 }
 
 func TestPaginationAnchorSurvivesLaterPost(t *testing.T) {
-	h := newHandler("client", nil)
+	h := testClientHandler(t)
 	create := func(text, token string) string {
 		t.Helper()
 		r := httptest.NewRequest(http.MethodPost, "/compose", strings.NewReader(url.Values{"text": {text}, "draft_token": {token}}.Encode()))

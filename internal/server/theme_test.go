@@ -9,7 +9,7 @@ import (
 )
 
 func TestAppearancePreference(t *testing.T) {
-	h := newHandler("client", nil)
+	h := testClientHandler(t)
 	r := httptest.NewRequest(http.MethodGet, "/?theme=light", nil)
 	r.TLS = &tls.ConnectionState{}
 	w := httptest.NewRecorder()

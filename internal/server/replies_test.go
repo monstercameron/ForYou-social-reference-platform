@@ -13,7 +13,7 @@ func TestReplyThreads(t *testing.T) {
 	check := func(t *testing.T, path, present, absent string, status int) {
 		t.Helper()
 		w := httptest.NewRecorder()
-		newHandler("client", nil).ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
+		testClientHandler(t).ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
 		body := w.Body.String()
 		if w.Code != status || !strings.Contains(body, present) || (absent != "" && strings.Contains(body, absent)) {
 			t.Errorf("%s: status %d, expected %d; missing %q or unexpectedly present %q", path, w.Code, status, present, absent)
@@ -64,7 +64,7 @@ func TestReplyThreads(t *testing.T) {
 }
 
 func TestRepliesAcrossDemoFeed(t *testing.T) {
-	h := newHandler("client", nil)
+	h := testClientHandler(t)
 	feed := httptest.NewRecorder()
 	h.ServeHTTP(feed, httptest.NewRequest(http.MethodGet, "/?limit=10000", nil))
 	body := feed.Body.String()
@@ -93,7 +93,7 @@ func TestRepliesAcrossDemoFeed(t *testing.T) {
 }
 
 func TestNewDemoPostHasReplies(t *testing.T) {
-	h := newHandler("client", nil)
+	h := testClientHandler(t)
 	form := url.Values{"text": {"A new demo post"}, "draft_token": {"abcdabcdabcdabcdabcdabcdabcdabcd"}}
 	r := httptest.NewRequest(http.MethodPost, "/compose", strings.NewReader(form.Encode()))
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -157,7 +157,7 @@ func TestDemoThreadFixtures(t *testing.T) {
 
 func TestReplyCountIncludesNestedReplies(t *testing.T) {
 	w := httptest.NewRecorder()
-	newHandler("client", nil).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/thread/fragment?id=maya", nil))
+	testClientHandler(t).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/thread/fragment?id=maya", nil))
 	if !strings.Contains(w.Body.String(), `<span class="reply-count">6</span>`) {
 		t.Error("maya has four replies and two nested ones; the thread control should count 6")
 	}
@@ -187,7 +187,7 @@ func quoteReplyForTest(t *testing.T, h http.Handler, id, parent, text string) st
 }
 
 func TestReplyCostIsShownBeforePosting(t *testing.T) {
-	h := newHandler("client", nil)
+	h := testClientHandler(t)
 	t.Run("one started KiB", func(t *testing.T) {
 		w := postForm(h, "/reply/quote/fragment", url.Values{"id": {"maya"}, "parent": {""}, "text": {"A short reply <b>"}})
 		body := w.Body.String()
@@ -248,7 +248,7 @@ func TestQuoteLifetime(t *testing.T) {
 }
 
 func TestAddReply(t *testing.T) {
-	h := newHandler("client", nil)
+	h := testClientHandler(t)
 	confirm := func(path, id, quote string) *httptest.ResponseRecorder {
 		return postForm(h, path, url.Values{"id": {id}, "quote": {quote}})
 	}
@@ -327,7 +327,7 @@ func TestThreadFocusTargets(t *testing.T) {
 	check := func(t *testing.T, path, present string) {
 		t.Helper()
 		w := httptest.NewRecorder()
-		newHandler("client", nil).ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
+		testClientHandler(t).ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
 		if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), present) {
 			t.Errorf("%s: missing %q, status %d", path, present, w.Code)
 		}

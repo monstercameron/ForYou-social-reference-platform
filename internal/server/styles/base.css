@@ -1,10 +1,10 @@
 @layer base {
-  :root { color-scheme:light; --bg:#fff; --panel:#fff; --rail:#fff; --subtle:#f6f7fb; --text:#171b2e; --muted:#60687c; --line:#e3e6ef; --accent:#4746df; --on-accent:#fff; --accent-soft:#eeedff; --control:#f0f1f6; font-family:Inter,"Segoe UI",Arial,sans-serif; font-synthesis:none; }
+  :root { color-scheme:light; --bg:#fff; --panel:#fff; --rail:#fff; --subtle:#f6f7fb; --text:#171b2e; --muted:#60687c; --line:#e3e6ef; --accent:#4746df; --on-accent:#fff; --accent-soft:#eeedff; --control:#f0f1f6; --ok:#1f7a4d; --ok-soft:#e6f4ec; --warn:#8a5a00; --warn-soft:#fff4dc; --bad:#b42318; --bad-soft:#fdecea; font-family:Inter,"Segoe UI",Arial,sans-serif; font-synthesis:none; }
   *, *::before, *::after { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--text); font-size:15px; line-height:1.55; }
-  body[data-theme=dark] { color-scheme:dark; --bg:#111521; --panel:#191e2c; --rail:#101420; --subtle:#151a26; --text:#f3f4fa; --muted:#a8b0c2; --line:#303747; --accent:#8589ff; --on-accent:#111521; --accent-soft:#272b4b; --control:#262b39; }
+  body[data-theme=dark] { color-scheme:dark; --bg:#111521; --panel:#191e2c; --rail:#101420; --subtle:#151a26; --text:#f3f4fa; --muted:#a8b0c2; --line:#303747; --accent:#8589ff; --on-accent:#111521; --accent-soft:#272b4b; --control:#262b39; --ok:#5fd394; --ok-soft:#173326; --warn:#f2c35b; --warn-soft:#3a2f14; --bad:#ff8a80; --bad-soft:#3d1c1c; }
   @media(prefers-color-scheme:dark) {
-    body:not([data-theme=light]) { color-scheme:dark; --bg:#111521; --panel:#191e2c; --rail:#101420; --subtle:#151a26; --text:#f3f4fa; --muted:#a8b0c2; --line:#303747; --accent:#8589ff; --on-accent:#111521; --accent-soft:#272b4b; --control:#262b39; }
+    body:not([data-theme=light]) { color-scheme:dark; --bg:#111521; --panel:#191e2c; --rail:#101420; --subtle:#151a26; --text:#f3f4fa; --muted:#a8b0c2; --line:#303747; --accent:#8589ff; --on-accent:#111521; --accent-soft:#272b4b; --control:#262b39; --ok:#5fd394; --ok-soft:#173326; --warn:#f2c35b; --warn-soft:#3a2f14; --bad:#ff8a80; --bad-soft:#3d1c1c; }
   }
   a { color:inherit; text-decoration:none; }
   button, input, textarea { font:inherit; }

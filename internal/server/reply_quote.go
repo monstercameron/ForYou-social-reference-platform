@@ -13,6 +13,14 @@ import (
 	"foryou.local/foryou/internal/wire"
 )
 
+func init() { routeGroups = append(routeGroups, registerReplyQuote) }
+
+func registerReplyQuote(a *App, mux *http.ServeMux) {
+	mux.HandleFunc("POST /reply/quote", a.replyQuoteHandler)
+	mux.HandleFunc("POST /reply/quote/fragment", a.replyQuoteHandler)
+	mux.HandleFunc("POST /reply/edit/fragment", a.replyEditHandler)
+}
+
 // replyQuoteLifetime is how long a reader has to confirm a quoted reply.
 const replyQuoteLifetime = 10 * time.Minute
 
@@ -76,7 +84,7 @@ func (d replyDraft) DraftID() string {
 
 type replyConfirmPage struct {
 	replyDraft
-	Theme, Section, Filter, Query string
+	Layout Layout
 }
 
 type quotedReply struct {
@@ -122,13 +130,13 @@ func (s *demoStore) takeQuote(token string, now time.Time) (replyDraft, bool) {
 }
 
 // readReplyDraft reads and checks a written reply. It answers the client itself when the draft is refused.
-func readReplyDraft(w http.ResponseWriter, r *http.Request) (replyDraft, bool) {
+func (a *App) readReplyDraft(w http.ResponseWriter, r *http.Request) (replyDraft, bool) {
 	form, ok := readActionForm(w, r, "id", "parent", "text")
 	if !ok {
 		return replyDraft{}, false
 	}
 	d := replyDraft{PostID: form.Get("id"), Path: form.Get("parent"), Text: strings.TrimSpace(form.Get("text"))}
-	if _, found := requestPost(r, d.PostID); !found {
+	if _, found := a.requestPost(r, d.PostID); !found {
 		http.NotFound(w, r)
 		return replyDraft{}, false
 	}
@@ -137,7 +145,7 @@ func readReplyDraft(w http.ResponseWriter, r *http.Request) (replyDraft, bool) {
 		return replyDraft{}, false
 	}
 	if d.Path != "" {
-		if chain := replyChain(threadReplies(r, d.PostID), d.Path); chain == nil || !chain[len(chain)-1].Open {
+		if chain := replyChain(a.threadReplies(r, d.PostID), d.Path); chain == nil || !chain[len(chain)-1].Open {
 			http.Error(w, "This reply cannot be answered.", http.StatusBadRequest)
 			return replyDraft{}, false
 		}
@@ -147,39 +155,35 @@ func readReplyDraft(w http.ResponseWriter, r *http.Request) (replyDraft, bool) {
 
 // replyQuoteHandler prices a written reply and asks the reader to confirm it.
 // A reply is a post: nothing is posted until its cost has been shown and accepted.
-func replyQuoteHandler(w http.ResponseWriter, r *http.Request) {
-	d, ok := readReplyDraft(w, r)
+func (a *App) replyQuoteHandler(w http.ResponseWriter, r *http.Request) {
+	d, ok := a.readReplyDraft(w, r)
 	if !ok {
 		return
 	}
 	cost, err := costOf(d.Text)
-	store := storeFor(r)
+	store := a.store
 	if err != nil || store == nil {
 		http.Error(w, "No fee quote is available.", http.StatusServiceUnavailable)
 		return
 	}
 	d.Cost = cost
-	if d.Quote, err = store.quoteReply(d, time.Now()); err != nil {
+	if d.Quote, err = store.quoteReply(d, a.config.Now()); err != nil {
 		http.Error(w, "Demo storage is full or unavailable.", http.StatusServiceUnavailable)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-store")
 	if r.URL.Path == "/reply/quote/fragment" {
-		_ = home.ExecuteTemplate(w, "reply-confirm", d)
+		a.fragment(w, r, "thread-reply-confirm", d)
 		return
 	}
 	d.Standalone = true
-	_ = home.ExecuteTemplate(w, "reply-confirm-page", replyConfirmPage{replyDraft: d, Theme: requestTheme(r), Filter: "all"})
+	a.renderOutput(w, "thread-reply-confirm-page", replyConfirmPage{replyDraft: d, Layout: a.layout(r, "", "Confirm your reply")}, http.StatusOK, "no-store")
 }
 
 // replyEditHandler puts a quoted reply back into its form so the reader can change it.
-func replyEditHandler(w http.ResponseWriter, r *http.Request) {
-	d, ok := readReplyDraft(w, r)
+func (a *App) replyEditHandler(w http.ResponseWriter, r *http.Request) {
+	d, ok := a.readReplyDraft(w, r)
 	if !ok {
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-store")
-	_ = home.ExecuteTemplate(w, "reply-write", d)
+	a.fragment(w, r, "thread-reply-write", d)
 }

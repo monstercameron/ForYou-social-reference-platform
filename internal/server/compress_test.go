@@ -68,7 +68,7 @@ func TestCompression(t *testing.T) {
 }
 
 func TestCompressedRangeAndComposer(t *testing.T) {
-	h := newHandler("client", nil)
+	h := testClientHandler(t)
 	t.Run("video avoids redundant compression", func(t *testing.T) {
 		r := httptest.NewRequest(http.MethodGet, "/static/demo-tech.mp4", nil)
 		r.Header.Set("Accept-Encoding", "gzip, br")
@@ -124,6 +124,28 @@ func TestCompressedRangeAndComposer(t *testing.T) {
 		h.ServeHTTP(w, r)
 		if w.Code != http.StatusOK || w.Header().Get("Content-Encoding") != "" || !strings.Contains(w.Body.String(), `name="draft_token"`) {
 			t.Errorf("status %d, encoding %q, token present %t", w.Code, w.Header().Get("Content-Encoding"), strings.Contains(w.Body.String(), `name="draft_token"`))
+		}
+	})
+}
+
+func TestSecretPagesAvoidCompression(t *testing.T) {
+	client := newTestClient(t, false)
+	t.Run("identity", func(t *testing.T) {
+		r := httptest.NewRequest(http.MethodGet, "/identity", nil)
+		r.Header.Set("Accept-Encoding", "gzip, br")
+		w := httptest.NewRecorder()
+		client.Handler().ServeHTTP(w, r)
+		if w.Code != http.StatusOK || w.Header().Get("Content-Encoding") != "" {
+			t.Errorf("identity response = %d with encoding %q", w.Code, w.Header().Get("Content-Encoding"))
+		}
+	})
+	t.Run("wallet", func(t *testing.T) {
+		r := httptest.NewRequest(http.MethodGet, "/wallet", nil)
+		r.Header.Set("Accept-Encoding", "gzip, br")
+		w := httptest.NewRecorder()
+		client.Handler().ServeHTTP(w, r)
+		if w.Code != http.StatusOK || w.Header().Get("Content-Encoding") != "" {
+			t.Errorf("wallet response = %d with encoding %q", w.Code, w.Header().Get("Content-Encoding"))
 		}
 	})
 }

@@ -60,7 +60,7 @@ func TestSignedAvatars(t *testing.T) {
 	if sameLook["Maya Chen|/static/demo-avatar-2.png"] != 2 {
 		t.Error("the demo needs two keys that share a name and a picture, told apart only by fingerprint")
 	}
-	h := newHandler("client", nil)
+	h := testClientHandler(t)
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/posts/elliot", nil))
 	if !strings.Contains(w.Body.String(), `<img class="identicon avatar" src="/static/demo-avatar-1.png" alt=""`) {
@@ -79,7 +79,7 @@ func TestSignedAvatars(t *testing.T) {
 }
 
 func TestFollowSignedName(t *testing.T) {
-	h := newHandler("client", nil)
+	h := testClientHandler(t)
 	signed := staticPostsByID["elliot"]
 	var sameKey, otherKey string
 	for _, p := range staticDemoPosts {
@@ -138,7 +138,7 @@ func TestFollowSignedName(t *testing.T) {
 }
 
 func TestSingleImageOpensGallery(t *testing.T) {
-	h := newHandler("client", nil)
+	h := testClientHandler(t)
 	get := func(path string) (int, string) {
 		w := httptest.NewRecorder()
 		h.ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))

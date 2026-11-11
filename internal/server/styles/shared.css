@@ -1,4 +1,23 @@
 @layer components {
+  .pill { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold; }
+  .pill-ok { background:var(--ok-soft); color:var(--ok); }
+  .pill-warn { background:var(--warn-soft); color:var(--warn); }
+  .pill-bad { background:var(--bad-soft); color:var(--bad); }
+  .pill-muted { background:var(--control); color:var(--muted); }
+  .pill svg { @apply h-3 w-3 shrink-0; }
+  .notice-warn { background:var(--warn-soft); color:var(--text); }
+  .notice-bad { background:var(--bad-soft); color:var(--text); }
+  .panel { @apply rounded-xl border border-[var(--line)] bg-[var(--panel)] p-5; }
+  .btn-primary { @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-[9px] border border-transparent bg-[var(--accent)] px-4 py-[9px] font-semibold leading-[1.2] text-[var(--on-accent)] transition-colors hover:opacity-85; }
+  .btn-secondary { @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-[9px] border border-[var(--line)] bg-[var(--control)] px-4 py-[9px] font-semibold leading-[1.2] text-[var(--text)] transition-colors hover:bg-[var(--accent-soft)]; }
+  .field { @apply grid gap-1.5; }
+  .field label { @apply text-sm font-semibold; }
+  .field input, .field textarea, .field select { @apply min-h-11 rounded-lg border border-[var(--line)] bg-[var(--panel)] px-3 text-[var(--text)]; }
+  .field .help-text { @apply text-xs text-[var(--muted)]; }
+  .field .error-text { @apply text-xs text-[var(--bad)]; }
+  .id-chip { @apply inline-block max-w-full overflow-hidden text-ellipsis whitespace-nowrap font-mono text-xs; }
+  .dev-network { @apply grid gap-1 border-t border-[var(--line)] px-3 pt-3 text-xs; }
+  .dev-network small { @apply leading-snug text-[var(--muted)]; }
   .receipt-badge { @apply inline-block rounded-full bg-[var(--control)] px-2 py-[3px] text-[10px] text-[var(--muted)]; }
   .notice { @apply mx-6 mb-3 flex items-start gap-3 rounded-[10px] bg-[var(--accent-soft)] px-[15px] py-[13px] text-xs leading-[1.45] text-[var(--text)] max-[1100px]:mx-[18px]; }
   .notice > span { @apply text-[19px]; }

@@ -19,7 +19,7 @@ func TestFeedbackSelection(t *testing.T) {
 			r.AddCookie(cookie)
 		}
 		w := httptest.NewRecorder()
-		feedbackHandler(w, r)
+		testClientHandler(t).ServeHTTP(w, r)
 		return w
 	}
 	up := submit("up", nil)
@@ -54,7 +54,7 @@ func TestFeedbackEvictsOldest(t *testing.T) {
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	r.AddCookie(&http.Cookie{Name: feedbackCookie, Value: base64.RawURLEncoding.EncodeToString([]byte(legacyFeedbackFixture))})
 	w := httptest.NewRecorder()
-	feedbackHandler(w, r)
+	testClientHandler(t).ServeHTTP(w, r)
 	if w.Code != http.StatusOK || len(w.Result().Cookies()) != 2 {
 		t.Fatalf("feedback status %d, cookies %d", w.Code, len(w.Result().Cookies()))
 	}
@@ -78,7 +78,7 @@ func TestFeedbackRejectsInvalidRequests(t *testing.T) {
 			r.Header.Set("Origin", origin)
 		}
 		w := httptest.NewRecorder()
-		feedbackHandler(w, r)
+		testClientHandler(t).ServeHTTP(w, r)
 		if w.Code != want || len(w.Result().Cookies()) != 0 {
 			t.Errorf("status %d, cookie count %d; want status %d and no cookies", w.Code, len(w.Result().Cookies()), want)
 		}
@@ -92,7 +92,7 @@ func TestFeedbackRejectsInvalidRequests(t *testing.T) {
 		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		r.Header.Set("Sec-Fetch-Site", "cross-site")
 		w := httptest.NewRecorder()
-		feedbackHandler(w, r)
+		testClientHandler(t).ServeHTTP(w, r)
 		if w.Code != http.StatusForbidden || len(w.Result().Cookies()) != 0 {
 			t.Errorf("cross-site request: status %d, cookies %d", w.Code, len(w.Result().Cookies()))
 		}
@@ -102,7 +102,7 @@ func TestFeedbackRejectsInvalidRequests(t *testing.T) {
 		r := httptest.NewRequest(http.MethodPost, "/feedback/fragment", strings.NewReader(form.Encode()))
 		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		w := httptest.NewRecorder()
-		feedbackHandler(w, r)
+		testClientHandler(t).ServeHTTP(w, r)
 		if w.Code != http.StatusBadRequest || len(w.Result().Cookies()) != 0 {
 			t.Errorf("ambiguous vote: status %d, cookies %d", w.Code, len(w.Result().Cookies()))
 		}
@@ -111,7 +111,7 @@ func TestFeedbackRejectsInvalidRequests(t *testing.T) {
 		r := httptest.NewRequest(http.MethodPost, "/feedback/fragment", strings.NewReader("id=maya&vote=up&padding="+strings.Repeat("x", actionFormLimit)))
 		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		w := httptest.NewRecorder()
-		feedbackHandler(w, r)
+		testClientHandler(t).ServeHTTP(w, r)
 		if w.Code != http.StatusBadRequest || len(w.Result().Cookies()) != 0 {
 			t.Errorf("oversized request: status %d, cookies %d", w.Code, len(w.Result().Cookies()))
 		}
@@ -123,7 +123,7 @@ func TestFeedbackNativeFallback(t *testing.T) {
 	r := httptest.NewRequest(http.MethodPost, "https://example.com/feedback", strings.NewReader(form.Encode()))
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	w := httptest.NewRecorder()
-	feedbackHandler(w, r)
+	testClientHandler(t).ServeHTTP(w, r)
 	cookies := w.Result().Cookies()
 	if w.Code != http.StatusSeeOther || w.Header().Get("Location") != "/posts/maya" || len(cookies) != 1 || !cookies[0].Secure {
 		t.Errorf("native feedback: status %d, location %q, cookies %d", w.Code, w.Header().Get("Location"), len(cookies))
@@ -134,7 +134,7 @@ func TestFeedbackClear(t *testing.T) {
 	t.Run("expires cookie", func(t *testing.T) {
 		r := httptest.NewRequest(http.MethodPost, "https://example.com/feedback/clear", nil)
 		w := httptest.NewRecorder()
-		feedbackClearHandler(w, r)
+		testClientHandler(t).ServeHTTP(w, r)
 		cookies := w.Result().Cookies()
 		if w.Code != http.StatusSeeOther || w.Header().Get("Location") != "/settings" || len(cookies) != 1 || cookies[0].Name != feedbackCookie || cookies[0].MaxAge >= 0 || !cookies[0].Secure {
 			t.Errorf("clear: status %d, location %q, cookies %v", w.Code, w.Header().Get("Location"), cookies)
@@ -144,7 +144,7 @@ func TestFeedbackClear(t *testing.T) {
 		r := httptest.NewRequest(http.MethodPost, "/feedback/clear", nil)
 		r.Header.Set("Origin", "https://evil.example")
 		w := httptest.NewRecorder()
-		feedbackClearHandler(w, r)
+		testClientHandler(t).ServeHTTP(w, r)
 		if w.Code != http.StatusForbidden || len(w.Result().Cookies()) != 0 {
 			t.Errorf("cross-origin clear: status %d, cookies %v", w.Code, w.Result().Cookies())
 		}

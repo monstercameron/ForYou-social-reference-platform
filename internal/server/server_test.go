@@ -31,7 +31,11 @@ func TestRoleRoutes(t *testing.T) {
 	check := func(t *testing.T, role, path, want string, status int) {
 		t.Helper()
 		w := httptest.NewRecorder()
-		newHandler(role, nil).ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
+		if role == "client" {
+			testClientHandler(t).ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
+		} else {
+			newHandler(role, nil).ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
+		}
 		if w.Code != status || !strings.Contains(w.Body.String(), want) {
 			t.Errorf("%s %s = %d %q; want %d containing %q", role, path, w.Code, w.Body.String(), status, want)
 		}
@@ -56,7 +60,7 @@ func TestRoleRoutes(t *testing.T) {
 	})
 	t.Run("client settings rejects POST with method not allowed", func(t *testing.T) {
 		w := httptest.NewRecorder()
-		newHandler("client", nil).ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/settings", nil))
+		testClientHandler(t).ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/settings", nil))
 		if w.Code != http.StatusMethodNotAllowed {
 			t.Errorf("POST /settings = %d; want 405", w.Code)
 		}
@@ -64,7 +68,7 @@ func TestRoleRoutes(t *testing.T) {
 }
 
 func TestClientUnknownPageShellAndHealth(t *testing.T) {
-	h := newHandler("client", nil)
+	h := testClientHandler(t)
 	missing := httptest.NewRecorder()
 	h.ServeHTTP(missing, httptest.NewRequest(http.MethodGet, "/missing", nil))
 	if missing.Code != http.StatusNotFound || !strings.Contains(missing.Header().Get("Content-Type"), "text/html") || !strings.Contains(missing.Body.String(), `aria-label="Main navigation"`) || !strings.Contains(missing.Body.String(), `href="/">Go to Home</a>`) {

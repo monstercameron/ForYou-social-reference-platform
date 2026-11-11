@@ -11,7 +11,7 @@ import (
 )
 
 func TestFeedbackAcrossPages(t *testing.T) {
-	h := newHandler("client", nil)
+	h := testClientHandler(t)
 	form := url.Values{"id": {"maya"}, "vote": {"up"}}
 	r := httptest.NewRequest(http.MethodPost, "/feedback/fragment", strings.NewReader(form.Encode()))
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -50,7 +50,7 @@ func TestFeedbackAcrossPages(t *testing.T) {
 }
 
 func TestConcurrentFeedbackForDifferentPosts(t *testing.T) {
-	h := newHandler("client", nil)
+	h := testClientHandler(t)
 	submit := func(id, vote string, result chan<- *httptest.ResponseRecorder) {
 		form := url.Values{"id": {id}, "vote": {vote}}
 		r := httptest.NewRequest(http.MethodPost, "https://example.com/feedback/fragment", strings.NewReader(form.Encode()))
@@ -103,7 +103,7 @@ func TestLegacyFeedbackCanBeClearedIndividually(t *testing.T) {
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	r.AddCookie(&http.Cookie{Name: feedbackCookie, Value: legacy})
 	w := httptest.NewRecorder()
-	newHandler("client", nil).ServeHTTP(w, r)
+	testClientHandler(t).ServeHTTP(w, r)
 	if w.Code != http.StatusOK || len(w.Result().Cookies()) != 1 {
 		t.Fatalf("clear legacy feedback: status %d, cookies %d", w.Code, len(w.Result().Cookies()))
 	}
@@ -117,7 +117,7 @@ func TestLegacyFeedbackCanBeClearedIndividually(t *testing.T) {
 }
 
 func TestFeedbackOverlappingUpdatesAtCapacity(t *testing.T) {
-	h := newHandler("client", nil)
+	h := testClientHandler(t)
 	legacy := &http.Cookie{Name: feedbackCookie, Value: base64.RawURLEncoding.EncodeToString([]byte(legacyFeedbackFixture))}
 	submit := func(id, vote string) *httptest.ResponseRecorder {
 		t.Helper()
@@ -160,7 +160,7 @@ func TestFeedbackOverlappingUpdatesAtCapacity(t *testing.T) {
 }
 
 func TestNativeFeedbackReturnsToEditablePost(t *testing.T) {
-	h := newHandler("client", nil)
+	h := testClientHandler(t)
 	form := url.Values{"id": {"maya"}, "vote": {"down"}}
 	r := httptest.NewRequest(http.MethodPost, "/feedback", strings.NewReader(form.Encode()))
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")

@@ -1,0 +1,15 @@
+{{define "feed-main"}}
+<section id="feed-section" aria-label="Posts">
+  <header class="feed-heading">
+    <div><h1>Home</h1><p>Your window into the network</p></div>
+    {{template "feed-filter-pills" .}}
+  </header>
+  {{template "feed-search" .}}
+  <div id="search-status" class="search-status" role="status" aria-live="polite"></div>
+  <div id="thread-error" class="thread-error" role="status" aria-live="polite"></div>
+  <div id="post-results">{{template "feed-results" .}}</div>
+</section>
+{{end}}
+{{define "feed-results"}}<div class="posts">{{if .Posts}}{{template "card-post-list" .Posts}}{{if .HasMore}}{{template "feed-load-more" .}}{{else}}{{template "feed-end"}}{{end}}{{else}}{{template "feed-empty-results" .}}{{end}}</div><div id="feed-status" class="feed-status" role="status" aria-live="polite" aria-atomic="true"></div>{{end}}
+{{define "feed-empty-results"}}<div class="empty-results">{{if and (eq .Layout.Filter "following") (not .Layout.Query)}}<h2>No followed posts yet</h2><p>Follow a signed name on a post and posts by that key collect here.</p><a href="{{if eq .Layout.Section "explore"}}/explore{{else}}/{{end}}?filter=all&amp;theme={{.Layout.Theme}}">Browse all posts</a>{{else}}<h2>No posts found</h2><p>Try changing your search or filter.</p><a href="{{if eq .Layout.Section "explore"}}/explore{{else}}/{{end}}?filter={{.Layout.Filter}}&amp;theme={{.Layout.Theme}}">Clear search</a>{{end}}</div>{{end}}
+{{define "feed-search-response"}}<fragment target="#post-results(innerHTML)">{{template "feed-results" .}}</fragment><fragment target="#search-status(innerHTML)">{{if .Layout.Query}}Showing results for “{{.Layout.Query}}”.{{end}}</fragment>{{end}}

@@ -5,16 +5,20 @@ import (
 	"net/url"
 )
 
+func init() { routeGroups = append(routeGroups, registerSettings) }
+
+func registerSettings(a *App, mux *http.ServeMux) {
+	mux.HandleFunc("GET /settings", a.settingsHandler)
+}
+
 type settingsPage struct {
-	Theme         string
-	Choice        string
+	Layout        Layout
 	FeedbackCount int
-	Section       string
 }
 
 // settingsHandler uses navigable links so appearance changes work without
 // JavaScript and the selected view remains meaningful in browser history.
-func settingsHandler(w http.ResponseWriter, r *http.Request) {
+func (a *App) settingsHandler(w http.ResponseWriter, r *http.Request) {
 	values, err := url.ParseQuery(r.URL.RawQuery)
 	if err != nil {
 		http.Error(w, "invalid settings", http.StatusBadRequest)
@@ -34,11 +38,9 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	choice := theme
-	if choice == "" {
-		choice = "system"
-	}
+	layout := a.layout(r, "settings", "Settings")
+	layout.Theme = theme
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "private, no-store")
-	_ = home.ExecuteTemplate(w, "settings-page", settingsPage{Theme: theme, Choice: choice, FeedbackCount: len(feedbackEntries(r)), Section: "settings"})
+	a.page(w, r, "settings-page", settingsPage{Layout: layout, FeedbackCount: len(feedbackEntries(r))})
 }

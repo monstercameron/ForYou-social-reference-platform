@@ -65,7 +65,7 @@ func compress(next http.Handler) http.Handler {
 		}
 		// File ranges refer to the uncompressed bytes. Already-compressed media
 		// also usually gains little from another compression pass.
-		sensitive := r.URL.Path == "/compose" || r.URL.Path == "/quote"
+		sensitive := hasSensitivePath(r.URL.Path)
 		hasRange := r.Header.Get("Range") != ""
 		if sensitive || hasRange || alreadyCompressedAsset(r.URL.Path) {
 			_, identityAllowed := chooseEncoding(acceptEncoding + ",br;q=0,gzip;q=0")
@@ -90,6 +90,15 @@ func compress(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 		}
 	})
+}
+
+func hasSensitivePath(requestPath string) bool {
+	for _, prefix := range []string{"/compose", "/quote", "/identity", "/wallet"} {
+		if requestPath == prefix || strings.HasPrefix(requestPath, prefix+"/") {
+			return true
+		}
+	}
+	return false
 }
 
 func alreadyCompressedAsset(requestPath string) bool {

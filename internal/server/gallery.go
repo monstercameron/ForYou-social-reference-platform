@@ -17,11 +17,19 @@ const demoImageAlt = "Illustrated mountain landscape"
 
 // galleryPage is one image of a post, or of a reply when Reply holds its path.
 type galleryPage struct {
-	ID, Reply, Alt, Caption       string
-	Slide, Count, Image           int
-	Prev, Next                    int
-	Standalone                    bool
-	Theme, Section, Filter, Query string
+	Layout                  Layout
+	ID, Reply, Alt, Caption string
+	Slide, Count, Image     int
+	Prev, Next              int
+	Standalone              bool
+}
+
+func init() { routeGroups = append(routeGroups, registerGallery) }
+
+func registerGallery(a *App, mux *http.ServeMux) {
+	mux.HandleFunc("GET /gallery", a.galleryPageHandler)
+	mux.HandleFunc("GET /gallery/fragment", a.galleryFragmentHandler)
+	mux.HandleFunc("GET /gallery/viewer", a.galleryViewerHandler)
 }
 
 func slideOf(id, replyPath string, images []int, slide int) (galleryPage, bool) {
@@ -48,17 +56,17 @@ func (p post) Gallery() galleryPage {
 	return page
 }
 
-func readGallery(r *http.Request) (galleryPage, bool) {
+func (a *App) readGallery(r *http.Request) (galleryPage, bool) {
 	query := r.URL.Query()
 	slide, err := strconv.Atoi(query.Get("slide"))
-	p, found := requestPost(r, query.Get("id"))
+	p, found := a.requestPost(r, query.Get("id"))
 	if err != nil || !found {
 		return galleryPage{}, false
 	}
 	images, caption := demoImages[p.ID], p.Text
 	replyPath := query.Get("reply")
 	if replyPath != "" {
-		chain := replyChain(threadReplies(r, p.ID), replyPath)
+		chain := replyChain(a.threadReplies(r, p.ID), replyPath)
 		if chain == nil {
 			return galleryPage{}, false
 		}
@@ -69,43 +77,40 @@ func readGallery(r *http.Request) (galleryPage, bool) {
 	return page, ok
 }
 
-func galleryPageHandler(w http.ResponseWriter, r *http.Request) {
-	page, ok := readGallery(r)
+func (a *App) galleryPageHandler(w http.ResponseWriter, r *http.Request) {
+	page, ok := a.readGallery(r)
 	if !ok {
-		writeDetailNotFound(w, requestTheme(r))
+		a.writeDetailNotFound(w, r)
 		return
 	}
 	page.Standalone = true
-	page.Theme = requestTheme(r)
-	page.Filter = "all"
+	page.Layout = a.layout(r, "gallery", "Slideshow")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_ = home.ExecuteTemplate(w, "gallery-page", page)
+	a.renderOutput(w, "card-gallery-page", page, http.StatusOK, "")
 }
 
-func galleryFragmentHandler(w http.ResponseWriter, r *http.Request) {
-	page, ok := readGallery(r)
+func (a *App) galleryFragmentHandler(w http.ResponseWriter, r *http.Request) {
+	page, ok := a.readGallery(r)
 	if !ok {
 		http.NotFound(w, r)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-store")
-	_ = home.ExecuteTemplate(w, "gallery-content", page)
+	a.fragment(w, r, "card-gallery-content", page)
 }
 
 // galleryViewerHandler fills or empties the viewer that opens over the page
 // when a reader clicks a picture.
-func galleryViewerHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-store")
+func (a *App) galleryViewerHandler(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Query().Get("view") == "closed" {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-store")
 		_, _ = w.Write([]byte("<span hidden></span>"))
 		return
 	}
-	page, ok := readGallery(r)
+	page, ok := a.readGallery(r)
 	if !ok {
 		http.NotFound(w, r)
 		return
 	}
-	_ = home.ExecuteTemplate(w, "gallery-viewer", page)
+	a.fragment(w, r, "card-gallery-viewer", page)
 }

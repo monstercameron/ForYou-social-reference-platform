@@ -2,32 +2,35 @@ package server
 
 import "net/http"
 
+func init() { routeGroups = append(routeGroups, registerExplore) }
+
+func registerExplore(a *App, mux *http.ServeMux) {
+	mux.HandleFunc("GET /explore", a.exploreHandler)
+	mux.HandleFunc("GET /explore/more", a.exploreMoreHandler)
+}
+
 type explorePage struct {
 	feedPage
-	Section string
 }
 
 // exploreHandler renders a navigable view of the records available locally.
-func exploreHandler(w http.ResponseWriter, r *http.Request) {
-	page, ok := readFeedRequest(r, false)
+func (a *App) exploreHandler(w http.ResponseWriter, r *http.Request) {
+	page, ok := a.readFeedRequest(r, false)
 	if !ok {
 		http.Error(w, "invalid explore filter or search", http.StatusBadRequest)
 		return
 	}
 	rememberTheme(w, r)
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Cache-Control", "private, no-store")
-	_ = home.ExecuteTemplate(w, "explore-page", explorePage{feedPage: page, Section: "explore"})
+	page.Layout = a.layout(r, "explore", "Explore")
+	a.page(w, r, "explore-page", explorePage{feedPage: page})
 }
 
 // exploreMoreHandler appends the next five records without replacing earlier cards.
-func exploreMoreHandler(w http.ResponseWriter, r *http.Request) {
-	page, ok := readFeedRequest(r, true)
+func (a *App) exploreMoreHandler(w http.ResponseWriter, r *http.Request) {
+	page, ok := a.readFeedRequest(r, true)
 	if !ok {
 		http.Error(w, "invalid explore page", http.StatusBadRequest)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-store")
-	_ = home.ExecuteTemplate(w, "explore-more-response", page)
+	a.fragment(w, r, "explore-more-response", page)
 }

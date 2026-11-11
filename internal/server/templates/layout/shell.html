@@ -1,0 +1,3 @@
+{{define "layout-open"}}<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{.Title}} · ForYou</title><link rel="stylesheet" href="/static/tailwind.css"><noscript><link rel="stylesheet" href="/static/no-js.css"></noscript><script type="module" src="/static/app.js"></script></head><body data-theme="{{.Theme}}"><div class="layout{{if not .Rightbar}} layout-wide{{end}}">{{template "layout-sidebar" .}}<main class="center">{{template "layout-mobile-header" .}}{{end}}
+{{define "layout-close"}}</main>{{if .Rightbar}}{{template "layout-viewer-slot"}}{{template "layout-rightbar" .}}{{end}}</div></body></html>{{end}}
+{{define "layout-viewer-slot"}}<div id="viewer" class="viewer-slot"></div>{{end}}

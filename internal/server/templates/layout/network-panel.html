@@ -1,0 +1,13 @@
+{{define "layout-network-panel"}}
+<section class="component-card network-panel">
+  <h2>Your network</h2>
+  <p class="network-status">{{template "layout-icon-nav-info" .}}<span>{{if .Network}}Network details are available{{else}}No provider is connected{{end}}</span></p>
+  <dl class="network-list">
+    {{if .Network}}{{range .Network}}<div><dt><span>{{.Label}}</span></dt><dd>{{.Value}}</dd></div>{{end}}{{else}}
+    <div><dt>{{template "layout-icon-nav-provider" .}}<span>Provider</span></dt><dd>Not connected</dd></div>
+    <div><dt>{{template "layout-icon-nav-media" .}}<span>Media</span></dt><dd>External links</dd></div>
+    <div><dt>{{template "layout-icon-nav-receipt" .}}<span>Receipts</span></dt><dd>Unavailable</dd></div>
+    {{end}}
+  </dl>
+</section>
+{{end}}

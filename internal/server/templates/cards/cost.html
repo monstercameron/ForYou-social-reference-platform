@@ -1,0 +1,1 @@
+{{define "card-post-cost"}}<dl class="post-cost"><div><dt>Size (UTF-8)</dt><dd>{{.Bytes}} {{if eq .Bytes 1}}byte{{else}}bytes{{end}}, billed as {{.Units}} KiB</dd></div>{{range .Fees}}<div><dt>Fee paid in {{.Asset}}</dt><dd>{{.Amount}} {{.Unit}}</dd></div>{{end}}</dl>{{end}}

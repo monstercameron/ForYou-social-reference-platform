@@ -1,4 +1,4 @@
-// Package server provides the HTTP handlers shared by the demo roles.
+// Package server provides the client web application and demo service roles.
 package server
 
 import (
@@ -6,20 +6,26 @@ import (
 	"database/sql"
 	"embed"
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"io/fs"
 	"net/http"
+	"os"
+	"path/filepath"
 	"time"
 )
 
-//go:embed templates/*.html static
+//go:embed templates static
 var templates embed.FS
 
-var home = template.Must(template.ParseFS(templates, "templates/*.html"))
+// Client is the HTTP service for the browser client.
+type Client struct {
+	app     *App
+	handler http.Handler
+}
 
 type notFoundPage struct {
-	Theme   string
-	Section string
+	Layout Layout
 }
 
 // DefaultAddress returns a loopback address for each independent demo process.
@@ -38,83 +44,92 @@ func DefaultAddress(role string) (string, bool) {
 	}
 }
 
-// NewRole uses a PostgreSQL connection for readiness, when configured.
+// NewClient creates the client web service and its private local data directory.
+func NewClient(cfg Config) (*Client, error) {
+	if cfg.DataDir == "" {
+		return nil, fmt.Errorf("client data directory is required")
+	}
+	if err := os.MkdirAll(cfg.DataDir, 0700); err != nil {
+		return nil, fmt.Errorf("create client data directory: %w", err)
+	}
+	if cfg.Now == nil {
+		cfg.Now = time.Now
+	}
+	parsed, err := template.New("root").ParseFS(templates, "templates/*/*.html")
+	if err != nil {
+		return nil, fmt.Errorf("parse client templates: %w", err)
+	}
+	app := &App{config: cfg, templates: parsed, profiles: &profileStore{root: filepath.Join(cfg.DataDir, "profiles")}, store: &demoStore{}}
+	mux := http.NewServeMux()
+	for _, register := range routeGroups {
+		register(app, mux)
+	}
+	registerLandingPages(app, mux)
+	assets, err := fs.Sub(templates, "static")
+	if err != nil {
+		return nil, err
+	}
+	notFoundRequest, _ := http.NewRequest(http.MethodGet, "/__not_found__", nil)
+	_, notFoundPattern := mux.Handler(notFoundRequest)
+	if notFoundPattern != "GET /" {
+		mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
+			app.renderStatus(w, r, "layout-error-page", notFoundPage{Layout: app.layout(r, "", "Page not found")}, http.StatusNotFound)
+		})
+	}
+	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, map[string]string{"role": "client", "status": "ok"})
+	})
+	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
+		if appPing := app.readiness; appPing != nil {
+			ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+			defer cancel()
+			if err := appPing(ctx); err != nil {
+				writeJSON(w, http.StatusServiceUnavailable, map[string]string{"role": "client", "database": "unavailable"})
+				return
+			}
+			writeJSON(w, http.StatusOK, map[string]string{"role": "client", "database": "ready"})
+			return
+		}
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"role": "client", "database": "not_configured"})
+	})
+	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.FS(assets))))
+	return &Client{app: app, handler: compress(mux)}, nil
+}
+
+// Handler returns the client's HTTP handler.
+func (c *Client) Handler() http.Handler { return c.handler }
+
+// Run returns immediately because the client service has no background work yet.
+func (c *Client) Run(context.Context) error { return nil }
+
+// RunOnce performs one service maintenance cycle.
+func (c *Client) RunOnce(context.Context) error { return nil }
+
+// Close releases resources owned by the client service.
+func (c *Client) Close() error { return nil }
+
+// NewRole constructs the selected demo role, using PostgreSQL only for readiness.
 func NewRole(role string, db *sql.DB) http.Handler {
 	var ping func(context.Context) error
 	if db != nil {
 		ping = db.PingContext
+	}
+	if role == "client" {
+		client, err := NewClient(Config{DataDir: filepath.Join(".local", "data", "client"), Dev: os.Getenv("FORYOU_DEV") == "1", PublicOrigin: os.Getenv("FORYOU_PUBLIC_ORIGIN")})
+		if err != nil {
+			panic(fmt.Errorf("create client role: %w", err))
+		}
+		client.app.readiness = ping
+		return client.Handler()
 	}
 	return newHandler(role, ping)
 }
 
 func newHandler(role string, ping func(context.Context) error) http.Handler {
 	mux := http.NewServeMux()
-	store := &demoStore{}
-	if role == "client" {
-		assets, err := fs.Sub(templates, "static")
-		if err != nil {
-			panic(err)
-		}
-		mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.FS(assets))))
-		mux.HandleFunc("GET /feed", feedHandler)
-		mux.HandleFunc("GET /feed/search", searchHandler)
-		mux.HandleFunc("GET /feed/more", moreHandler)
-		mux.HandleFunc("GET /explore", exploreHandler)
-		mux.HandleFunc("GET /explore/more", exploreMoreHandler)
-		mux.HandleFunc("GET /settings", settingsHandler)
-		mux.HandleFunc("POST /feedback", feedbackHandler)
-		mux.HandleFunc("POST /feedback/fragment", feedbackHandler)
-		mux.HandleFunc("POST /feedback/clear", feedbackClearHandler)
-		mux.HandleFunc("POST /follow", followHandler)
-		mux.HandleFunc("POST /follow/fragment", followHandler)
-		mux.HandleFunc("POST /reply/quote", replyQuoteHandler)
-		mux.HandleFunc("POST /reply/quote/fragment", replyQuoteHandler)
-		mux.HandleFunc("POST /reply/edit/fragment", replyEditHandler)
-		mux.HandleFunc("POST /reply", replyHandler)
-		mux.HandleFunc("POST /reply/fragment", replyHandler)
-		mux.HandleFunc("GET /thread", threadPageHandler)
-		mux.HandleFunc("GET /thread/fragment", threadFragmentHandler)
-		mux.HandleFunc("GET /thread/branch", branchFragmentHandler)
-		mux.HandleFunc("GET /posts/{id}", postPageHandler)
-		mux.HandleFunc("GET /embed/{id}", embedPageHandler)
-		mux.HandleFunc("GET /share", sharePageHandler)
-		mux.HandleFunc("GET /share/fragment", shareFragmentHandler)
-		mux.HandleFunc("GET /gallery", galleryPageHandler)
-		mux.HandleFunc("GET /gallery/fragment", galleryFragmentHandler)
-		mux.HandleFunc("GET /gallery/viewer", galleryViewerHandler)
-		mux.HandleFunc("GET /compose", composeHandler)
-		mux.HandleFunc("POST /compose", publishDemo)
-		mux.HandleFunc("POST /compose/fragment", publishDemo)
-		mux.HandleFunc("GET /quote", quoteHandler)
-		mux.HandleFunc("POST /quote", quoteHandler)
-		mux.HandleFunc("GET /quote/fragment", quoteHandler)
-		mux.HandleFunc("POST /quote/fragment", quoteHandler)
-	}
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
-		if role != "client" {
-			writeJSON(w, http.StatusOK, map[string]string{"role": role, "service": "foryou", "status": "demo"})
-			return
-		}
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		page, ok := readFeedRequest(r, false)
-		if !ok {
-			http.Error(w, "invalid feed filter or search", http.StatusBadRequest)
-			return
-		}
-		rememberTheme(w, r)
-		w.Header().Set("Cache-Control", "private, no-store")
-		if err := home.ExecuteTemplate(w, "home.html", page); err != nil {
-			return
-		}
+		writeJSON(w, http.StatusOK, map[string]string{"role": role, "service": "foryou", "status": "demo"})
 	})
-	if role == "client" {
-		mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			w.Header().Set("Cache-Control", "no-store")
-			w.WriteHeader(http.StatusNotFound)
-			_ = home.ExecuteTemplate(w, "not-found-page", notFoundPage{Theme: requestTheme(r)})
-		})
-	}
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{"role": role, "status": "ok"})
 	})
@@ -131,9 +146,7 @@ func newHandler(role string, ping func(context.Context) error) http.Handler {
 		}
 		writeJSON(w, http.StatusOK, map[string]string{"role": role, "database": "ready"})
 	})
-	return compress(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		mux.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), demoStoreKey{}, store)))
-	}))
+	return compress(mux)
 }
 
 func writeJSON(w http.ResponseWriter, status int, value any) {

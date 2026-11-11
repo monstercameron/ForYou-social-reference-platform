@@ -1,0 +1,17 @@
+{{define "layout-mobile-header"}}
+<header class="mobile-top">
+  <a href="/" class="brand" aria-label="ForYou home"><span class="brand-icon">{{template "layout-icon-nav-brand" .}}</span><span>ForYou</span></a>
+  <div class="mobile-actions">
+    <a class="mobile-theme-button" href="/settings" aria-label="Appearance settings">{{if eq .Theme "light"}}{{template "layout-icon-nav-sun" .}}{{else if eq .Theme "dark"}}{{template "layout-icon-nav-moon" .}}{{else}}{{template "layout-icon-nav-system" .}}{{end}}</a>
+    <a href="/compose" class="mobile-compose" {{if eq .Section "compose"}}aria-current="page"{{end}} aria-label="New post">{{template "layout-icon-nav-compose" .}}<span>New post</span></a>
+  </div>
+</header>
+<nav class="mobile-nav" aria-label="Primary navigation">
+  <a href="/" {{if eq .Section "home"}}aria-current="page"{{end}}>{{template "layout-icon-nav-home" .}}<span>Home</span></a>
+  <a href="/explore" {{if eq .Section "explore"}}aria-current="page"{{end}}>{{template "layout-icon-nav-explore" .}}<span>Explore</span></a>
+  <a href="/wallet" {{if eq .Section "wallet"}}aria-current="page"{{end}}>{{template "layout-icon-nav-wallet" .}}<span>Wallet</span></a>
+  <a href="/identity" {{if eq .Section "identity"}}aria-current="page"{{end}}>{{template "layout-icon-nav-identity" .}}<span>Identity</span></a>
+  <a href="/network" {{if eq .Section "network"}}aria-current="page"{{end}}>{{template "layout-icon-nav-network" .}}<span>Network</span></a>
+  <a href="/settings" {{if eq .Section "settings"}}aria-current="page"{{end}}>{{template "layout-icon-nav-settings" .}}<span>Settings</span></a>
+</nav>
+{{end}}

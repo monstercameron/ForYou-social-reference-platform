@@ -5,12 +5,18 @@ import (
 	"encoding/hex"
 	"errors"
 	"net/http"
-	"net/url"
 	"slices"
 	"strings"
 	"sync"
 	"unicode/utf8"
 )
+
+func init() { routeGroups = append(routeGroups, registerDemoStore) }
+
+func registerDemoStore(a *App, mux *http.ServeMux) {
+	mux.HandleFunc("POST /compose", a.publishDemo)
+	mux.HandleFunc("POST /compose/fragment", a.publishDemo)
+}
 
 // demoStore is local to one client handler. It is deliberately bounded and
 // volatile: this demo does not publish to a provider or persist across restarts.
@@ -26,7 +32,6 @@ type demoStore struct {
 
 // addedReply is a reply written in this session; parent is the path of the reply it answers, or empty for the post.
 type addedReply struct{ parent, text string }
-type demoStoreKey struct{}
 
 // list returns an immutable snapshot. Callers must not modify it.
 func (s *demoStore) list() []post {
@@ -76,10 +81,6 @@ func (s *demoStore) add(text, token string) (post, error) {
 	s.byID[p.ID] = p
 	return p, nil
 }
-func storeFor(r *http.Request) *demoStore {
-	s, _ := r.Context().Value(demoStoreKey{}).(*demoStore)
-	return s
-}
 func (s *demoStore) get(id string) (post, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -116,8 +117,8 @@ func (s *demoStore) replyCount(postID string) int {
 
 // forReader adds what only this request knows: the reader's own choices and
 // the replies written in this session.
-func forReader(r *http.Request, posts []post) {
-	feedback, followed, store := feedbackSelections(r), followSet(r), storeFor(r)
+func (a *App) forReader(r *http.Request, posts []post) {
+	feedback, followed, store := feedbackSelections(r), followSet(r), a.store
 	for i := range posts {
 		posts[i].Feedback = feedback[posts[i].ID]
 		posts[i].Following = followed[posts[i].AuthorID]
@@ -127,9 +128,9 @@ func forReader(r *http.Request, posts []post) {
 	}
 }
 
-func requestPost(r *http.Request, id string) (post, bool) {
+func (a *App) requestPost(r *http.Request, id string) (post, bool) {
 	p, ok := postByID(id)
-	if s := storeFor(r); s != nil {
+	if s := a.store; s != nil {
 		if added, found := s.get(id); found {
 			p, ok = added, true
 		}
@@ -138,38 +139,17 @@ func requestPost(r *http.Request, id string) (post, bool) {
 		return post{}, false
 	}
 	one := []post{p}
-	forReader(r, one)
+	a.forReader(r, one)
 	return one[0], true
 }
 
-func publishDemo(w http.ResponseWriter, r *http.Request) {
-	if origin := r.Header.Get("Origin"); origin != "" {
-		u, err := url.Parse(origin)
-		if err != nil || u.Host != r.Host || (u.Scheme != "http" && u.Scheme != "https") {
-			http.Error(w, "invalid origin", http.StatusForbidden)
-			return
-		}
-	}
-	if r.Header.Get("Sec-Fetch-Site") == "cross-site" {
-		http.Error(w, "invalid origin", http.StatusForbidden)
+func (a *App) publishDemo(w http.ResponseWriter, r *http.Request) {
+	if !requireSameOrigin(w, r) {
 		return
 	}
 	// URL-encoded UTF-8 can expand to three bytes per input byte.
-	r.Body = http.MaxBytesReader(w, r.Body, 50000)
-	parse := r.ParseForm
-	if strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data") {
-		parse = func() error { return r.ParseMultipartForm(20000) }
-	}
-	if err := parse(); err != nil {
-		http.Error(w, "invalid draft", http.StatusBadRequest)
+	if !parseSmallForm(w, r, 50000) {
 		return
-	}
-	if r.MultipartForm != nil {
-		defer r.MultipartForm.RemoveAll()
-		if len(r.MultipartForm.File) != 0 {
-			http.Error(w, "attachments are not supported", http.StatusBadRequest)
-			return
-		}
 	}
 	text := r.PostForm.Get("text")
 	if strings.TrimSpace(text) == "" || !utf8.ValidString(text) || len(text) > 16000 || utf8.RuneCountInString(text) > 4000 {
@@ -182,7 +162,7 @@ func publishDemo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid draft. Reload the composer and try again.", http.StatusBadRequest)
 		return
 	}
-	p, err := storeFor(r).add(text, token)
+	p, err := a.store.add(text, token)
 	if errors.Is(err, errDraftConflict) {
 		http.Error(w, "This draft was already submitted with different text.", http.StatusConflict)
 		return
@@ -194,7 +174,7 @@ func publishDemo(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	if r.URL.Path == "/compose/fragment" {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_ = home.ExecuteTemplate(w, "compose-success", p)
+		a.fragment(w, r, "compose-success", p)
 		return
 	}
 	http.Redirect(w, r, "/posts/"+p.ID, http.StatusSeeOther)

@@ -6,13 +6,22 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
 )
 
 // replyDepthLimit is the deepest reply a thread shows or accepts.
 const replyDepthLimit = 8
 
 const replyRuneLimit = 1000
+
+func init() { routeGroups = append(routeGroups, registerThread) }
+
+func registerThread(a *App, mux *http.ServeMux) {
+	mux.HandleFunc("GET /thread", a.threadPageHandler)
+	mux.HandleFunc("GET /thread/fragment", a.threadFragmentHandler)
+	mux.HandleFunc("GET /thread/branch", a.branchFragmentHandler)
+	mux.HandleFunc("POST /reply", a.replyHandler)
+	mux.HandleFunc("POST /reply/fragment", a.replyHandler)
+}
 
 type reply struct {
 	Color, Time, Text string
@@ -51,14 +60,13 @@ func (r reply) ParentPath() string {
 }
 
 type thread struct {
-	Parent                 post
-	Theme                  string
-	Section, Filter, Query string
-	Replies                []reply
-	Extra                  []reply
-	HasMore                bool
-	Expanded               bool
-	Static                 bool
+	Layout   Layout
+	Parent   post
+	Replies  []reply
+	Extra    []reply
+	HasMore  bool
+	Expanded bool
+	Static   bool
 }
 
 // Draft starts a reply to the post itself.
@@ -109,9 +117,9 @@ func replyChain(replies []reply, path string) []*reply {
 
 // threadReplies returns a post's fixture replies with the replies added in this
 // session attached where they were written.
-func threadReplies(r *http.Request, postID string) []reply {
+func (a *App) threadReplies(r *http.Request, postID string) []reply {
 	replies := prepareReplies(demoReplies(postID), postID, "", replyDepthLimit)
-	store := storeFor(r)
+	store := a.store
 	if store == nil {
 		return replies
 	}
@@ -137,13 +145,13 @@ func threadReplies(r *http.Request, postID string) []reply {
 	return replies
 }
 
-func readThread(r *http.Request) (thread, int) {
+func (a *App) readThread(r *http.Request) (thread, int) {
 	id := r.URL.Query().Get("id")
-	parent, ok := requestPost(r, id)
+	parent, ok := a.requestPost(r, id)
 	if !ok {
 		return thread{}, http.StatusNotFound
 	}
-	replies := threadReplies(r, id)
+	replies := a.threadReplies(r, id)
 	page := r.URL.Query().Get("page")
 	if page != "" && page != "1" && page != "2" {
 		return thread{}, http.StatusBadRequest
@@ -166,27 +174,28 @@ func readThread(r *http.Request) (thread, int) {
 	} else if more {
 		replies = replies[:2]
 	}
-	return thread{Theme: requestTheme(r), Filter: "all", Parent: parent, Replies: replies, Extra: extra, HasMore: more, Expanded: expanded}, http.StatusOK
+	return thread{Parent: parent, Replies: replies, Extra: extra, HasMore: more, Expanded: expanded}, http.StatusOK
 }
 
-func threadPageHandler(w http.ResponseWriter, r *http.Request) {
-	t, status := readThread(r)
+func (a *App) threadPageHandler(w http.ResponseWriter, r *http.Request) {
+	t, status := a.readThread(r)
 	if status != http.StatusOK {
 		if status == http.StatusNotFound {
-			writeDetailNotFound(w, requestTheme(r))
+			a.writeDetailNotFound(w, r)
 			return
 		}
 		http.Error(w, http.StatusText(status), status)
 		return
 	}
 	t.Static = true
+	t.Layout = a.layout(r, "thread", "Replies")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
-	_ = home.ExecuteTemplate(w, "thread-page", t)
+	a.page(w, r, "thread-page", t)
 }
 
-func threadFragmentHandler(w http.ResponseWriter, r *http.Request) {
-	t, status := readThread(r)
+func (a *App) threadFragmentHandler(w http.ResponseWriter, r *http.Request) {
+	t, status := a.readThread(r)
 	if status != http.StatusOK {
 		http.Error(w, http.StatusText(status), status)
 		return
@@ -199,56 +208,56 @@ func threadFragmentHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
 	if view == "closed" {
-		_ = home.ExecuteTemplate(w, "thread-closed", t.Parent)
+		a.fragment(w, r, "thread-closed", t.Parent)
 		return
 	}
 	if view == "closing" {
-		_ = home.ExecuteTemplate(w, "thread-closing", t)
+		a.fragment(w, r, "thread-closing", t)
 		return
 	}
-	_ = home.ExecuteTemplate(w, "thread-open", t)
+	a.fragment(w, r, "thread-open", t)
 }
 
 // branchFragmentHandler answers a reader who opens or folds the answers to one reply.
-func branchFragmentHandler(w http.ResponseWriter, r *http.Request) {
+func (a *App) branchFragmentHandler(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	id, view := query.Get("id"), query.Get("view")
 	if view != "" && view != "closed" {
 		http.Error(w, "invalid view", http.StatusBadRequest)
 		return
 	}
-	if _, found := requestPost(r, id); !found {
+	if _, found := a.requestPost(r, id); !found {
 		http.NotFound(w, r)
 		return
 	}
-	chain := replyChain(threadReplies(r, id), query.Get("branch"))
+	chain := replyChain(a.threadReplies(r, id), query.Get("branch"))
 	if chain == nil || len(chain[len(chain)-1].Children) == 0 {
 		http.NotFound(w, r)
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
-	name := "branch-open"
+	name := "thread-branch-open"
 	if view == "closed" {
-		name = "branch-closed"
+		name = "thread-branch-closed"
 	}
-	_ = home.ExecuteTemplate(w, name, *chain[len(chain)-1])
+	a.fragment(w, r, name, *chain[len(chain)-1])
 }
 
 // replyHandler posts a reply the reader has confirmed. It takes the quote the
 // reader was shown, never the text itself, so nothing is posted unpriced. The
 // fragment answer is the whole thread, opened far enough to show the new reply.
-func replyHandler(w http.ResponseWriter, r *http.Request) {
+func (a *App) replyHandler(w http.ResponseWriter, r *http.Request) {
 	form, ok := readActionForm(w, r, "id", "quote")
 	if !ok {
 		return
 	}
-	store := storeFor(r)
+	store := a.store
 	if store == nil {
 		http.Error(w, "Demo storage is full or unavailable.", http.StatusServiceUnavailable)
 		return
 	}
-	d, quoted := store.takeQuote(form.Get("quote"), time.Now())
+	d, quoted := store.takeQuote(form.Get("quote"), a.config.Now())
 	if !quoted || d.PostID != form.Get("id") {
 		http.Error(w, "This quote has expired or was already used. Review the cost again.", http.StatusConflict)
 		return
@@ -269,11 +278,11 @@ func replyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	threadRequest := r.Clone(r.Context())
 	threadRequest.URL = &url.URL{Path: "/thread/fragment", RawQuery: whole}
-	t, status := readThread(threadRequest)
+	t, status := a.readThread(threadRequest)
 	if status != http.StatusOK {
 		http.Error(w, http.StatusText(status), status)
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_ = home.ExecuteTemplate(w, "thread-open", t)
+	a.fragment(w, r, "thread-open", t)
 }

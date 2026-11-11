@@ -1,0 +1,11 @@
+{{define "compose-page"}}
+{{template "layout-open" .Layout}}
+  <div class="page-content compose-content">
+    <header class="page-heading"><h1>New post</h1><p>Draft text for this local demo.</p></header>
+    <div class="compose-grid">
+      {{template "compose-form" .}}
+      {{template "compose-quote-panel" .}}
+    </div>
+  </div>
+{{template "layout-close" .Layout}}
+{{end}}

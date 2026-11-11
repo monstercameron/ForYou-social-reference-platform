@@ -12,6 +12,13 @@ import (
 const followCookie = "foryou_follows"
 const followLimit = 32
 
+func init() { routeGroups = append(routeGroups, registerFollow) }
+
+func registerFollow(a *App, mux *http.ServeMux) {
+	mux.HandleFunc("POST /follow", a.followHandler)
+	mux.HandleFunc("POST /follow/fragment", a.followHandler)
+}
+
 // followedAuthors reads the author keys this browser follows, oldest first.
 // Follows stay in the browser: no provider learns them.
 func followedAuthors(r *http.Request) []string {
@@ -46,12 +53,12 @@ func setFollowCookie(w http.ResponseWriter, r *http.Request, ids []string) {
 
 // followHandler follows or unfollows the key that signed a post's display name.
 // The fragment answer updates the control on every post by that key.
-func followHandler(w http.ResponseWriter, r *http.Request) {
+func (a *App) followHandler(w http.ResponseWriter, r *http.Request) {
 	form, ok := readActionForm(w, r, "id", "follow")
 	if !ok {
 		return
 	}
-	p, found := requestPost(r, form.Get("id"))
+	p, found := a.requestPost(r, form.Get("id"))
 	if !found || p.AuthorID == "" {
 		http.NotFound(w, r)
 		return
@@ -82,5 +89,5 @@ func followHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_ = home.ExecuteTemplate(w, "follow-response", signed)
+	a.fragment(w, r, "card-follow-response", signed)
 }

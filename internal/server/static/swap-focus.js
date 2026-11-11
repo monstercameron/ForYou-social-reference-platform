@@ -1,81 +1,56 @@
-// HTMLeX may replace a focused submit button during a fragment swap.
-// Preserve focus only if the user has not focused or clicked somewhere else.
+// Focus restoration uses a MutationObserver because HTMLeX does not restore focus after a swap.
 let pendingFocus = null;
 const swapObserver = new MutationObserver(() => restoreFocus(pendingFocus?.root));
+
 function clearPendingFocus() {
   pendingFocus = null;
   swapObserver.disconnect();
 }
+
 document.addEventListener('submit', event => {
   const form = event.target;
-  const button = event.submitter;
-  if (!(form instanceof HTMLFormElement) || !(button instanceof HTMLButtonElement) ||
-      document.activeElement !== button) return;
-  const vote = form.dataset.feedbackVote;
-  if ((vote === 'up' || vote === 'down') && form.hasAttribute('post')) {
-    const control = form.closest('[id^="feedback-"]');
-    const root = control?.parentElement;
-    if (root && control) {
-      pendingFocus = { root, button, selector: `#${control.id} form[data-feedback-vote="${vote}"] button` };
-      swapObserver.observe(root, { childList: true, subtree: true });
-    }
-    return;
-  }
-  if (form.hasAttribute('data-compose-submit') && form.hasAttribute('post')) {
-    const root = form.closest('#compose-main')?.parentElement;
-    if (root) {
-      pendingFocus = { root, button, selector: '#compose-main [data-compose-result]' };
-      swapObserver.observe(root, { childList: true, subtree: true });
-    }
-    return;
-  }
-  const draft = form.closest('.reply-draft');
-  if (draft && form.hasAttribute('post') && form.getAttribute('post') !== '/reply/fragment') {
-    pendingFocus = { root: draft, button, selector: '[data-draft-focus]' };
-    swapObserver.observe(draft, { childList: true, subtree: true });
-    return;
-  }
-  if (!form.hasAttribute('get')) return;
-  const direction = form.dataset.galleryDirection;
-  const threadTarget = form.dataset.threadFocus;
-  if (direction === 'previous' || direction === 'next') {
-    const root = form.closest('[id^="gallery-"]');
-    if (root) pendingFocus = { root, button, selector: `form[data-gallery-direction="${direction}"] button` };
-  } else if (form.hasAttribute('data-share-close')) {
-    const root = form.closest('[id^="share-"]');
-    const trigger = root?.parentElement?.querySelector('[data-share-trigger]');
-    if (root && trigger) {
-      pendingFocus = { root, button, trigger };
-      swapObserver.observe(root, { childList: true, subtree: true });
-    }
-  } else if (form.classList.contains('branch-action')) {
-    const root = form.closest('.reply-branch');
-    if (root) pendingFocus = { root, button, selector: '.branch-toggle' };
-  } else if (threadTarget === 'open' || threadTarget === 'hide') {
-    const root = form.closest('[id^="thread-"]');
-    if (root) pendingFocus = { root, button, selector: `button[data-thread-control="${threadTarget}"]` };
-  }
+  const control = event.submitter;
+  if (!(form instanceof HTMLFormElement) || !(control instanceof HTMLElement) || document.activeElement !== control) return;
+  const selector = form.dataset.focusAfterSwap || control.dataset.focusAfterSwap;
+  const returnFocus = control.hasAttribute('data-focus-return');
+  if (!selector && !returnFocus) return;
+  const target = form.getAttribute('target');
+  const targetSelector = target?.match(/^([^ (]+)/)?.[1];
+  const targetElement = targetSelector && document.querySelector(targetSelector);
+  const outerSwap = target?.includes('(outerHTML)');
+  const root = outerSwap ? targetElement?.parentElement : targetElement;
+  if (!root) return;
+  pendingFocus = { control, root, selector, returnFocus };
+  swapObserver.observe(root, { childList: true, subtree: true });
 }, true);
+
 document.addEventListener('focusin', event => {
-  if (pendingFocus && event.target !== pendingFocus.button) clearPendingFocus();
+  if (pendingFocus && event.target !== pendingFocus.control) clearPendingFocus();
 });
+
 document.addEventListener('pointerdown', event => {
-  if (pendingFocus && !pendingFocus.button.contains(event.target)) clearPendingFocus();
+  if (pendingFocus && !pendingFocus.control.contains(event.target)) clearPendingFocus();
 });
+
 function restoreFocus(root) {
   const pending = pendingFocus;
-  if (!pending || root !== pending.root) return;
-  if (pending.button.isConnected) return;
+  if (!pending || root !== pending.root || pending.control.isConnected) return;
   if (document.activeElement !== document.body) {
     clearPendingFocus();
     return;
   }
-  const next = pending.trigger || pending.root.querySelector(pending.selector);
-  // Closing a thread uses an intermediate animation before its final control.
+  let next;
+  if (pending.returnFocus) {
+    const controlID = pending.control.getAttribute('aria-controls');
+    next = controlID && document.querySelector(`[aria-controls="${CSS.escape(controlID)}"]`);
+  } else {
+    next = pending.root.querySelector(pending.selector);
+  }
   if (!next || next.closest('.thread-collapsing')) return;
   clearPendingFocus();
   next.focus({ preventScroll: true });
 }
+
 document.addEventListener('htmlex:dom-updated', event => restoreFocus(event.detail?.root));
 
 // Clipboard writes are a browser capability HTMLeX does not provide.

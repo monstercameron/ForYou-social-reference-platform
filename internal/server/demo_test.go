@@ -11,7 +11,7 @@ func TestDemoViews(t *testing.T) {
 	check := func(t *testing.T, path, want, absent string, status int) {
 		t.Helper()
 		w := httptest.NewRecorder()
-		newHandler("client", nil).ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
+		testClientHandler(t).ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
 		if w.Code != status || !strings.Contains(w.Body.String(), want) || (absent != "" && strings.Contains(w.Body.String(), absent)) {
 			t.Errorf("%s: got status %d; wanted %d and %q without %q", path, w.Code, status, want, absent)
 		}
@@ -34,7 +34,7 @@ func TestFeedPagination(t *testing.T) {
 	check := func(t *testing.T, path string, count int, present, absent string, status int) {
 		t.Helper()
 		w := httptest.NewRecorder()
-		newHandler("client", nil).ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
+		testClientHandler(t).ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
 		body := w.Body.String()
 		if w.Code != status || strings.Count(body, `<article class="post">`) != count || !strings.Contains(body, present) || (absent != "" && strings.Contains(body, absent)) {
 			t.Errorf("%s: status %d, posts %d; expected %d posts and %q without %q", path, w.Code, strings.Count(body, `<article class="post">`), count, present, absent)
@@ -64,7 +64,7 @@ func TestGalleryNavigation(t *testing.T) {
 	check := func(t *testing.T, path, present, absent string) {
 		t.Helper()
 		w := httptest.NewRecorder()
-		newHandler("client", nil).ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
+		testClientHandler(t).ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
 		body := w.Body.String()
 		if w.Code != http.StatusOK || !strings.Contains(body, present) || (absent != "" && strings.Contains(body, absent)) {
 			t.Errorf("%s: status %d; want %q and not %q", path, w.Code, present, absent)
@@ -84,7 +84,7 @@ func TestGalleryNavigation(t *testing.T) {
 
 func TestGalleryFocusTargets(t *testing.T) {
 	w := httptest.NewRecorder()
-	newHandler("client", nil).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/gallery/fragment?id=sofia&slide=2", nil))
+	testClientHandler(t).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/gallery/fragment?id=sofia&slide=2", nil))
 	body := w.Body.String()
 	if w.Code != http.StatusOK || !strings.Contains(body, `data-gallery-direction="previous"`) || !strings.Contains(body, `data-gallery-direction="next"`) {
 		t.Errorf("gallery fragment is missing keyboard focus targets; status %d", w.Code)
@@ -95,7 +95,7 @@ func TestFeedLoadAnnouncements(t *testing.T) {
 	check := func(t *testing.T, path, want string) {
 		t.Helper()
 		w := httptest.NewRecorder()
-		newHandler("client", nil).ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
+		testClientHandler(t).ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
 		if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), want) {
 			t.Errorf("%s: status %d; missing %q", path, w.Code, want)
 		}
@@ -108,7 +108,7 @@ func TestFeedLoadAnnouncements(t *testing.T) {
 }
 
 func TestClientPagesUseCompiledStyles(t *testing.T) {
-	h := newHandler("client", nil)
+	h := testClientHandler(t)
 	check := func(t *testing.T, path string) {
 		t.Helper()
 		w := httptest.NewRecorder()

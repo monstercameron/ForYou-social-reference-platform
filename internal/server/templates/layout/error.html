@@ -1,0 +1,2 @@
+{{define "layout-error-fragment"}}<fragment><p role="alert">{{.Message}}</p></fragment>{{end}}
+{{define "layout-error-message"}}{{template "layout-open" .Layout}}<section class="page-content"><header class="page-heading"><h1>Request failed</h1><p role="alert">{{.Message}}</p></header><a class="button button-primary button-link" href="/">Back to Home</a></section>{{template "layout-close" .Layout}}{{end}}

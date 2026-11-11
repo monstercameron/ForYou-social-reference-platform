@@ -1,0 +1,20 @@
+{{define "layout-rightbar"}}
+<aside class="rightbar">
+  <div class="rightbar-content">
+    {{template "layout-network-panel" .}}
+    {{template "layout-about-panel" .}}
+    <section class="appearance-panel" aria-label="Appearance">
+      <h2>Appearance</h2>
+      {{template "layout-appearance-control" .}}
+    </section>
+  </div>
+</aside>
+{{end}}
+
+{{define "layout-appearance-control"}}
+<nav class="segmented-control" aria-label="Appearance">
+  <a href="/settings?theme=system" {{if and (ne .Theme "light") (ne .Theme "dark")}}aria-current="true"{{end}}>{{template "layout-icon-nav-system" .}}<span>System</span></a>
+  <a href="{{if eq .Section "settings"}}/settings{{else if eq .Section "compose"}}/compose{{else if eq .Section "explore"}}/explore{{else}}/{{end}}?theme=light{{if or (eq .Section "home") (eq .Section "explore")}}&amp;filter={{.Filter}}&amp;q={{.Query}}{{end}}" {{if eq .Theme "light"}}aria-current="true"{{end}}>{{template "layout-icon-nav-sun" .}}<span>Light</span></a>
+  <a href="{{if eq .Section "settings"}}/settings{{else if eq .Section "compose"}}/compose{{else if eq .Section "explore"}}/explore{{else}}/{{end}}?theme=dark{{if or (eq .Section "home") (eq .Section "explore")}}&amp;filter={{.Filter}}&amp;q={{.Query}}{{end}}" {{if eq .Theme "dark"}}aria-current="true"{{end}}>{{template "layout-icon-nav-moon" .}}<span>Dark</span></a>
+</nav>
+{{end}}

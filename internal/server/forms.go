@@ -1,7 +1,6 @@
 package server
 
 import (
-	"mime"
 	"net/http"
 	"net/url"
 )
@@ -12,25 +11,13 @@ const actionFormLimit = 16384
 // answers the client itself when the form is refused. Every named field must
 // appear exactly once.
 func readActionForm(w http.ResponseWriter, r *http.Request, fields ...string) (url.Values, bool) {
-	if !sameOriginFeedback(r) {
-		http.Error(w, "invalid origin", http.StatusForbidden)
+	if !requireSameOrigin(w, r) {
 		return nil, false
 	}
-	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
-	if err != nil || (mediaType != "application/x-www-form-urlencoded" && mediaType != "multipart/form-data") {
-		http.Error(w, "invalid form format", http.StatusUnsupportedMediaType)
+	if !parseSmallForm(w, r, actionFormLimit) {
 		return nil, false
 	}
-	r.Body = http.MaxBytesReader(w, r.Body, actionFormLimit)
-	if mediaType == "multipart/form-data" {
-		err = r.ParseMultipartForm(actionFormLimit)
-		if r.MultipartForm != nil {
-			defer r.MultipartForm.RemoveAll()
-		}
-	} else {
-		err = r.ParseForm()
-	}
-	valid := err == nil && (r.MultipartForm == nil || len(r.MultipartForm.File) == 0)
+	valid := true
 	for _, f := range fields {
 		valid = valid && len(r.PostForm[f]) == 1
 	}

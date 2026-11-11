@@ -8,13 +8,12 @@ import (
 )
 
 func TestPostEmbeds(t *testing.T) {
-	t.Setenv("FORYOU_PUBLIC_ORIGIN", "https://example.test")
 	check := func(t *testing.T, path, want string, status int) {
 		t.Helper()
 		r := httptest.NewRequest(http.MethodGet, path, nil)
 		r.Host = "untrusted.invalid"
 		w := httptest.NewRecorder()
-		newHandler("client", nil).ServeHTTP(w, r)
+		testClientHandler(t).ServeHTTP(w, r)
 		if w.Code != status || !strings.Contains(w.Body.String(), want) || strings.Contains(w.Body.String(), "untrusted.invalid") {
 			t.Errorf("%s: status %d; wanted %d and %q without request host", path, w.Code, status, want)
 		}
@@ -31,9 +30,12 @@ func TestPostEmbeds(t *testing.T) {
 }
 
 func TestInvalidPublicOrigin(t *testing.T) {
-	t.Setenv("FORYOU_PUBLIC_ORIGIN", "http://example.test")
+	client, err := NewClient(Config{DataDir: t.TempDir(), PublicOrigin: "http://example.test"})
+	if err != nil {
+		t.Fatal(err)
+	}
 	w := httptest.NewRecorder()
-	newHandler("client", nil).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/share/fragment?id=maya", nil))
+	client.Handler().ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/share/fragment?id=maya", nil))
 	if w.Code != http.StatusServiceUnavailable {
 		t.Errorf("status = %d; want 503 for invalid public origin", w.Code)
 	}
@@ -43,7 +45,7 @@ func TestVideoComponent(t *testing.T) {
 	check := func(t *testing.T, path, asset string) {
 		t.Helper()
 		w := httptest.NewRecorder()
-		newHandler("client", nil).ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
+		testClientHandler(t).ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
 		body := w.Body.String()
 		if w.Code != http.StatusOK || !strings.Contains(body, asset) || !strings.Contains(body, `controls preload="none"`) {
 			t.Errorf("%s: video asset or deferred loading missing (status %d)", path, w.Code)
@@ -56,7 +58,7 @@ func TestVideoComponent(t *testing.T) {
 
 func TestStandalonePostWithoutTopic(t *testing.T) {
 	w := httptest.NewRecorder()
-	newHandler("client", nil).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/posts/journal", nil))
+	testClientHandler(t).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/posts/journal", nil))
 	if w.Code != http.StatusOK || strings.Contains(w.Body.String(), `class="topic"`) || !strings.Contains(w.Body.String(), "rain.\n\nAfter a few weeks") {
 		t.Errorf("standalone post lost paragraph text or showed an empty topic: status %d", w.Code)
 	}
@@ -64,14 +66,14 @@ func TestStandalonePostWithoutTopic(t *testing.T) {
 
 func TestShareFallbackReturnsToPost(t *testing.T) {
 	w := httptest.NewRecorder()
-	newHandler("client", nil).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/share?id=maya", nil))
+	testClientHandler(t).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/share?id=maya", nil))
 	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `action="/posts/maya"`) || strings.Contains(w.Body.String(), `get="/share/fragment"`) {
 		t.Errorf("share page close does not return to its post as a plain form, status %d", w.Code)
 	}
 }
 
 func TestDetailPagesUseTheAppShell(t *testing.T) {
-	h := newHandler("client", nil)
+	h := testClientHandler(t)
 	checkShell := func(t *testing.T, path string) {
 		t.Helper()
 		w := httptest.NewRecorder()
@@ -94,7 +96,7 @@ func TestDetailPagesUseTheAppShell(t *testing.T) {
 }
 
 func TestDetailNotFoundPages(t *testing.T) {
-	h := newHandler("client", nil)
+	h := testClientHandler(t)
 	check := func(t *testing.T, path, want string, hasShell bool) {
 		t.Helper()
 		w := httptest.NewRecorder()
@@ -114,7 +116,7 @@ func TestDetailNotFoundPages(t *testing.T) {
 
 func TestPostPageActionsStayInsideCard(t *testing.T) {
 	w := httptest.NewRecorder()
-	newHandler("client", nil).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/posts/maya", nil))
+	testClientHandler(t).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/posts/maya", nil))
 	body := w.Body.String()
 	card := strings.Index(body, `<article class="post detail-post-card">`)
 	actions := strings.Index(body, `detail-post-actions"`)
@@ -129,9 +131,8 @@ func TestPostPageActionsStayInsideCard(t *testing.T) {
 }
 
 func TestShareCopyFieldsUseConfiguredOrigin(t *testing.T) {
-	t.Setenv("FORYOU_PUBLIC_ORIGIN", "https://example.test")
 	w := httptest.NewRecorder()
-	newHandler("client", nil).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/share/fragment?id=maya", nil))
+	testClientHandler(t).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/share/fragment?id=maya", nil))
 	body := w.Body.String()
 	if w.Code != http.StatusOK || strings.Count(body, `data-copy-target="`) != 2 || !strings.Contains(body, `value="https://example.test/posts/maya"`) || !strings.Contains(body, "https://example.test/embed/maya") || !strings.Contains(body, "This URL works only where this server is reachable.") {
 		t.Errorf("share panel copy controls or configured origin missing (status %d)", w.Code)
@@ -140,7 +141,7 @@ func TestShareCopyFieldsUseConfiguredOrigin(t *testing.T) {
 
 func TestGalleryViewerControlsAndCounter(t *testing.T) {
 	w := httptest.NewRecorder()
-	newHandler("client", nil).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/gallery?id=sofia&slide=2", nil))
+	testClientHandler(t).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/gallery?id=sofia&slide=2", nil))
 	body := w.Body.String()
 	if w.Code != http.StatusOK || !strings.Contains(body, "2 / 3") || !strings.Contains(body, "Image 2 of 3") || !strings.Contains(body, `alt="Illustrated mountain landscape, image 2 of 3"`) || !strings.Contains(body, `aria-label="Previous image"`) || !strings.Contains(body, `aria-label="Next image"`) {
 		t.Errorf("gallery viewer counter or image text missing (status %d)", w.Code)
@@ -149,7 +150,7 @@ func TestGalleryViewerControlsAndCounter(t *testing.T) {
 
 func TestPostPageIgnoresInvalidThreadPage(t *testing.T) {
 	w := httptest.NewRecorder()
-	newHandler("client", nil).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/posts/maya?page=3", nil))
+	testClientHandler(t).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/posts/maya?page=3", nil))
 	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `id="thread-maya"`) || strings.Contains(w.Body.String(), `id="thread-"`) {
 		t.Errorf("invalid embedded thread page was not reset (status %d)", w.Code)
 	}

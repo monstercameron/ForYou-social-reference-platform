@@ -53,7 +53,7 @@ func TestReplyMarkdown(t *testing.T) {
 }
 
 func TestMarkdownInThreads(t *testing.T) {
-	h := newHandler("client", nil)
+	h := testClientHandler(t)
 	get := func(path string) (int, string) {
 		w := httptest.NewRecorder()
 		h.ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
@@ -92,7 +92,7 @@ func TestMarkdownInThreads(t *testing.T) {
 }
 
 func TestImageViewer(t *testing.T) {
-	h := newHandler("client", nil)
+	h := testClientHandler(t)
 	get := func(path string) (int, string) {
 		w := httptest.NewRecorder()
 		h.ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
