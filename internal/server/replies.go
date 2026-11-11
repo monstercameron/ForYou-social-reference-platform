@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"unicode/utf8"
+	"time"
 )
 
 // replyDepthLimit is the deepest reply a thread shows or accepts.
@@ -32,6 +32,11 @@ func (r reply) BranchID() string {
 	return "branch-" + r.PostID + "-" + strings.ReplaceAll(r.Path, ".", "-")
 }
 
+// Draft starts an answer to this reply.
+func (r reply) Draft() replyDraft {
+	return replyDraft{PostID: r.PostID, Path: r.Path}
+}
+
 func (r reply) ParentPath() string {
 	cut := strings.LastIndex(r.Path, ".")
 	if cut < 0 {
@@ -51,9 +56,9 @@ type thread struct {
 	Static                 bool
 }
 
-// Target addresses the post itself, for the form that adds a top-level reply.
-func (t thread) Target() reply {
-	return reply{PostID: t.Parent.ID}
+// Draft starts a reply to the post itself.
+func (t thread) Draft() replyDraft {
+	return replyDraft{PostID: t.Parent.ID}
 }
 
 func childPath(parent string, index int) string {
@@ -222,37 +227,32 @@ func branchFragmentHandler(w http.ResponseWriter, r *http.Request) {
 	_ = home.ExecuteTemplate(w, name, *chain[len(chain)-1])
 }
 
-// replyHandler adds a reply to a post or to another reply. The fragment answer
-// is the whole thread, opened far enough to show the new reply.
+// replyHandler posts a reply the reader has confirmed. It takes the quote the
+// reader was shown, never the text itself, so nothing is posted unpriced. The
+// fragment answer is the whole thread, opened far enough to show the new reply.
 func replyHandler(w http.ResponseWriter, r *http.Request) {
-	form, ok := readActionForm(w, r, "id", "parent", "text")
+	form, ok := readActionForm(w, r, "id", "quote")
 	if !ok {
 		return
 	}
-	id, parent, text := form.Get("id"), form.Get("parent"), strings.TrimSpace(form.Get("text"))
-	if _, found := requestPost(r, id); !found {
-		http.NotFound(w, r)
-		return
-	}
-	if text == "" || !utf8.ValidString(text) || utf8.RuneCountInString(text) > replyRuneLimit {
-		http.Error(w, "Write a reply of up to 1,000 characters.", http.StatusBadRequest)
-		return
-	}
-	if parent != "" {
-		if chain := replyChain(threadReplies(r, id), parent); chain == nil || !chain[len(chain)-1].Open {
-			http.Error(w, "This reply cannot be answered.", http.StatusBadRequest)
-			return
-		}
-	}
 	store := storeFor(r)
-	if store == nil || store.addReply(id, parent, text) != nil {
+	if store == nil {
+		http.Error(w, "Demo storage is full or unavailable.", http.StatusServiceUnavailable)
+		return
+	}
+	d, quoted := store.takeQuote(form.Get("quote"), time.Now())
+	if !quoted || d.PostID != form.Get("id") {
+		http.Error(w, "This quote has expired or was already used. Review the cost again.", http.StatusConflict)
+		return
+	}
+	if store.addReply(d.PostID, d.Path, d.Text) != nil {
 		http.Error(w, "Demo storage is full or unavailable.", http.StatusServiceUnavailable)
 		return
 	}
 	w.Header().Set("Cache-Control", "no-store")
-	shown := url.Values{"id": {id}, "page": {"2"}}
-	if parent != "" {
-		shown.Set("open", parent)
+	shown := url.Values{"id": {d.PostID}, "page": {"2"}}
+	if d.Path != "" {
+		shown.Set("open", d.Path)
 	}
 	whole := shown.Encode()
 	if r.URL.Path != "/reply/fragment" {

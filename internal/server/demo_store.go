@@ -21,6 +21,7 @@ type demoStore struct {
 	byID    map[string]post
 	replies map[string][]addedReply
 	replied int
+	quotes  map[string]quotedReply
 }
 
 // addedReply is a reply written in this session; parent is the path of the reply it answers, or empty for the post.

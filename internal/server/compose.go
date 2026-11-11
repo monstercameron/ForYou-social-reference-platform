@@ -10,6 +10,7 @@ import (
 )
 
 type quotePreview struct {
+	Cost    postCost
 	Bytes   int
 	Text    string
 	Token   string
@@ -63,7 +64,12 @@ func quoteHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "draft is too long or invalid", http.StatusBadRequest)
 		return
 	}
-	preview := quotePreview{Bytes: len(text), Text: text, Theme: requestTheme(r), Section: "compose"}
+	cost, err := costOf(text)
+	if err != nil {
+		http.Error(w, "No fee quote is available.", http.StatusServiceUnavailable)
+		return
+	}
+	preview := quotePreview{Cost: cost, Bytes: len(text), Text: text, Theme: requestTheme(r), Section: "compose"}
 	if r.URL.Path == "/quote" {
 		token, err := draftToken()
 		if err != nil {

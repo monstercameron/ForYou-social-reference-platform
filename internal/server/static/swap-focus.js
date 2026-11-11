@@ -29,6 +29,12 @@ document.addEventListener('submit', event => {
     }
     return;
   }
+  const draft = form.closest('.reply-draft');
+  if (draft && form.hasAttribute('post') && form.getAttribute('post') !== '/reply/fragment') {
+    pendingFocus = { root: draft, button, selector: '[data-draft-focus]' };
+    swapObserver.observe(draft, { childList: true, subtree: true });
+    return;
+  }
   if (!form.hasAttribute('get')) return;
   const direction = form.dataset.galleryDirection;
   const threadTarget = form.dataset.threadFocus;

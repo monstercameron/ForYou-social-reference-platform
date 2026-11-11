@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestReplyThreads(t *testing.T) {
@@ -173,17 +174,93 @@ func postForm(h http.Handler, path string, form url.Values, cookies ...*http.Coo
 	return w
 }
 
+// quoteReplyForTest writes a reply and returns the quote the reader would confirm.
+func quoteReplyForTest(t *testing.T, h http.Handler, id, parent, text string) string {
+	t.Helper()
+	w := postForm(h, "/reply/quote/fragment", url.Values{"id": {id}, "parent": {parent}, "text": {text}})
+	_, after, found := strings.Cut(w.Body.String(), `name="quote" value="`)
+	token, _, closed := strings.Cut(after, `"`)
+	if w.Code != http.StatusOK || !found || !closed || len(token) != 32 {
+		t.Fatalf("quote for %q returned %d without a quote token", text, w.Code)
+	}
+	return token
+}
+
+func TestReplyCostIsShownBeforePosting(t *testing.T) {
+	h := newHandler("client", nil)
+	t.Run("one started KiB", func(t *testing.T) {
+		w := postForm(h, "/reply/quote/fragment", url.Values{"id": {"maya"}, "parent": {""}, "text": {"A short reply <b>"}})
+		body := w.Body.String()
+		if w.Code != http.StatusOK || !strings.Contains(body, "A short reply &lt;b&gt;") || !strings.Contains(body, "17 bytes, billed as 1 KiB") || !strings.Contains(body, "<dt>Fee paid in Bitcoin</dt><dd>136 msat</dd>") || !strings.Contains(body, "<dt>Fee paid in Ethereum</dt><dd>48,900,000,000 wei</dd>") || !strings.Contains(body, "Confirm and post") {
+			t.Errorf("status %d; the confirmation should show the reply, its size and the schedule 1 fee in both assets: %s", w.Code, body)
+		}
+	})
+	t.Run("nothing is posted by asking for the cost", func(t *testing.T) {
+		thread := httptest.NewRecorder()
+		h.ServeHTTP(thread, httptest.NewRequest(http.MethodGet, "/thread/fragment?id=maya&page=2", nil))
+		if strings.Contains(thread.Body.String(), "A short reply") || !strings.Contains(thread.Body.String(), `<span class="reply-count">6</span>`) {
+			t.Error("a quoted reply must not appear in the thread before it is confirmed")
+		}
+	})
+	t.Run("two started KiB", func(t *testing.T) {
+		cost, err := costOf(strings.Repeat("a", 1025))
+		if err != nil || cost.Units != 2 || cost.Fees[0] != (networkFee{Asset: "Bitcoin", Amount: "272", Unit: "msat"}) || cost.Fees[1] != (networkFee{Asset: "Ethereum", Amount: "97,800,000,000", Unit: "wei"}) {
+			t.Errorf("cost of 1025 bytes = %+v, %v; want 2 KiB, 272 msat and 97,800,000,000 wei", cost, err)
+		}
+	})
+	t.Run("edit returns the text to the form", func(t *testing.T) {
+		w := postForm(h, "/reply/edit/fragment", url.Values{"id": {"maya"}, "parent": {"0"}, "text": {"Still writing"}})
+		body := w.Body.String()
+		if w.Code != http.StatusOK || !strings.Contains(body, ">Still writing</textarea>") || !strings.Contains(body, `name="parent" value="0"`) || !strings.Contains(body, "Review cost") {
+			t.Errorf("status %d; editing should give back the form with the text: %s", w.Code, body)
+		}
+	})
+	t.Run("without scripts", func(t *testing.T) {
+		w := postForm(h, "/reply/quote", url.Values{"id": {"noor"}, "parent": {""}, "text": {"Plain form"}})
+		body := w.Body.String()
+		if w.Code != http.StatusOK || !strings.Contains(body, "<h1>Confirm your reply</h1>") || !strings.Contains(body, `action="/reply" method="post"`) || !strings.Contains(body, `href="/thread?id=noor">Cancel</a>`) {
+			t.Errorf("status %d; a plain form post should get a confirmation page", w.Code)
+		}
+	})
+	t.Run("compose shows the same fee", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/quote/fragment?text=hello", nil))
+		if !strings.Contains(w.Body.String(), "5 bytes, billed as 1 KiB") || !strings.Contains(w.Body.String(), "136 msat") {
+			t.Errorf("the post quote should show the fee: %s", w.Body.String())
+		}
+	})
+}
+
+func TestQuoteLifetime(t *testing.T) {
+	issued := time.Date(2026, 11, 11, 12, 0, 0, 0, time.UTC)
+	store := &demoStore{}
+	inTime, _ := store.quoteReply(replyDraft{PostID: "maya", Text: "in time"}, issued)
+	late, _ := store.quoteReply(replyDraft{PostID: "maya", Text: "late"}, issued)
+	if d, ok := store.takeQuote(inTime, issued.Add(replyQuoteLifetime-time.Second)); !ok || d.Text != "in time" {
+		t.Error("a quote should be usable one second before it expires")
+	}
+	if _, ok := store.takeQuote(inTime, issued.Add(time.Minute)); ok {
+		t.Error("a quote must not be usable twice")
+	}
+	if _, ok := store.takeQuote(late, issued.Add(replyQuoteLifetime)); ok {
+		t.Error("a quote must not be usable at its expiry time")
+	}
+}
+
 func TestAddReply(t *testing.T) {
 	h := newHandler("client", nil)
+	confirm := func(path, id, quote string) *httptest.ResponseRecorder {
+		return postForm(h, path, url.Values{"id": {id}, "quote": {quote}})
+	}
 	t.Run("to the post", func(t *testing.T) {
-		w := postForm(h, "/reply/fragment", url.Values{"id": {"poetry"}, "parent": {""}, "text": {"A first reply <b>"}})
+		w := confirm("/reply/fragment", "poetry", quoteReplyForTest(t, h, "poetry", "", "A first reply <b>"))
 		body := w.Body.String()
 		if w.Code != http.StatusOK || !strings.Contains(body, "A first reply &lt;b&gt;") || !strings.Contains(body, `<span class="reply-count">1</span>`) || !strings.Contains(body, `>you</span>`) {
 			t.Errorf("status %d; the thread should show the escaped reply, marked as the reader's own, and count it", w.Code)
 		}
 	})
 	t.Run("to a nested reply", func(t *testing.T) {
-		w := postForm(h, "/reply/fragment", url.Values{"id": {"maya"}, "parent": {"0.0"}, "text": {"Answering the second level"}})
+		w := confirm("/reply/fragment", "maya", quoteReplyForTest(t, h, "maya", "0.0", "Answering the second level"))
 		body := w.Body.String()
 		at := strings.Index(body, "Answering the second level")
 		if w.Code != http.StatusOK || at < 0 || at > strings.Index(body, "And room for things to grow") || !strings.Contains(body, `<span class="reply-count">7</span>`) {
@@ -191,14 +268,31 @@ func TestAddReply(t *testing.T) {
 		}
 	})
 	t.Run("without scripts", func(t *testing.T) {
-		w := postForm(h, "/reply", url.Values{"id": {"noor"}, "parent": {""}, "text": {"Plain form"}})
+		w := confirm("/reply", "noor", quoteReplyForTest(t, h, "noor", "", "Plain form"))
 		if w.Code != http.StatusSeeOther || w.Header().Get("Location") != "/thread?id=noor&page=2" {
 			t.Errorf("status %d, location %q; want a redirect to the whole thread", w.Code, w.Header().Get("Location"))
 		}
 	})
+	t.Run("a quote posts once", func(t *testing.T) {
+		quote := quoteReplyForTest(t, h, "sofia", "", "Only once")
+		first, second := confirm("/reply/fragment", "sofia", quote), confirm("/reply/fragment", "sofia", quote)
+		if first.Code != http.StatusOK || second.Code != http.StatusConflict {
+			t.Errorf("statuses %d then %d; the second confirmation of one quote should be refused", first.Code, second.Code)
+		}
+	})
+	t.Run("a quote belongs to its post", func(t *testing.T) {
+		if w := confirm("/reply/fragment", "elliot", quoteReplyForTest(t, h, "sofia", "", "Wrong post")); w.Code != http.StatusConflict {
+			t.Errorf("status %d; a quote for another post should be refused", w.Code)
+		}
+	})
+	t.Run("text without a quote is not posted", func(t *testing.T) {
+		if w := postForm(h, "/reply/fragment", url.Values{"id": {"maya"}, "parent": {""}, "text": {"Unpriced"}}); w.Code != http.StatusBadRequest {
+			t.Errorf("status %d; a reply that was never quoted must be refused", w.Code)
+		}
+	})
 	refused := func(t *testing.T, form url.Values, want int) {
 		t.Helper()
-		if w := postForm(h, "/reply/fragment", form); w.Code != want {
+		if w := postForm(h, "/reply/quote/fragment", form); w.Code != want {
 			t.Errorf("status %d; want %d", w.Code, want)
 		}
 	}
@@ -218,7 +312,7 @@ func TestAddReply(t *testing.T) {
 		refused(t, url.Values{"id": {"nope"}, "parent": {""}, "text": {"x"}}, http.StatusNotFound)
 	})
 	t.Run("other origin", func(t *testing.T) {
-		r := httptest.NewRequest(http.MethodPost, "/reply/fragment", strings.NewReader(url.Values{"id": {"maya"}, "parent": {""}, "text": {"x"}}.Encode()))
+		r := httptest.NewRequest(http.MethodPost, "/reply/quote/fragment", strings.NewReader(url.Values{"id": {"maya"}, "parent": {""}, "text": {"x"}}.Encode()))
 		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		r.Header.Set("Origin", "https://elsewhere.example")
 		w := httptest.NewRecorder()

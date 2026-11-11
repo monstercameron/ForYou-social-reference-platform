@@ -324,7 +324,7 @@ func TestQuoteFeedback(t *testing.T) {
 func TestQuoteDescribesLastCheck(t *testing.T) {
 	w := httptest.NewRecorder()
 	newHandler("client", nil).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/quote/fragment?text=hello", nil))
-	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "Last checked size (UTF-8)") || !strings.Contains(w.Body.String(), "Check again after editing.") {
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "Size (UTF-8)") || !strings.Contains(w.Body.String(), "Check again after editing.") {
 		t.Errorf("quote does not describe its snapshot; status %d", w.Code)
 	}
 }

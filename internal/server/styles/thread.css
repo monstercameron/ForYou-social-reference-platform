@@ -38,7 +38,7 @@
   .nested-replies .nested-replies .nested-replies .nested-replies { margin-left:0; padding-left:0; border-left:0; }
   @media(min-width:541px) { .nested-replies .nested-replies .nested-replies .nested-replies { margin-left:-42px; } }
 
-  .reply-form { display:flex; align-items:flex-end; gap:8px; margin-top:16px; }
+  .reply-form { display:flex; align-items:flex-end; gap:8px; }
   .reply-form textarea {
     flex:1; min-width:0; min-height:44px; max-height:240px; padding:10px 14px; border:1px solid var(--line); border-radius:22px;
     background:var(--bg); color:var(--text); font-size:15px; line-height:1.45; resize:none; field-sizing:content;
@@ -52,7 +52,29 @@
   }
   .reply-form button:hover { filter:brightness(1.08); }
   .reply-form button:active { transform:scale(.97); }
+  .reply-draft { margin-top:16px; }
+  .reply-draft > .reply-form { margin-top:0; }
+  .reply-fee-hint { margin:6px 0 0; color:var(--muted); font-size:12px; line-height:1.4; }
+  .reply-confirm { display:grid; gap:12px; padding:14px; border:1px solid color-mix(in srgb,var(--accent) 40%,var(--line)); border-radius:14px; background:var(--subtle); animation:spawn-rise var(--dur) var(--ease-out) both; }
+  .reply-confirm .reply-preview { max-width:68ch; margin:0; padding-left:12px; border-left:3px solid var(--line); color:var(--text); font-size:15px; line-height:1.55; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .post-cost { display:grid; gap:0; margin:0; }
+  .post-cost > div { display:flex; flex-wrap:wrap; justify-content:space-between; gap:4px 16px; padding:8px 0; border-top:1px solid var(--line); font-size:14px; }
+  .post-cost dt { color:var(--muted); }
+  .post-cost dd { margin:0; color:var(--text); font-weight:600; font-variant-numeric:tabular-nums; }
+  .reply-confirm .reply-cost-note { margin:0; color:var(--muted); font-size:13px; line-height:1.5; }
+  .reply-confirm-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+  .reply-confirm-actions form { margin:0; }
+  .reply-confirm-actions .reply-confirm-button, .reply-confirm-actions .reply-edit-button {
+    display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:0 18px; border-radius:999px;
+    font-size:14px; font-weight:600; transition:filter var(--dur-fast) ease,background-color var(--dur-fast) ease,transform var(--dur-fast) var(--ease-out);
+  }
+  .reply-confirm-actions .reply-confirm-button { border:0; background:var(--accent); color:var(--on-accent); }
+  .reply-confirm-actions .reply-confirm-button:hover { filter:brightness(1.08); }
+  .reply-confirm-actions .reply-edit-button { border:1px solid var(--line); background:var(--panel); color:var(--text); }
+  .reply-confirm-actions .reply-edit-button:hover { background:var(--accent-soft); color:var(--accent); }
+  .reply-confirm-actions .reply-confirm-button:active, .reply-confirm-actions .reply-edit-button:active { transform:scale(.97); }
   .reply-compose { margin-top:4px; }
+  .reply-compose > .reply-draft { margin-top:8px; animation:spawn-rise var(--dur) var(--ease-out) both; }
   .reply-branch { margin-top:2px; }
   .branch-action { display:block; margin:0; }
   .branch-toggle {
@@ -72,7 +94,6 @@
   .reply-compose > summary::-webkit-details-marker { display:none; }
   .reply-compose > summary:hover, .reply-compose[open] > summary { background:var(--accent-soft); color:var(--accent); }
   .reply-compose > summary:focus-visible { outline:3px solid var(--accent); outline-offset:2px; }
-  .reply-compose > .reply-form { margin-top:8px; animation:spawn-rise var(--dur) var(--ease-out) both; }
   @media(hover:none) { .reply-compose > summary { min-height:44px; } }
 
   .gallery-viewer .detail-gallery-image { aspect-ratio:auto; }
