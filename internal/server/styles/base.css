@@ -1,5 +1,5 @@
 @layer base {
-  :root { color-scheme:light; --bg:#fff; --panel:#fff; --rail:#fff; --subtle:#f6f7fb; --text:#171b2e; --muted:#697185; --line:#e3e6ef; --accent:#4746df; --on-accent:#fff; --accent-soft:#eeedff; --control:#f0f1f6; font-family:Inter,"Segoe UI",Arial,sans-serif; font-synthesis:none; }
+  :root { color-scheme:light; --bg:#fff; --panel:#fff; --rail:#fff; --subtle:#f6f7fb; --text:#171b2e; --muted:#60687c; --line:#e3e6ef; --accent:#4746df; --on-accent:#fff; --accent-soft:#eeedff; --control:#f0f1f6; font-family:Inter,"Segoe UI",Arial,sans-serif; font-synthesis:none; }
   *, *::before, *::after { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--text); font-size:15px; line-height:1.55; }
   body[data-theme=dark] { color-scheme:dark; --bg:#111521; --panel:#191e2c; --rail:#101420; --subtle:#151a26; --text:#f3f4fa; --muted:#a8b0c2; --line:#303747; --accent:#8589ff; --on-accent:#111521; --accent-soft:#272b4b; --control:#262b39; }
