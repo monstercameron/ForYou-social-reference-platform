@@ -24,7 +24,7 @@ Lower layers never import higher ones. `internal/wire` holds data only; rules li
 | 0 | `internal/wire` | Go types for every wire object in the two schemas, with JSON tags and structural validation |
 | 0 | `internal/apierr` | The closed `PublicReadError` body and the status catalog |
 | 1 | `internal/message` | Intent, `message_id`, post validation, size budget, replies, versions, fork selection |
-| 1 | `internal/content` | CommonMark parsing without extensions, link, reference and media plans, external URL rules, safe HTML output |
+| 1 | `internal/content` | CommonMark parsing without extensions, link, reference and media plans, external URL rules, safe HTML output, prose and code segments |
 | 1 | `internal/fee` | Fee schedules, release approvals, fee calculation, quotes |
 | 1 | `internal/settlement` | Leaves, the Merkle sum tree, claims, the link rule, witness, refusal and hold objects, proof verification, receipt states |
 | 1 | `internal/governance` | Release key sets and updates, Foundation key certificates and closures, the Foundation log, the genesis manifest |
@@ -36,6 +36,7 @@ Lower layers never import higher ones. `internal/wire` holds data only; rules li
 | 1 | `internal/distribution` | Distribution policy and the quarterly statement calculation |
 | 1 | `internal/faux` | The faux chain: ledger, HTTP API and Go client |
 | 1 | `internal/names` | The optional display names profile: `NameRecord`, name rules, current-record selection |
+| 1 | `internal/rank` | The feed gate: the objective rubric (features, taste indicators, safety floors) and the personal taste model. Pure: no I/O, no clock reads, no randomness |
 | 1 | `internal/store` | Storage interfaces and the in-memory implementation with a JSON journal |
 | 2 | `internal/devnet` | Deterministic dev identities and the dev genesis |
 | 2 | `internal/funding` | Deposit invoices, credits, balances, custody cap, withdrawals |
