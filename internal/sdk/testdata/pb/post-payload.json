@@ -1,0 +1,20 @@
+{
+  "content_format": "text/markdown",
+  "text": "An image: ![Sunset](fy-media:photo)",
+  "media_slots": [
+    {
+      "id": "photo",
+      "url": "https://media.example/sunset.jpg",
+      "kind": "image",
+      "alt_text": "Sunset",
+      "sha256": "03c40629f930724f4724705524fc8c3d878697a8c4a6210ac4df06fcebfd9c44"
+    },
+    {
+      "id": "clip",
+      "url": "https://media.example/clip.mp4",
+      "kind": "video",
+      "alt_text": "Short clip",
+      "sha256": "4280f6bae17c31d302094e79f4c75a55c2c5bccf1067241a9454efed447f3a88"
+    }
+  ]
+}
