@@ -1,0 +1,49 @@
+{
+  "source": "tests/economics_model.py build_example; identifiers and statement values from examples/settlement.example.json",
+  "foundation_id": "did:key:z6MktFovzcapNZyZBWzFJpCXf26B8XLKdXtwfwnXXFebPgzM",
+  "period_start": "2027-01-01T00:00:00Z",
+  "period_end": "2027-04-01T00:00:00Z",
+  "cut_off": "2027-04-15T00:00:00Z",
+  "network": "bitcoin-mainnet",
+  "policy": {
+    "policy_id": "fydp2:1653998b4c4e2cc1ea65cfd738ebdf79ef631e711df09e202df3b617fb662a2e",
+    "revision": 1,
+    "vault_share_bp": 5000,
+    "monitor_share_bp": 500,
+    "max_retention_years": 10,
+    "min_reports": 3,
+    "monitors": [
+      "did:key:z6Mkin4R28N2tfcsvUfuX52peTmvPGz99aA4585EtYvALN5W",
+      "did:key:z6Mkjsv23KiDw67aC9qfNVUcNwM19nj8GZPvEMMEBuv3ZpT3",
+      "did:key:z6MkksB6V1wxz1SWEgct2qdqVSk6a7E24fuifo62BgYFsEc6",
+      "did:key:z6MknRVAmZWhgiDdFgGcm6Q1npBZtsdA3Y5zU3p3fc1Ez4wo",
+      "did:key:z6MkrPuMzSSYYddw1BKtyrH5mMJzQmUX42Lr8eiKpsPVb3C1"
+    ]
+  },
+  "providers": [
+    {
+      "provider_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+      "settled_fees": "10608",
+      "retention_seconds": [315360000],
+      "payout_recipient": "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4",
+      "reports": [
+        {"id": "a0", "monitor_index": 0, "start_day": 0, "end_day": 31, "score": 9900},
+        {"id": "a1", "monitor_index": 0, "start_day": 31, "end_day": 62, "score": 9700},
+        {"id": "a2", "monitor_index": 1, "start_day": 0, "end_day": 90, "score": 9800},
+        {"id": "a3", "monitor_index": 2, "start_day": 10, "end_day": 70, "score": 9600}
+      ]
+    },
+    {
+      "provider_id": "did:key:z6Mkjppjwd12cSzdhduNMf3reWgxgkUn7WFM3pnA5f3gFcLj",
+      "settled_fees": "816",
+      "retention_seconds": [31536000],
+      "payout_recipient": "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4",
+      "reports": [
+        {"id": "b0", "monitor_index": 0, "start_day": 0, "end_day": 90, "score": 9000},
+        {"id": "b1", "monitor_index": 1, "start_day": 0, "end_day": 90, "score": 9500},
+        {"id": "b2", "monitor_index": 2, "start_day": 0, "end_day": 90, "score": 8000},
+        {"id": "b3", "monitor_index": 3, "start_day": 0, "end_day": 30, "score": 10000}
+      ]
+    }
+  ]
+}
