@@ -1,6 +1,7 @@
 package server
 
 import (
+	"html/template"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -16,6 +17,10 @@ const replyRuneLimit = 1000
 type reply struct {
 	Color, Time, Text string
 	Receipt           string
+	// HTML is Text rendered as Markdown; Images are the pictures shown under it.
+	HTML     template.HTML
+	Images   []galleryPage
+	pictures []int
 	// PostID and Path address a reply inside its thread; Path is the index at each level, joined by dots.
 	PostID, Path string
 	// Mine marks a reply written in this session; Open means the reply can still be answered.
@@ -79,6 +84,7 @@ func prepareReplies(replies []reply, postID, parent string, depth int) []reply {
 		r.PostID, r.Path = postID, childPath(parent, i)
 		r.Receipt = mockReceipt(r.Text)
 		r.Open = depth > 1
+		r.render()
 		r.Children = prepareReplies(r.Children, postID, r.Path, depth-1)
 		r.Descendants = countReplies(r.Children)
 		result[i] = r
@@ -124,7 +130,9 @@ func threadReplies(r *http.Request, postID string) []reply {
 			depth = len(chain) + 1
 		}
 		path := childPath(added.parent, len(*siblings))
-		*siblings = append(*siblings, reply{Color: "violet", Time: "Just now", Text: added.text, Receipt: mockReceipt(postID + "/" + path + "/" + added.text), PostID: postID, Path: path, Mine: true, Open: depth < replyDepthLimit})
+		written := reply{Color: "violet", Time: "Just now", Text: added.text, Receipt: mockReceipt(postID + "/" + path + "/" + added.text), PostID: postID, Path: path, Mine: true, Open: depth < replyDepthLimit}
+		written.render()
+		*siblings = append(*siblings, written)
 	}
 	return replies
 }

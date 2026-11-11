@@ -70,7 +70,9 @@ func TestGalleryNavigation(t *testing.T) {
 			t.Errorf("%s: status %d; want %q and not %q", path, w.Code, present, absent)
 		}
 	}
-	t.Run("feed opens first slide", func(t *testing.T) { check(t, "/?filter=images", `href="/gallery?id=sofia&amp;slide=1"`, `style="`) })
+	t.Run("feed opens first slide", func(t *testing.T) {
+		check(t, "/?filter=images", `class="gallery-open" action="/gallery" method="get" get="/gallery/viewer"`, `style="`)
+	})
 	t.Run("fragment preserves lazy navigation", func(t *testing.T) {
 		check(t, "/gallery/fragment?id=sofia&slide=2", `get="/gallery/fragment"`, `style="`)
 	})

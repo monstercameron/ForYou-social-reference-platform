@@ -11,7 +11,7 @@
     <div class="posts">{{if .Posts}}{{template "post-list" .Posts}}{{if .HasMore}}{{template "explore-more" .}}{{else}}{{template "end-feed"}}{{end}}{{else}}{{template "empty-results" .}}{{end}}</div>
     <div id="explore-status" role="status" aria-live="polite" aria-atomic="true" class="feed-status"></div>
   </section>
-</main>{{template "rightbar" .}}</div></body></html>
+</main>{{template "viewer-slot"}}{{template "rightbar" .}}</div></body></html>
 {{end}}
 
 {{define "explore-more"}}<form id="explore-more" class="load-more" action="/explore" method="get" get="/explore/more" auto="lazy" target="#explore-more(outerHTML)" timeout="5000" loading="#explore-status(innerHTML)" onerror="#explore-status(innerHTML)"><input type="hidden" name="filter" value="{{.Filter}}"><input type="hidden" name="q" value="{{.Query}}"><input type="hidden" name="theme" value="{{.Theme}}"><input type="hidden" name="limit" value="{{.NextLimit}}"><input type="hidden" name="anchor" value="{{.Anchor}}"><button type="submit">Load more posts</button></form>{{end}}

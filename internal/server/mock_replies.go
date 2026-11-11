@@ -87,6 +87,21 @@ var rainThread = []reply{
 	say("lilac", "3 min ago", "The river path floods first. Take the upper road if you're cycling."),
 }
 
+var harborThread = []reply{
+	say("mint", "2 hours ago", "The upper path has this view at dusk:\n\n![harbor hills at dusk](fy-media:landscape-1)",
+		say("peach", "1 hour ago", "*Lovely.* Which ferry did you take back?",
+			say("mint", "1 hour ago", "The **18:40**. Three things worth knowing:\n\n1. Buy the ticket on board\n2. Sit on the left for the sunset\n3. The last bus leaves at 19:30"))),
+	say("blue", "1 hour ago", "> far from the crowds\n\nNot for long, if we keep posting about it."),
+	say("lilac", "40 min ago", "Saving this. `Harbor path, east gate` is going on my list."),
+}
+
+var longExposureThread = []reply{
+	say("blue", "5 hours ago", "What settings? My night shots come out as noise."),
+	say("lilac", "5 hours ago", "A tripod and patience. Roughly:\n\n- ISO 100\n- f/11\n- 8 to 15 seconds\n\nTwo from last week:\n\n![street after rain](fy-media:landscape-2) ![bus lights over the hill](fy-media:landscape-3)",
+		say("blue", "4 hours ago", "That second one is *exactly* what I'm after. Thank you.")),
+	say("mint", "3 hours ago", "### Tip\nUse the self-timer so pressing the button doesn't shake the camera."),
+}
+
 var demoThreads = map[string][]reply{
 	"maya": {
 		say("mint", "9 min ago", "I love this. A little more tending and a lot less noise.",
@@ -132,6 +147,8 @@ var demoThreads = map[string][]reply{
 		say("blue", "9 min ago", "We bought two beds and somehow they both want the same one."),
 		say("peach", "2 min ago", "Please tell me they eventually shared it."),
 	},
+	"travel":         harborThread,
+	"photography":    longExposureThread,
 	"adult-1":        flirtThread,
 	"adult-2":        flirtThread,
 	"scam":           prizeScamThread,

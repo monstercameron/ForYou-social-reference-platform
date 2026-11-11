@@ -144,8 +144,8 @@ func TestSingleImageOpensGallery(t *testing.T) {
 		h.ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
 		return w.Code, w.Body.String()
 	}
-	if _, feed := get("/?filter=images&limit=10000"); !strings.Contains(feed, `href="/gallery?id=travel&amp;slide=1" aria-label="Open image"`) {
-		t.Error("a post with one image should link its image to the gallery")
+	if _, feed := get("/?filter=images&limit=10000"); !strings.Contains(feed, `<input type="hidden" name="id" value="travel"><input type="hidden" name="slide" value="1"><button type="submit" class="detail-gallery-open" aria-label="Open image larger">`) {
+		t.Error("a post with one image should open it in the viewer")
 	}
 	code, viewer := get("/gallery?id=travel&slide=1")
 	if code != http.StatusOK || !strings.Contains(viewer, "demo-landscape-3.svg") || strings.Contains(viewer, "Next image") || !strings.Contains(viewer, "quiet footpath along the harbor") || !strings.Contains(viewer, `href="/posts/travel"`) {

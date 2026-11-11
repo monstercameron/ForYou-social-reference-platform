@@ -81,6 +81,7 @@ func newHandler(role string, ping func(context.Context) error) http.Handler {
 		mux.HandleFunc("GET /share/fragment", shareFragmentHandler)
 		mux.HandleFunc("GET /gallery", galleryPageHandler)
 		mux.HandleFunc("GET /gallery/fragment", galleryFragmentHandler)
+		mux.HandleFunc("GET /gallery/viewer", galleryViewerHandler)
 		mux.HandleFunc("GET /compose", composeHandler)
 		mux.HandleFunc("POST /compose", publishDemo)
 		mux.HandleFunc("POST /compose/fragment", publishDemo)
