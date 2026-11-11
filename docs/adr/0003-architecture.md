@@ -57,7 +57,7 @@ Dev mode is the only supported mode today. It is on when `FORYOU_DEV=1`, and `de
 
 - **Faux payments.** The faux chain stands in for Bitcoin and Ethereum. It accepts every transfer anyone submits, with no authentication and no real value, and confirms it at once. Everything downstream is the production flow: deposit invoices, observed credits, balances, quotes, atomic debit, receipts, settlement deposits with their commitment, claims, committee witnesses, proofs, distribution and vault delivery. The faux chain is the only component that bypasses reality.
 - **Deterministic identities.** `internal/devnet` derives every dev key (five release keys, the Foundation key, five monitor keys, the provider key, the replica key) from fixed labels, and builds the dev genesis from them. Every role therefore computes the same trust root with no shared files. Dev keys are public knowledge and worthless.
-- **Transport.** In dev mode a role serves plain HTTP on loopback when no certificate is configured, and roles call each other over loopback. Outside dev mode TLS stays mandatory.
+- **Transport.** In dev mode a role serves plain HTTP on a loopback address and refuses any other address, because browsers and tools reject a self-signed certificate. Roles call each other over loopback. Outside dev mode TLS stays mandatory.
 - **Author keys.** The client holds a dev author key per browser profile on the server, under `.local/`. This is dev custody only and the interface says so.
 - **Storage.** State is held in memory and journaled as JSON under `.local/data/{role}/`, so a restart keeps it. PostgreSQL remains a readiness check only.
 

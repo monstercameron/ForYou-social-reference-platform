@@ -30,15 +30,29 @@ func postByID(id string) (post, bool) {
 
 // publicOrigin is configured by the operator rather than inferred from Host.
 func publicOrigin() (string, error) {
+	devMode := os.Getenv("FORYOU_DEV") == "1"
 	origin := os.Getenv("FORYOU_PUBLIC_ORIGIN")
 	if origin == "" {
 		origin = "https://127.0.0.1:8443"
+		if devMode {
+			origin = "http://localhost:8443"
+		}
 	}
 	u, err := url.Parse(origin)
-	if err != nil || u.Scheme != "https" || u.Hostname() == "" || u.User != nil || (u.Path != "" && u.Path != "/") || u.RawQuery != "" || u.Fragment != "" || u.ForceQuery {
+	if err != nil || !allowedOriginScheme(u, devMode) || u.Hostname() == "" || u.User != nil || (u.Path != "" && u.Path != "/") || u.RawQuery != "" || u.Fragment != "" || u.ForceQuery {
 		return "", fmt.Errorf("invalid public origin")
 	}
 	return strings.TrimSuffix(u.String(), "/"), nil
+}
+
+// allowedOriginScheme requires HTTPS, except for a loopback origin in dev mode.
+func allowedOriginScheme(u *url.URL, devMode bool) bool {
+	if u.Scheme == "https" {
+		return true
+	}
+	host := u.Hostname()
+	loopback := host == "localhost" || host == "127.0.0.1" || host == "::1"
+	return devMode && u.Scheme == "http" && loopback
 }
 
 func shareData(r *http.Request, id string) (shareDetails, int) {

@@ -28,9 +28,10 @@ func main() {
 	if value := os.Getenv(rolePrefix + "ADDR"); value != "" {
 		addr = value
 	}
+	devMode := os.Getenv("FORYOU_DEV") == "1"
 	certFile, keyFile := os.Getenv("FORYOU_TLS_CERT"), os.Getenv("FORYOU_TLS_KEY")
-	if certFile == "" || keyFile == "" {
-		log.Fatal("set FORYOU_TLS_CERT and FORYOU_TLS_KEY to a certificate and private key")
+	if !devMode && (certFile == "" || keyFile == "") {
+		log.Fatal("set FORYOU_TLS_CERT and FORYOU_TLS_KEY to a certificate and private key, or FORYOU_DEV=1 for plain HTTP on loopback")
 	}
 	var db *sql.DB
 	if url := os.Getenv(rolePrefix + "DATABASE_URL"); url != "" {
@@ -44,6 +45,10 @@ func main() {
 		db.SetConnMaxLifetime(30 * time.Minute)
 	}
 	handler := server.NewRole(*role, db)
+	if devMode {
+		log.Printf("%s listening on http://%s (dev mode: plain HTTP, loopback only)", *role, addr)
+		log.Fatal(transport.ListenAndServePlain(addr, handler))
+	}
 	log.Printf("%s listening on https://%s (HTTP/3 when available; HTTP/1.1 fallback)", *role, addr)
 	if err := transport.ListenAndServe(addr, certFile, keyFile, handler); err != nil {
 		log.Fatal(err)
