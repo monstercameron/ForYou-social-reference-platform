@@ -1,0 +1,66 @@
+{
+  "source": "ForYou-Social-Ecosystem-Specification/examples/settlement.example.json",
+  "settlement_claim": {
+    "provider_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+    "network": "bitcoin-mainnet",
+    "sequence": 1,
+    "previous_claim_id": null,
+    "period_start": "2027-01-05T00:00:00Z",
+    "period_end": "2027-01-06T00:00:00Z",
+    "declaration_id": "fyrd2:16cadc2610d20c84575d03a409c29beee0acf70fb6e963800814340d3acb17d1",
+    "succession_id": null,
+    "receipt_count": 5,
+    "total_base_units": "10472",
+    "cumulative_base_units": "10472",
+    "receipts_root": "a3b611487ed295e46340f4132f3281d8c32e0e8dc9546776be535594c2e3cfa9",
+    "claim_id": "fysc2:a3854d69cc661226d0ec03420f6d0e892a2be098f7609e027231592ba199d8ae",
+    "provider_signature": "OcPmII9r9BQaZzkzV0UeFnOxGH9EK0Gg4AivCdMrXCgJ4nrCGi0qBNOTUb5f3G1-90t78KHSy7h1y__F4BHFCw"
+  },
+  "second_claim": {
+    "provider_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+    "network": "bitcoin-mainnet",
+    "sequence": 2,
+    "previous_claim_id": "fysc2:a3854d69cc661226d0ec03420f6d0e892a2be098f7609e027231592ba199d8ae",
+    "period_start": "2027-01-12T00:00:00Z",
+    "period_end": "2027-01-13T00:00:00Z",
+    "declaration_id": "fyrd2:16cadc2610d20c84575d03a409c29beee0acf70fb6e963800814340d3acb17d1",
+    "succession_id": null,
+    "receipt_count": 1,
+    "total_base_units": "136",
+    "cumulative_base_units": "10608",
+    "receipts_root": "7f0b4118e1530800d11e80d9d412108ee17789bde19676fb134a856603a6cbd8",
+    "claim_id": "fysc2:8ba27d6ac595f657c428b78c6ae8a4ef7920edddb710aa5f939133107e9f5cf4",
+    "provider_signature": "-vLQw82y6Hh5xObvdHmCbXP6Bb3NQa--shxHXboNjnx4yZMxfW2nFr38CHTE_fa7LRLzxYeCqVwyRZ3DyR0BAA"
+  },
+  "retention_declarations": [
+    {
+      "provider_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+      "retention_seconds": 315360000,
+      "payout_recipients": {
+        "bitcoin-mainnet": "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4"
+      },
+      "effective_at": "2026-12-01T00:00:00Z",
+      "declaration_id": "fyrd2:16cadc2610d20c84575d03a409c29beee0acf70fb6e963800814340d3acb17d1",
+      "provider_signature": "cXISY1ScrLHaEccQpXRkETP60e9MW7_8rxKDxmL5PuIENnbZ4Ax1YkG5Y0TPn9SJJOqp0dJHZR5_N1aVRArpAA"
+    },
+    {
+      "provider_id": "did:key:z6Mkjppjwd12cSzdhduNMf3reWgxgkUn7WFM3pnA5f3gFcLj",
+      "retention_seconds": 31536000,
+      "payout_recipients": {
+        "bitcoin-mainnet": "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4"
+      },
+      "effective_at": "2026-12-01T00:00:00Z",
+      "declaration_id": "fyrd2:a590de1916dcc224cb120b8713b961131d2414a7d2387432bd420242cacb989a",
+      "provider_signature": "NJvjPl4pjAwomJKV0uMH6m4-U8wBHyowGdy7alBYTlesan3kfzLlsWfzfJ0fBUCBLk6hTfmW5q71kFHecq5yBA"
+    }
+  ],
+  "settlement_deposit_commitment_hex": "98845265d22fb22da22771e41817b6d0cdc4e18bf3b14b0563d88b87269b8d55",
+  "key_succession": {
+    "old_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+    "new_id": "did:key:z6MkuPRZNRtUkrhBZ1L119iGW2rmWNhPiqovUGDfhSzBDC1D",
+    "effective_at": "2027-06-01T00:00:00Z",
+    "succession_id": "fyks2:c5437bb4980ba3cf570384385c5114eb7d37d5fe9fec8780adaf5ec4ebff0889",
+    "old_signature": "olbn5jpKTybjrk80iQA2_heJiZ0WgpIsu2EmxSejobLJYmlimFBLR897WU269jRjVBUqcwV658uwbW1JDN_TAA",
+    "new_signature": "P37jik0znP9ekg9IOrXGbnLts8dd1VjmsSvOEEIY9fMXuom4elaL-e9pnJ-uD4ARqEc0RHny9SCJhCCtKADrCA"
+  }
+}
