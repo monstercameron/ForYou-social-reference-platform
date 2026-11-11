@@ -6,6 +6,7 @@
 - Verify changes with checks appropriate to their risk and report failures or checks that could not run.
 - Follow the [Go style decision](docs/adr/0001-go-style.md) when writing or reviewing Go code.
 - Follow the [testing strategy](docs/adr/0002-testing-strategy.md) when writing or reviewing tests.
+- Build client behavior the HTMLeX way: Go renders pages and fragments, and HTMLeX attributes on the markup do the interaction. Keep state on the server or in the URL. Do not add custom JavaScript for anything HTMLeX, HTML or CSS can do. Script is allowed only for a browser capability HTMLeX lacks, in a few lines with a comment naming that capability, and every interaction keeps a plain link or form fallback.
 - For client UI work, consult the [design concepts](docs/concepts/), including the light and dark feed references. Treat them as visual direction, not evidence that depicted features or privacy claims exist.
 - Treat protocol, key handling and payments as security-sensitive. Never claim that passing tests establishes security or production readiness.
 - Follow the [architecture decision](docs/adr/0003-architecture.md): package boundaries, layering, dev mode and the faux chain. Do not add a package, a dependency or a role without changing that decision first.
