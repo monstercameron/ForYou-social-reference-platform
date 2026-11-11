@@ -28,7 +28,7 @@ func demoNameRecords() []names.NameRecord {
 			panic(err)
 		}
 		name := s.name
-		if records[i], err = names.Build(key, &name, demoNamesIssuedAt, nil); err != nil {
+		if records[i], err = names.Build(key, &name, nil, demoNamesIssuedAt, nil); err != nil {
 			panic(err)
 		}
 	}

@@ -815,11 +815,12 @@
     "NameRecord": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Optional display names profile. Structural check only: NFC, general-category, White_Space, UTF-8 byte-length, name_id, signature and clock rules require semantic validation.",
+      "description": "Optional display names profile. Structural check only: NFC, general-category, White_Space, UTF-8 byte-length, the avatar URL profile, the rule that avatar is null when display_name is null, name_id, signature and clock rules require semantic validation.",
       "required": [
         "name_id",
         "author_id",
         "display_name",
+        "avatar",
         "issued_at",
         "previous_name_id",
         "author_signature"
@@ -841,6 +842,38 @@
           "maxLength": 64,
           "pattern": "^(?!.*  )[^\\s\\u0000-\\u001f\\u007f-\\u009f](?:[^\\u0000-\\u001f\\u007f-\\u009f]*[^\\s\\u0000-\\u001f\\u007f-\\u009f])?$",
           "description": "Null withdraws the name. Otherwise 1 to 64 Unicode scalar values, at most 256 UTF-8 bytes, already NFC, one line, no Cc, Cf, Cn, Co, Cs, Zl or Zp character, no leading or trailing White_Space and no two consecutive spaces."
+        },
+        "avatar": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "required": [
+            "url",
+            "sha256",
+            "size_bytes"
+          ],
+          "properties": {
+            "url": {
+              "type": "string",
+              "format": "uri",
+              "maxLength": 2048,
+              "pattern": "^https://[^\\s/?#@\\\\]+(?:[/?#][^\\s\\\\]*)?$"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$",
+              "minLength": 64,
+              "maxLength": 64
+            },
+            "size_bytes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1048576
+            }
+          },
+          "description": "Null, or a reference to one image on a host the author chose. Null when display_name is null. The URL follows the restricted HTTPS profile; sha256 and size_bytes commit to the exact image bytes. Holders never fetch it; a client loads it only under the external media rules."
         },
         "issued_at": {
           "$ref": "#/$defs/FinancialTime"

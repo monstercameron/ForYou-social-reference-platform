@@ -85,7 +85,8 @@ func TestExampleRecords(t *testing.T) {
 	record, withdrawal, fixture := exampleRecords(t)
 	t.Run("build matches example record", func(t *testing.T) {
 		name := "Zoë Example"
-		got, err := Build(authorKey(t), &name, time.Date(2026, 11, 11, 0, 0, 0, 0, time.UTC), nil)
+		avatar := &Avatar{URL: "https://media.example/avatars/zoe.png", SHA256: "08b860e2b03a68a952acf3d1c63b988f251a509aca0420ce984de33f31c8bf28", SizeBytes: 35}
+		got, err := Build(authorKey(t), &name, avatar, time.Date(2026, 11, 11, 0, 0, 0, 0, time.UTC), nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -95,7 +96,7 @@ func TestExampleRecords(t *testing.T) {
 		}
 	})
 	t.Run("build matches example withdrawal", func(t *testing.T) {
-		got, err := Build(authorKey(t), nil, defaultClock(), &record.NameID)
+		got, err := Build(authorKey(t), nil, nil, defaultClock(), &record.NameID)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -132,10 +133,172 @@ func TestExampleRecords(t *testing.T) {
 			t.Fatalf("Encode(withdrawal) = %s, %v; want %s", got, err, want)
 		}
 	})
+	var members map[string]json.RawMessage
+	if err := json.Unmarshal(fixture, &members); err != nil {
+		t.Fatal(err)
+	}
+	t.Run("record parses, verifies, and encodes canonically", func(t *testing.T) {
+		canonical, err := canon.Canonicalize(members["record"], canon.Limits{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		parsed, err := Parse(canonical)
+		if err != nil {
+			t.Fatal(err)
+		}
+		requireRecordEqual(t, parsed, record)
+		if parsed.NameID != "fynr2:9d81b977f01a420f3cace01c30cdab9a87402e8b94c1283639f2a1bd2f4eeee7" || parsed.Avatar == nil || parsed.Avatar.URL != "https://media.example/avatars/zoe.png" || parsed.Avatar.SHA256 != "08b860e2b03a68a952acf3d1c63b988f251a509aca0420ce984de33f31c8bf28" || parsed.Avatar.SizeBytes != 35 {
+			t.Fatalf("parsed example record = %#v", parsed)
+		}
+		if err := Verify(parsed, time.Date(2026, 11, 12, 0, 0, 0, 0, time.UTC)); err != nil {
+			t.Fatalf("Verify(example) = %v", err)
+		}
+		if encoded, err := Encode(parsed); err != nil || string(encoded) != string(canonical) {
+			t.Fatalf("Encode(Parse(record)) = %s, %v; want %s", encoded, err, canonical)
+		}
+	})
+	t.Run("withdrawal parses and encodes canonically", func(t *testing.T) {
+		canonical, err := canon.Canonicalize(members["withdrawal"], canon.Limits{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		parsed, err := Parse(canonical)
+		if err != nil {
+			t.Fatal(err)
+		}
+		requireRecordEqual(t, parsed, withdrawal)
+		if parsed.Avatar != nil {
+			t.Fatalf("Parse(withdrawal) = %#v, %v", parsed, err)
+		}
+		if err := Verify(parsed, time.Date(2026, 11, 12, 0, 0, 0, 0, time.UTC)); err != nil {
+			t.Fatalf("Verify(withdrawal) = %v", err)
+		}
+		if roundTrip, err := Encode(parsed); err != nil || string(roundTrip) != string(canonical) {
+			t.Fatalf("Encode(Parse(withdrawal)) = %s, %v; want %s", roundTrip, err, canonical)
+		}
+	})
+}
+
+func TestAvatarRules(t *testing.T) {
+	name := "Zoë Example"
+	validAvatar := &Avatar{URL: "https://media.example/avatars/zoe.png", SHA256: "08b860e2b03a68a952acf3d1c63b988f251a509aca0420ce984de33f31c8bf28", SizeBytes: 35}
+	invalid := func(t *testing.T, avatar *Avatar, displayName *string) {
+		t.Helper()
+		if err := ValidateAvatar(avatar, displayName); !errors.Is(err, ErrInvalidRecord) {
+			t.Fatalf("ValidateAvatar() error = %v; want ErrInvalidRecord", err)
+		}
+	}
+	t.Run("nil avatar is valid", func(t *testing.T) {
+		if err := ValidateAvatar(nil, nil); err != nil {
+			t.Fatalf("ValidateAvatar(nil) = %v", err)
+		}
+	})
+	t.Run("withdrawn name cannot have avatar", func(t *testing.T) { invalid(t, validAvatar, nil) })
+	t.Run("Build rejects an avatar on a withdrawn name", func(t *testing.T) {
+		if _, err := Build(authorKey(t), nil, validAvatar, defaultClock(), nil); !errors.Is(err, ErrInvalidRecord) {
+			t.Fatalf("Build() error = %v; want ErrInvalidRecord", err)
+		}
+	})
+	t.Run("HTTP URL", func(t *testing.T) {
+		a := *validAvatar
+		a.URL = "http://media.example/avatar.png"
+		invalid(t, &a, &name)
+	})
+	t.Run("userinfo URL", func(t *testing.T) {
+		a := *validAvatar
+		a.URL = "https://user@media.example/avatar.png"
+		invalid(t, &a, &name)
+	})
+	t.Run("uppercase host URL", func(t *testing.T) {
+		a := *validAvatar
+		a.URL = "https://Media.example/avatar.png"
+		invalid(t, &a, &name)
+	})
+	t.Run("URL exceeds avatar limit", func(t *testing.T) {
+		a := *validAvatar
+		a.URL = "https://media.example/" + strings.Repeat("a", 2027)
+		invalid(t, &a, &name)
+	})
+	t.Run("uppercase digest", func(t *testing.T) { a := *validAvatar; a.SHA256 = strings.Repeat("A", 64); invalid(t, &a, &name) })
+	t.Run("short digest", func(t *testing.T) { a := *validAvatar; a.SHA256 = strings.Repeat("a", 63); invalid(t, &a, &name) })
+	t.Run("zero size", func(t *testing.T) { a := *validAvatar; a.SizeBytes = 0; invalid(t, &a, &name) })
+	t.Run("size exceeds limit", func(t *testing.T) { a := *validAvatar; a.SizeBytes = 1048577; invalid(t, &a, &name) })
+	t.Run("maximum size is accepted", func(t *testing.T) {
+		a := *validAvatar
+		a.SizeBytes = 1048576
+		if err := ValidateAvatar(&a, &name); err != nil {
+			t.Fatalf("ValidateAvatar(max size) = %v", err)
+		}
+	})
+}
+
+func TestAvatarParsing(t *testing.T) {
+	t.Run("unknown avatar member is rejected", func(t *testing.T) {
+		requireParseError(t, `{"name_id":"fynr2:9d81b977f01a420f3cace01c30cdab9a87402e8b94c1283639f2a1bd2f4eeee7","author_id":"did:key:z6MkehRgf7yJbgaGfYsdoAsKdBPE3dj2CYhowQdcjqSJgvVd","display_name":"Zoë Example","avatar":{"url":"https://media.example/avatars/zoe.png","sha256":"08b860e2b03a68a952acf3d1c63b988f251a509aca0420ce984de33f31c8bf28","size_bytes":35,"extra":true},"issued_at":"2026-11-11T00:00:00Z","previous_name_id":null,"author_signature":"k6HCo-NZ4zaqGNF7VWL0rTiDMfzM2G7LKy4xgUw7U0LtYmT0itI32jaCfM8aR7FvR7d4m_1FZLoyahFsXwU1Bw"}`)
+	})
+	t.Run("missing avatar member is rejected", func(t *testing.T) {
+		requireParseError(t, `{"name_id":"fynr2:9d81b977f01a420f3cace01c30cdab9a87402e8b94c1283639f2a1bd2f4eeee7","author_id":"did:key:z6MkehRgf7yJbgaGfYsdoAsKdBPE3dj2CYhowQdcjqSJgvVd","display_name":"Zoë Example","issued_at":"2026-11-11T00:00:00Z","previous_name_id":null,"author_signature":"k6HCo-NZ4zaqGNF7VWL0rTiDMfzM2G7LKy4xgUw7U0LtYmT0itI32jaCfM8aR7FvR7d4m_1FZLoyahFsXwU1Bw"}`)
+	})
+	t.Run("string avatar is rejected", func(t *testing.T) {
+		requireParseError(t, `{"name_id":"fynr2:9d81b977f01a420f3cace01c30cdab9a87402e8b94c1283639f2a1bd2f4eeee7","author_id":"did:key:z6MkehRgf7yJbgaGfYsdoAsKdBPE3dj2CYhowQdcjqSJgvVd","display_name":"Zoë Example","avatar":"https://media.example/avatars/zoe.png","issued_at":"2026-11-11T00:00:00Z","previous_name_id":null,"author_signature":"k6HCo-NZ4zaqGNF7VWL0rTiDMfzM2G7LKy4xgUw7U0LtYmT0itI32jaCfM8aR7FvR7d4m_1FZLoyahFsXwU1Bw"}`)
+	})
+	t.Run("fractional size is rejected", func(t *testing.T) {
+		requireParseError(t, `{"name_id":"fynr2:9d81b977f01a420f3cace01c30cdab9a87402e8b94c1283639f2a1bd2f4eeee7","author_id":"did:key:z6MkehRgf7yJbgaGfYsdoAsKdBPE3dj2CYhowQdcjqSJgvVd","display_name":"Zoë Example","avatar":{"url":"https://media.example/avatars/zoe.png","sha256":"08b860e2b03a68a952acf3d1c63b988f251a509aca0420ce984de33f31c8bf28","size_bytes":35.5},"issued_at":"2026-11-11T00:00:00Z","previous_name_id":null,"author_signature":"k6HCo-NZ4zaqGNF7VWL0rTiDMfzM2G7LKy4xgUw7U0LtYmT0itI32jaCfM8aR7FvR7d4m_1FZLoyahFsXwU1Bw"}`)
+	})
+}
+
+func requireParseError(t *testing.T, data string) {
+	t.Helper()
+	if _, err := Parse([]byte(data)); !errors.Is(err, ErrInvalidRecord) {
+		t.Fatalf("Parse() error = %v; want ErrInvalidRecord", err)
+	}
+}
+
+func TestAvatarTampering(t *testing.T) {
+	record, _, _ := exampleRecords(t)
+	t.Run("changed URL", func(t *testing.T) {
+		changed := record
+		avatar := *record.Avatar
+		avatar.URL = "https://media.example/avatars/other.png"
+		changed.Avatar = &avatar
+		requireVerifyError(t, changed, ErrIDMismatch)
+	})
+	t.Run("changed digest", func(t *testing.T) {
+		changed := record
+		avatar := *record.Avatar
+		avatar.SHA256 = "18b860e2b03a68a952acf3d1c63b988f251a509aca0420ce984de33f31c8bf28"
+		changed.Avatar = &avatar
+		requireVerifyError(t, changed, ErrIDMismatch)
+	})
+	t.Run("changed size", func(t *testing.T) {
+		changed := record
+		avatar := *record.Avatar
+		avatar.SizeBytes = 36
+		changed.Avatar = &avatar
+		requireVerifyError(t, changed, ErrIDMismatch)
+	})
+	t.Run("null avatar", func(t *testing.T) {
+		changed := record
+		changed.Avatar = nil
+		requireVerifyError(t, changed, ErrIDMismatch)
+	})
 }
 
 func TestVerificationOrder(t *testing.T) {
-	record, _, fixture := exampleRecords(t)
+	record, withdrawal, fixture := exampleRecords(t)
+	t.Run("avatar on withdrawn name is rejected before name ID", func(t *testing.T) {
+		changed := withdrawal
+		avatar := *record.Avatar
+		changed.Avatar = &avatar
+		requireVerifyError(t, changed, ErrInvalidRecord)
+	})
+	t.Run("invalid avatar URL is rejected before name ID", func(t *testing.T) {
+		changed := record
+		avatar := *record.Avatar
+		avatar.URL = "https://Media.example/avatars/zoe.png"
+		changed.Avatar = &avatar
+		requireVerifyError(t, changed, ErrInvalidRecord)
+	})
 	t.Run("changed display name reaches ID mismatch", func(t *testing.T) {
 		changed := record
 		name := "Zoe Example"
@@ -222,7 +385,7 @@ func TestVerificationOrder(t *testing.T) {
 
 func TestClockTolerance(t *testing.T) {
 	t.Run("exactly sixty seconds ahead passes", func(t *testing.T) {
-		r, err := Build(authorKey(t), stringPointer("Ada"), defaultClock().Add(60*time.Second), nil)
+		r, err := Build(authorKey(t), stringPointer("Ada"), nil, defaultClock().Add(60*time.Second), nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -231,7 +394,7 @@ func TestClockTolerance(t *testing.T) {
 		}
 	})
 	t.Run("sixty one seconds ahead fails", func(t *testing.T) {
-		r, err := Build(authorKey(t), stringPointer("Ada"), defaultClock().Add(61*time.Second), nil)
+		r, err := Build(authorKey(t), stringPointer("Ada"), nil, defaultClock().Add(61*time.Second), nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -333,34 +496,34 @@ func requireQueryError(t *testing.T, query string) {
 
 func TestCurrentRecord(t *testing.T) {
 	root := authorKey(t)
-	first, err := Build(root, stringPointer("First"), time.Date(2026, 11, 11, 0, 0, 0, 0, time.UTC), nil)
+	first, err := Build(root, stringPointer("First"), nil, time.Date(2026, 11, 11, 0, 0, 0, 0, time.UTC), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	second, err := Build(root, stringPointer("Second"), time.Date(2026, 11, 13, 0, 0, 0, 0, time.UTC), &first.NameID)
+	second, err := Build(root, stringPointer("Second"), nil, time.Date(2026, 11, 13, 0, 0, 0, 0, time.UTC), &first.NameID)
 	if err != nil {
 		t.Fatal(err)
 	}
-	backdated, err := Build(root, stringPointer("Backdated"), time.Date(2026, 11, 10, 0, 0, 0, 0, time.UTC), &second.NameID)
+	backdated, err := Build(root, stringPointer("Backdated"), nil, time.Date(2026, 11, 10, 0, 0, 0, 0, time.UTC), &second.NameID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Run("newest wins in forward input order", func(t *testing.T) { requireCurrent(t, authorDID, []NameRecord{first, second, backdated}, second, true) })
 	t.Run("newest wins in reverse input order", func(t *testing.T) { requireCurrent(t, authorDID, []NameRecord{backdated, second, first}, second, true) })
 	t.Run("tie chooses hard-coded smallest ID", func(t *testing.T) {
-		alpha, err := Build(root, stringPointer("Alpha"), firstTime(), nil)
+		alpha, err := Build(root, stringPointer("Alpha"), nil, firstTime(), nil)
 		if err != nil {
 			t.Fatal(err)
 		}
-		beta, err := Build(root, stringPointer("Beta"), firstTime(), nil)
+		beta, err := Build(root, stringPointer("Beta"), nil, firstTime(), nil)
 		if err != nil {
 			t.Fatal(err)
 		}
-		gamma, err := Build(root, stringPointer("Gamma"), firstTime(), nil)
+		gamma, err := Build(root, stringPointer("Gamma"), nil, firstTime(), nil)
 		if err != nil {
 			t.Fatal(err)
 		}
-		const expectedID = "fynr2:acb38672b0fc84dede7cc2c365a38df2532d3511578dc75dda54a9b5cecf7b81"
+		const expectedID = "fynr2:52c69deb4422c248a6f357920ca60ced11de7d90556e7330ebdf80ad5e687901"
 		if gamma.NameID != expectedID {
 			t.Fatalf("Gamma name_id = %s; want %s", gamma.NameID, expectedID)
 		}
@@ -370,7 +533,7 @@ func TestCurrentRecord(t *testing.T) {
 		}
 	})
 	t.Run("forged later record cannot displace valid record", func(t *testing.T) {
-		forged, err := Build(root, stringPointer("Forged"), time.Date(2026, 11, 11, 12, 0, 0, 0, time.UTC), nil)
+		forged, err := Build(root, stringPointer("Forged"), nil, time.Date(2026, 11, 11, 12, 0, 0, 0, time.UTC), nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -387,7 +550,7 @@ func TestCurrentRecord(t *testing.T) {
 		}
 	})
 	t.Run("another author is ignored", func(t *testing.T) {
-		other, err := Build(providerKey(t), stringPointer("Other"), firstTime(), nil)
+		other, err := Build(providerKey(t), stringPointer("Other"), nil, firstTime(), nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -425,7 +588,7 @@ func TestNamesPage(t *testing.T) {
 	})
 	t.Run("single record page has literal JCS encoding", func(t *testing.T) {
 		got, err := EncodePage(NamesPage{Names: []NameRecord{record}})
-		const want = `{"names":[{"author_id":"did:key:z6MkehRgf7yJbgaGfYsdoAsKdBPE3dj2CYhowQdcjqSJgvVd","author_signature":"yFzqBKMhUetO8nuyp_s6RzHOWXaBLejLkaioVwnTKCzM9VZ--Zyv3gokZ_6_9CB9XUh9vAb9juqytq4L_dctAQ","display_name":"Zoë Example","issued_at":"2026-11-11T00:00:00Z","name_id":"fynr2:ef06e1a717b60c8bef8f21d78ddea36ce8ec2a99232d044acf9a90f07a8af7c6","previous_name_id":null}],"next_cursor":null}`
+		const want = `{"names":[{"author_id":"did:key:z6MkehRgf7yJbgaGfYsdoAsKdBPE3dj2CYhowQdcjqSJgvVd","author_signature":"k6HCo-NZ4zaqGNF7VWL0rTiDMfzM2G7LKy4xgUw7U0LtYmT0itI32jaCfM8aR7FvR7d4m_1FZLoyahFsXwU1Bw","avatar":{"sha256":"08b860e2b03a68a952acf3d1c63b988f251a509aca0420ce984de33f31c8bf28","size_bytes":35,"url":"https://media.example/avatars/zoe.png"},"display_name":"Zoë Example","issued_at":"2026-11-11T00:00:00Z","name_id":"fynr2:9d81b977f01a420f3cace01c30cdab9a87402e8b94c1283639f2a1bd2f4eeee7","previous_name_id":null}],"next_cursor":null}`
 		if err != nil || string(got) != want {
 			t.Fatalf("EncodePage() = %s, %v; want %s", got, err, want)
 		}

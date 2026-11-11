@@ -3,10 +3,13 @@ package names
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"regexp"
+	"strings"
 	"time"
 
 	"foryou.local/foryou/internal/canon"
+	"foryou.local/foryou/internal/content"
 	"foryou.local/foryou/internal/keys"
 	"foryou.local/foryou/internal/wire"
 )
@@ -20,6 +23,10 @@ const (
 	MaxNameBytes = 256
 	// MaxRecordBytes is the maximum JCS record size.
 	MaxRecordBytes = 4096
+	// MaxAvatarURLLength is the maximum avatar URL length in ASCII characters.
+	MaxAvatarURLLength = 2048
+	// MaxAvatarBytes is the maximum number of bytes in an avatar image.
+	MaxAvatarBytes = 1048576
 	// MaxPageRecords is the maximum number of records in a names page.
 	MaxPageRecords = 50
 	// MaxPageBytes is the maximum encoded names page size.
@@ -48,9 +55,17 @@ type NameRecord struct {
 	NameID          string  `json:"name_id"`
 	AuthorID        string  `json:"author_id"`
 	DisplayName     *string `json:"display_name"`
+	Avatar          *Avatar `json:"avatar"`
 	IssuedAt        string  `json:"issued_at"`
 	PreviousNameID  *string `json:"previous_name_id"`
 	AuthorSignature string  `json:"author_signature"`
+}
+
+// Avatar is an external image reference committed to by a name record.
+type Avatar struct {
+	URL       string `json:"url"`
+	SHA256    string `json:"sha256"`
+	SizeBytes int64  `json:"size_bytes"`
 }
 
 // NamesPage is one page of advisory display name lookup results.
@@ -70,11 +85,18 @@ func ID(r NameRecord) (string, error) {
 
 // Build creates a root-signed name record. A delegate key must never sign a
 // name record; posting delegation grants no authority over names.
-func Build(root keys.PrivateKey, displayName *string, issuedAt time.Time, previousNameID *string) (NameRecord, error) {
+func Build(root keys.PrivateKey, displayName *string, avatar *Avatar, issuedAt time.Time, previousNameID *string) (NameRecord, error) {
 	if displayName != nil && ValidateName(*displayName) != nil {
 		return NameRecord{}, ErrInvalidName
 	}
+	if err := ValidateAvatar(avatar, displayName); err != nil {
+		return NameRecord{}, err
+	}
 	r := NameRecord{AuthorID: keys.DIDOf(root), DisplayName: displayName, IssuedAt: wire.FormatTime(issuedAt), PreviousNameID: previousNameID}
+	if avatar != nil {
+		copied := *avatar
+		r.Avatar = &copied
+	}
 	id, err := ID(r)
 	if err != nil {
 		return NameRecord{}, ErrInvalidRecord
@@ -88,7 +110,32 @@ func Build(root keys.PrivateKey, displayName *string, issuedAt time.Time, previo
 	if err != nil {
 		return NameRecord{}, ErrInvalidRecord
 	}
+	if err := Verify(r, issuedAt); err != nil {
+		return NameRecord{}, fmt.Errorf("%w: built record failed verification: %v", ErrInvalidRecord, err)
+	}
 	return r, nil
+}
+
+// ValidateAvatar checks an avatar reference without fetching its URL. Nil is
+// valid; a non-nil avatar requires a non-nil display name. Failures wrap
+// ErrInvalidRecord.
+func ValidateAvatar(a *Avatar, displayName *string) error {
+	if a == nil {
+		return nil
+	}
+	if displayName == nil {
+		return fmt.Errorf("%w: avatar requires a display name", ErrInvalidRecord)
+	}
+	if len(a.URL) > MaxAvatarURLLength || content.ValidateExternalURL(a.URL) != nil {
+		return fmt.Errorf("%w: invalid avatar URL", ErrInvalidRecord)
+	}
+	if len(a.SHA256) != 64 || strings.Trim(a.SHA256, "0123456789abcdef") != "" {
+		return fmt.Errorf("%w: invalid avatar SHA-256", ErrInvalidRecord)
+	}
+	if a.SizeBytes < 1 || a.SizeBytes > MaxAvatarBytes {
+		return fmt.Errorf("%w: invalid avatar reference", ErrInvalidRecord)
+	}
+	return nil
 }
 
 func value(v any, maxBytes int) (any, error) {
@@ -131,6 +178,9 @@ func Verify(r NameRecord, now time.Time) error {
 	}
 	if r.DisplayName != nil && ValidateName(*r.DisplayName) != nil {
 		return ErrInvalidName
+	}
+	if err := ValidateAvatar(r.Avatar, r.DisplayName); err != nil {
+		return err
 	}
 	id, err := ID(r)
 	if err != nil || id != r.NameID {
