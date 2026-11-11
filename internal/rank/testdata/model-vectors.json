@@ -1,0 +1,221 @@
+{
+  "activation_2_8": {
+    "votes": [
+      {"PostID": "l01", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "l02", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "d01", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "d02", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "d03", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "d04", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "d05", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "d06", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "d07", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "d08", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]}
+    ]
+  },
+  "activation_5_4": {
+    "votes": [
+      {"PostID": "l01", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "l02", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "l03", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "l04", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "l05", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "d01", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "d02", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "d03", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "d04", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]}
+    ]
+  },
+  "activation_9_1": {
+    "votes": [
+      {"PostID": "l01", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "l02", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "l03", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "l04", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "l05", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "l06", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "l07", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "l08", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "l09", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "d01", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]}
+    ]
+  },
+  "activation_decay": {
+    "votes": [
+      {"PostID": "l01", "Like": true, "At": "2026-08-13T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "l02", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "l03", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "l04", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "l05", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "d01", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "d02", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "d03", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "d04", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "d05", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]}
+    ]
+  },
+  "activation_future": {
+    "votes": [
+      {"PostID": "l01", "Like": true, "At": "2026-11-12T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "l02", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "l03", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "l04", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "l05", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "d01", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "d02", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "d03", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "d04", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]},
+      {"PostID": "d05", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["a"]}
+    ]
+  },
+  "clamp": {
+    "votes": [
+      {"PostID": "l01", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l02", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l03", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l04", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l05", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l06", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l07", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l08", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l09", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l10", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l11", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l12", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l13", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l14", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l15", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l16", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l17", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l18", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l19", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l20", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l21", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l22", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l23", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l24", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l25", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l26", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l27", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l28", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l29", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l30", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l31", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l32", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l33", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l34", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l35", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l36", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l37", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l38", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l39", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l40", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l41", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l42", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l43", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l44", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l45", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l46", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l47", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l48", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l49", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "l50", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["x"]},
+      {"PostID": "d01", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d02", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d03", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d04", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d05", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d06", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d07", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d08", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d09", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d10", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d11", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d12", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d13", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d14", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d15", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d16", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d17", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d18", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d19", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d20", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d21", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d22", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d23", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d24", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d25", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d26", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d27", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d28", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d29", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d30", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d31", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d32", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d33", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d34", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d35", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d36", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d37", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d38", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d39", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d40", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d41", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d42", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d43", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d44", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d45", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d46", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d47", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d48", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d49", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]},
+      {"PostID": "d50", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["y"]}
+    ]
+  },
+  "cold1": {
+    "votes": [
+      {"PostID": "H1", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["lang:en", "len:medium", "code:block", "topic:tech", "thread:reply", "key:A"]}
+    ],
+    "posts": {
+      "P1": ["len:short", "code:block", "topic:tech", "thread:reply", "thread:deep", "key:A", "lang:en"]
+    }
+  },
+  "cold5": {
+    "votes": [
+      {"PostID": "H1", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["lang:en", "len:medium", "code:block", "topic:tech", "thread:reply", "key:A"]},
+      {"PostID": "H2", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["lang:en", "len:short", "link:any", "topic:tech"]},
+      {"PostID": "H3", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["lang:en", "len:short", "topic:garden"]},
+      {"PostID": "D1", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["lang:en", "len:medium", "spam:caps", "spam:repeat", "promo"]},
+      {"PostID": "D2", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["lang:en", "len:short", "prof:strong", "thread:reply"]}
+    ],
+    "posts": {
+      "P1": ["len:short", "code:block", "topic:tech", "thread:reply", "thread:deep", "key:A", "lang:en"]
+    }
+  },
+  "history": {
+    "votes": [
+      {"PostID": "H1", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["lang:en", "len:medium", "code:block", "topic:tech", "thread:reply", "key:A"]},
+      {"PostID": "H2", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["lang:en", "len:short", "link:any", "topic:tech"]},
+      {"PostID": "H3", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["lang:en", "len:short", "topic:garden"]},
+      {"PostID": "H4", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["lang:en", "len:medium", "topic:food"]},
+      {"PostID": "H5", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["lang:en", "len:short", "code:block", "topic:tech", "thread:reply", "thread:deep", "key:A"]},
+      {"PostID": "H6", "Like": true, "At": "2026-11-11T12:00:00Z", "Indicators": ["lang:en", "len:short", "media:image"]},
+      {"PostID": "D1", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["lang:en", "len:medium", "spam:caps", "spam:repeat", "promo"]},
+      {"PostID": "D2", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["lang:en", "len:short", "prof:strong", "thread:reply"]},
+      {"PostID": "D3", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["lang:en", "len:short", "prof:strong", "harass", "thread:reply", "key:B"]},
+      {"PostID": "D4", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["lang:en", "len:short", "promo", "link:any"]},
+      {"PostID": "D5", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["lang:en", "len:tiny", "spam:caps", "promo", "thread:reply"]},
+      {"PostID": "D6", "Like": false, "At": "2026-11-11T12:00:00Z", "Indicators": ["lang:en", "len:short", "prof:mild"]}
+    ],
+    "posts": {
+      "P1": ["len:short", "code:block", "topic:tech", "thread:reply", "thread:deep", "key:A", "lang:en"],
+      "P2": ["len:short", "prof:strong", "thread:reply", "lang:en"],
+      "P3": ["len:short", "thread:reply", "lang:en"],
+      "P4": ["len:short", "code:block", "topic:tech", "thread:reply", "lang:en"],
+      "P5": ["len:short", "lang:en"],
+      "P6": ["len:tiny", "spam:caps", "promo", "thread:reply", "lang:en"],
+      "P7": ["len:tiny", "thread:reply", "thread:deep", "lang:en"],
+      "P8": ["len:tiny", "prof:strong", "spam:caps", "thread:reply", "key:B", "lang:en"]
+    }
+  }
+}
