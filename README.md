@@ -157,7 +157,7 @@ go test ./...
 go vet ./...
 ```
 
-Enable the pre-commit hook once per clone with `git config core.hooksPath .githooks`. It formats-checks, vets and tests only the Go packages you staged.
+Enable the pre-commit hook once per clone with `git config core.hooksPath .githooks`. The pre-commit hook checks formatting, vets and tests only the Go packages you staged. The pre-push hook runs the same checks on the whole module, so nothing reaches the remote untested. Each change lands as one commit and is pushed at once.
 
 Follow the [Go style decision](docs/adr/0001-go-style.md), the [testing strategy](docs/adr/0002-testing-strategy.md) and the [architecture decision](docs/adr/0003-architecture.md). Format Go files with `gofmt`. The [GitHub Actions workflow](.github/workflows/ci.yml) checks formatting, runs tests, and runs `go vet` on pushes and pull requests.
 

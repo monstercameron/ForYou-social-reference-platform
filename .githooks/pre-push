@@ -1,0 +1,11 @@
+#!/bin/sh
+# Nothing reaches the remote unless the whole module is formatted, vets and passes its tests.
+set -e
+unformatted=$(gofmt -l .)
+if [ -n "$unformatted" ]; then
+  echo "pre-push: run gofmt on:" >&2
+  echo "$unformatted" >&2
+  exit 1
+fi
+go vet ./...
+go test -count=1 ./...
