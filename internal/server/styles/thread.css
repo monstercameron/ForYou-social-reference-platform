@@ -138,7 +138,8 @@
     .reply-content { display:contents; }
     .replies > .reply > .identicon { width:24px; height:24px; background-size:9px 9px; }
     .reply-by { min-height:24px; }
-    .reply p, .reply .nested-replies { grid-column:1 / -1; }
+    .reply p, .reply .reply-compose, .reply .reply-branch { grid-column:1 / -1; }
+    .reply-branch > .nested-replies { margin-left:2px; }
     .detail-gallery-controls { padding:0 8px; }
   }
   @media(prefers-reduced-motion:reduce) { .thread-collapsing { display:none; } }
