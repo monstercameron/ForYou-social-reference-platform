@@ -1,0 +1,66 @@
+@layer components {
+  :root { --ease-out:cubic-bezier(.22,1,.36,1); --dur-fast:.14s; --dur:.26s; }
+
+  /* Spawn: anything that enters the page, on load or through a fragment swap, eases in. */
+  .posts > .post, .replies > .reply, .component-card, .empty-results, .share-panel, .detail-card, .rightbar-content > *, .page-heading, .feed-heading, .feed-search {
+    animation:spawn-rise var(--dur) var(--ease-out) both;
+  }
+  .posts > .post:nth-child(2), .rightbar-content > :nth-child(2), .component-card:nth-of-type(2) { animation-delay:.04s; }
+  .posts > .post:nth-child(3), .rightbar-content > :nth-child(3), .component-card:nth-of-type(3) { animation-delay:.08s; }
+  .posts > .post:nth-child(4) { animation-delay:.12s; }
+  .posts > .post:nth-child(5) { animation-delay:.16s; }
+  .post-media-frame > video, .detail-gallery-image, .byte-count, .quote-value, .compose-status > *, .search-status, .feed-status { animation:spawn-fade var(--dur) ease-out both; }
+  .post-action[aria-pressed="true"] svg { animation:spawn-pop .3s var(--ease-out) both; }
+  .end-feed { animation:spawn-fade .4s ease-out both; }
+
+  /* Lazy media: the frame shimmers until the poster, image or player paints over it. */
+  .post-media-frame, .post-gallery-frame, .detail-gallery {
+    background:linear-gradient(100deg,var(--control) 30%,color-mix(in srgb,var(--control) 55%,var(--panel)) 50%,var(--control) 70%) 0 0/220% 100%;
+    animation:shimmer 1.3s linear 8;
+  }
+
+  /* Loaders: HTMLeX writes a .loading element into the status region while a request is in flight. */
+  .loading { display:inline-flex; align-items:center; gap:8px; color:var(--muted); font-size:13px; }
+  .loading::before, .load-more[auto] button::before {
+    content:""; flex:none; width:14px; height:14px; border:2px solid color-mix(in srgb,var(--muted) 35%,transparent);
+    border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite;
+  }
+  .load-more[auto] button { display:inline-flex; align-items:center; justify-content:center; gap:8px; }
+  .feed-status:has(.loading), .search-status:has(.loading) { display:flex; justify-content:center; padding-top:4px; }
+
+  /* Hover and press: one timing for every interactive surface. */
+  .posts > .post, .component-card, .detail-card { transition:border-color var(--dur-fast) ease,box-shadow var(--dur-fast) ease; }
+  .posts > .post:hover { border-color:color-mix(in srgb,var(--accent) 32%,var(--line)); box-shadow:0 6px 20px color-mix(in srgb,var(--text) 7%,transparent); }
+  .button, .feed-filters button, .feed-search button, .nav-link, .nav-compose, .detail-back, .detail-control, .detail-copy, .post-action, .thread-toggle, .segmented-control a, .load-more button, .mobile-nav a, .mobile-compose, .mobile-theme-button {
+    transition:background-color var(--dur-fast) ease,color var(--dur-fast) ease,border-color var(--dur-fast) ease,opacity var(--dur-fast) ease,transform var(--dur-fast) var(--ease-out);
+  }
+  .button:active, .feed-filters button:active, .feed-search button:active, .nav-compose:active, .detail-back:active, .detail-control:active, .detail-copy:active, .post-action:active, .segmented-control a:active, .load-more button:active, .mobile-compose:active { transform:scale(.97); }
+  .button-primary:hover, .nav-compose:hover, .feed-search button:hover { opacity:1; filter:brightness(1.08); }
+  .post-action svg, .nav-link svg, .detail-back svg { transition:transform var(--dur-fast) var(--ease-out); }
+  .post-action:hover svg { transform:translateY(-1px); }
+  .nav-link:hover svg { transform:scale(1.08); }
+  .detail-back:hover svg { transform:translateX(-2px); }
+  .video-play { transition:transform var(--dur-fast) var(--ease-out),box-shadow var(--dur-fast) ease; }
+  .posts > .post .video-play:hover { transform:translate(-50%,-50%) scale(1.07); box-shadow:0 6px 18px color-mix(in srgb,var(--accent) 40%,transparent); }
+  .receipt-id { text-decoration:underline transparent; text-underline-offset:3px; transition:text-decoration-color var(--dur-fast) ease,color var(--dur-fast) ease; }
+  .receipt-id:hover { color:var(--accent); text-decoration-color:currentColor; }
+  .identicon { transition:transform var(--dur) var(--ease-out); }
+  .post:hover > .identicon, .reply:hover > .identicon { transform:rotate(8deg) scale(1.04); }
+
+  /* Readability: measured line length, even wrapping and steadier numerals. */
+  body { -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; text-rendering:optimizeLegibility; }
+  .posts > .post .post-text, .reply p { max-width:68ch; font-size:16px; line-height:1.6; overflow-wrap:anywhere; text-wrap:pretty; }
+  .reply p { font-size:15px; }
+  .text-fold .post-text { max-height:4.8em; }
+  h1, h2, .compose-title { text-wrap:balance; }
+  .page-heading > p, .feed-heading p, .component-card > p, .notice p, .quote-note, .quote-description { max-width:64ch; text-wrap:pretty; }
+  .receipt-id, .post-time, .reply-count, .byte-count, .detail-gallery-count { font-variant-numeric:tabular-nums; }
+  ::selection { background:color-mix(in srgb,var(--accent) 28%,transparent); }
+  @media(prefers-reduced-motion:no-preference) { html { scroll-behavior:smooth; } }
+}
+
+@keyframes spawn-rise { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+@keyframes spawn-fade { from { opacity:0; } to { opacity:1; } }
+@keyframes spawn-pop { 0% { transform:scale(.7); } 60% { transform:scale(1.18); } 100% { transform:scale(1); } }
+@keyframes shimmer { from { background-position:120% 0; } to { background-position:-100% 0; } }
+@keyframes spin { to { transform:rotate(360deg); } }
