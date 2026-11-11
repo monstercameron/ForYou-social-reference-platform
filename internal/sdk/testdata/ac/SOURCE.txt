@@ -1,0 +1,2 @@
+fee-schedule-1-bitcoin.json: the bitcoin-mainnet entry of fee_schedules in examples/settlement.example.json (fee schedule 1, docs/03-economics.md "Fee schedule 1").
+ForYou-Social-Ecosystem-Specification commit aeb3df4be8cf39bea0c5a1aeb414081374ed7787.

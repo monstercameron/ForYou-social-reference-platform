@@ -1,0 +1,12 @@
+{
+  "profile_major": 2,
+  "profile_minor": 0,
+  "revision": 1,
+  "network": "bitcoin-mainnet",
+  "denomination": "millisatoshi",
+  "base_fee_base_units": "0",
+  "per_kib_fee_base_units": "136",
+  "effective_at": "2027-01-01T00:00:00Z",
+  "expires_at": "2027-07-01T00:00:00Z",
+  "schedule_id": "fyfs2:4c6b3daa8dd073011c7b347468b8c530413b37b9ecbabe79ad443ae1588a5ede"
+}
