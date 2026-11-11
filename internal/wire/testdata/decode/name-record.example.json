@@ -1,0 +1,20 @@
+{
+  "status": "SYNTHETIC ONLY: public test key. A signed name proves only which key signed it; it is not unique and not an identity claim.",
+  "description": "A display name record of the optional display names profile and a later withdrawal record that replaces it.",
+  "record": {
+    "name_id": "fynr2:ef06e1a717b60c8bef8f21d78ddea36ce8ec2a99232d044acf9a90f07a8af7c6",
+    "author_id": "did:key:z6MkehRgf7yJbgaGfYsdoAsKdBPE3dj2CYhowQdcjqSJgvVd",
+    "display_name": "Zoë Example",
+    "issued_at": "2026-11-11T00:00:00Z",
+    "previous_name_id": null,
+    "author_signature": "yFzqBKMhUetO8nuyp_s6RzHOWXaBLejLkaioVwnTKCzM9VZ--Zyv3gokZ_6_9CB9XUh9vAb9juqytq4L_dctAQ"
+  },
+  "withdrawal": {
+    "name_id": "fynr2:b9bf5655df1c8b379cef8c8bb5a6885399a8af1d0c023a57275d288f53fca186",
+    "author_id": "did:key:z6MkehRgf7yJbgaGfYsdoAsKdBPE3dj2CYhowQdcjqSJgvVd",
+    "display_name": null,
+    "issued_at": "2026-11-12T00:00:00Z",
+    "previous_name_id": "fynr2:ef06e1a717b60c8bef8f21d78ddea36ce8ec2a99232d044acf9a90f07a8af7c6",
+    "author_signature": "RbZ8aLT4Ggec97M4RB--NYldl4D7FnRScx6aWAz_CJEQFgAZHsAqSfRSe9AKBBs-S5SZNauxPC4jO7BCyO-pAw"
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "status": "SYNTHETIC ONLY: public test keys, imaginary balances and test amounts. Not an activated schedule, funding proof, debit proof or deployment.",
+  "description": "A signed markdown slot reference plus an unreferenced video slot, not hosted by ForYou.",
+  "schedule": {
+    "profile_major": 2,
+    "profile_minor": 0,
+    "revision": 1,
+    "network": "bitcoin-mainnet",
+    "denomination": "millisatoshi",
+    "base_fee_base_units": "1",
+    "per_kib_fee_base_units": "1",
+    "effective_at": "2026-01-01T00:00:00Z",
+    "expires_at": "2027-01-01T00:00:00Z",
+    "schedule_id": "fyfs2:28f524f836f7e81dc358cf5d86711185cad127a876cec0b1d770db471a5dc854"
+  },
+  "quotes": [
+    {
+      "provider_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+      "author_id": "did:key:z6MkehRgf7yJbgaGfYsdoAsKdBPE3dj2CYhowQdcjqSJgvVd",
+      "message_id": "fy1:8ce9fcf3b498398bcd9a5c62345257c421037e8cfbb58418c32dc56b496dc15f",
+      "schedule_id": "fyfs2:28f524f836f7e81dc358cf5d86711185cad127a876cec0b1d770db471a5dc854",
+      "billable_bytes": 602,
+      "network": "bitcoin-mainnet",
+      "amount_base_units": "2",
+      "preflight_at": "2026-11-11T00:00:04Z",
+      "expires_at": "2026-11-11T00:10:00Z",
+      "quote_id": "fyfq2:8c82b88a34442ea0d0c45ff83c52852bcfb55b3f85d5cc94cb895ba4afa4bec2",
+      "provider_signature": "3TmakAk--cSk_k2ao0A736pCw55Tm3AG0InAPq8UHIwzSfLsx3xgOm9visTILzuw4G5xYFSb2-1DpFcS97ZnDw"
+    }
+  ],
+  "message": {
+    "author_id": "did:key:z6MkehRgf7yJbgaGfYsdoAsKdBPE3dj2CYhowQdcjqSJgvVd",
+    "timestamp": "2026-11-11T00:00:04Z",
+    "message_type": "post",
+    "version": {
+      "major": 2,
+      "minor": 0
+    },
+    "payload": {
+      "content_format": "text/markdown",
+      "text": "An image: ![Sunset](fy-media:photo)",
+      "media_slots": [
+        {
+          "id": "photo",
+          "url": "https://media.example/sunset.jpg",
+          "kind": "image",
+          "alt_text": "Sunset",
+          "sha256": "03c40629f930724f4724705524fc8c3d878697a8c4a6210ac4df06fcebfd9c44"
+        },
+        {
+          "id": "clip",
+          "url": "https://media.example/clip.mp4",
+          "kind": "video",
+          "alt_text": "Short clip",
+          "sha256": "4280f6bae17c31d302094e79f4c75a55c2c5bccf1067241a9454efed447f3a88"
+        }
+      ]
+    },
+    "message_id": "fy1:8ce9fcf3b498398bcd9a5c62345257c421037e8cfbb58418c32dc56b496dc15f",
+    "submission_receipt": {
+      "provider_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+      "author_id": "did:key:z6MkehRgf7yJbgaGfYsdoAsKdBPE3dj2CYhowQdcjqSJgvVd",
+      "message_id": "fy1:8ce9fcf3b498398bcd9a5c62345257c421037e8cfbb58418c32dc56b496dc15f",
+      "receipt_id": "lHUB-Q46FdggNDBwXVNtP35QTuOr8eqfxonp42jsDlM",
+      "quote_id": "fyfq2:8c82b88a34442ea0d0c45ff83c52852bcfb55b3f85d5cc94cb895ba4afa4bec2",
+      "schedule_id": "fyfs2:28f524f836f7e81dc358cf5d86711185cad127a876cec0b1d770db471a5dc854",
+      "network": "bitcoin-mainnet",
+      "amount_base_units": "2",
+      "authorization_at": "2026-11-11T00:00:04Z",
+      "issued_at": "2026-11-11T00:00:04Z",
+      "provider_signature": "Cx_qnG99feboRFTkqI8e075X7vebyURfsucGuowsv6I5ZYxM6a0fCaVV2evU3WNWSn-P_Y5WGZUx7x_BDajdAg"
+    },
+    "signature": "LyyR3gwOzmEraJD7bUdaSpcHGEyuvMWB5Afhc1ibsxlhnjW2mnz-uap3eeU3RUHkVgN3SyubHbjkyV_d4h6bDQ"
+  }
+}
