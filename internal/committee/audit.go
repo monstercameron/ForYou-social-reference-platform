@@ -122,7 +122,10 @@ func (m *Monitor) audit(c wire.SettlementClaim, leaves []wire.SettlementLeaf, se
 			return Outcome{Witness: &witness}, nil
 		}
 		if settlement.VerifyClaimObject(c) == nil {
-			m.state.Equivocations = append(m.state.Equivocations, [2]wire.SettlementClaim{cloneClaim(m.state.Claims[old.ClaimID]), cloneClaim(c)})
+			_, problem, err := m.Check(c, leaves, seenAt, lateness)
+			if err == nil && problem == nil {
+				m.state.Equivocations = append(m.state.Equivocations, [2]wire.SettlementClaim{cloneClaim(m.state.Claims[old.ClaimID]), cloneClaim(c)})
+			}
 		}
 		return m.refuse(c, leaves, settlement.ReasonBadChain, now, dependencyNone, false)
 	}

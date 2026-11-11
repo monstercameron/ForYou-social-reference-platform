@@ -325,7 +325,7 @@ func Restore(cfg Config, data []byte) (*Monitor, error) {
 			return nil, errors.New("committee: invalid witness state")
 		}
 		leaves, ok := monitor.state.WitnessLeaves[c.ClaimID]
-		if !ok || settlement.CheckTotals(c, leaves) != nil {
+		if !ok || len(leaves) > 0 && settlement.CheckTotals(c, leaves) != nil {
 			return nil, errors.New("committee: invalid witnessed leaves")
 		}
 		chain := chainKey(monitor.Line(c.ProviderID), c.Network)
@@ -380,8 +380,8 @@ func Restore(cfg Config, data []byte) (*Monitor, error) {
 			return nil, errors.New("committee: invalid equivocation state")
 		}
 	}
-	for _, c := range monitor.state.Followed {
-		if settlement.VerifyClaimObject(c) != nil {
+	for key, c := range monitor.state.Followed {
+		if settlement.VerifyClaimObject(c) != nil || key != slotKey(monitor.Line(c.ProviderID), c.Network, c.Sequence) {
 			return nil, errors.New("committee: invalid followed claim state")
 		}
 	}
