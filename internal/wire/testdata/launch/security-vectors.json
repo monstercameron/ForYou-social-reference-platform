@@ -1,0 +1,62 @@
+{
+  "message": {
+    "author_id": "did:key:z6MkehRgf7yJbgaGfYsdoAsKdBPE3dj2CYhowQdcjqSJgvVd",
+    "timestamp": "2026-11-11T00:00:00Z",
+    "message_type": "post",
+    "version": {
+      "major": 2,
+      "minor": 0
+    },
+    "payload": {
+      "content_format": "text/plain",
+      "text": "Unicode: café 🌐"
+    },
+    "message_id": "fy1:27e02e49a7cebf57976046e00d00ddd5e502cf700394f80c514adb5551bcab37",
+    "submission_receipt": {
+      "provider_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+      "receipt_id": "AZ3V8WktCua9iRO1BKMMRwbvjIxTz3VGIVbitQKZQ94",
+      "quote_id": "fyfq2:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "schedule_id": "fyfs2:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "network": "bitcoin-mainnet",
+      "amount_base_units": "123",
+      "message_id": "fy1:27e02e49a7cebf57976046e00d00ddd5e502cf700394f80c514adb5551bcab37",
+      "author_id": "did:key:z6MkehRgf7yJbgaGfYsdoAsKdBPE3dj2CYhowQdcjqSJgvVd",
+      "authorization_at": "2026-11-11T00:00:00Z",
+      "issued_at": "2026-11-11T00:00:00Z",
+      "provider_signature": "3OkzeErtlSD2e_ztDn4xXspGYl_mIQKyZs4T3FKeK5mk3pnInQ2oAdzt4yNiqRTOqDI-DIwUoNALVIB3lIlOBw"
+    },
+    "signature": "qr_G40_hkvbLiRzNWteB0ystu4mYOZ9V8JPiT_0yqK3M7NBFkWoDdJpyqf_Txp76W6QB79uUUlX2RKD4lo-gAA"
+  },
+  "intent_preimage_hex": "466f72596f752f312f696e74656e740a7b22617574686f725f6964223a226469643a6b65793a7a364d6b656852676637794a62676147665973646f41734b6442504533646a324359686f775164636a71534a67765664222c226d6573736167655f74797065223a22706f7374222c227061796c6f6164223a7b22636f6e74656e745f666f726d6174223a22746578742f706c61696e222c2274657874223a22556e69636f64653a20636166c3a920f09f8c90227d2c2274696d657374616d70223a22323032362d31312d31315430303a30303a30305a222c2276657273696f6e223a7b226d616a6f72223a322c226d696e6f72223a307d7d",
+  "author_public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+  "provider_public_key": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc",
+  "encryption": {
+    "context": {
+      "author_id": "did:key:z6MkehRgf7yJbgaGfYsdoAsKdBPE3dj2CYhowQdcjqSJgvVd",
+      "device_group_id": "test-group",
+      "state_kind": "export.prepared-admission.v1",
+      "state_sequence": 0,
+      "timestamp": "2026-11-11T00:00:00Z",
+      "version": {
+        "major": 2,
+        "minor": 0
+      }
+    },
+    "recipient": {
+      "kid": "j0DFrbaPJWJK5bIU6nZ6bslNgp09e14a0bpvPiE4KF8",
+      "recipient_pubkey": "j0DFrbaPJWJK5bIU6nZ6bslNgp09e14a0bpvPiE4KF8",
+      "epk": "NYBy1jZYgNGu6jKa35EhODhR7SGijjt16WXQ0s0WYlQ"
+    },
+    "recipient_secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+    "ephemeral_secret": "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
+    "aad": "Rm9yWW91LzEvcHJpdmF0ZS1zdGF0ZQp7ImF1dGhvcl9pZCI6ImRpZDprZXk6ejZNa2VoUmdmN3lKYmdhR2ZZc2RvQXNLZEJQRTNkajJDWWhvd1FkY2pxU0pndlZkIiwiZGV2aWNlX2dyb3VwX2lkIjoidGVzdC1ncm91cCIsInN0YXRlX2tpbmQiOiJleHBvcnQucHJlcGFyZWQtYWRtaXNzaW9uLnYxIiwic3RhdGVfc2VxdWVuY2UiOjAsInRpbWVzdGFtcCI6IjIwMjYtMTEtMTFUMDA6MDA6MDBaIiwidmVyc2lvbiI6eyJtYWpvciI6MiwibWlub3IiOjB9fQ",
+    "info": "Rm9yWW91LzEvcHJpdmF0ZS13cmFwCnsiZXBrIjoiTllCeTFqWllnTkd1NmpLYTM1RWhPRGhSN1NHaWpqdDE2V1hRMHMwV1lsUSIsImtpZCI6ImowREZyYmFQSldKSzViSVU2blo2YnNsTmdwMDllMTRhMGJwdlBpRTRLRjgiLCJyZWNpcGllbnRfcHVia2V5IjoiajBERnJiYVBKV0pLNWJJVTZuWjZic2xOZ3AwOWUxNGEwYnB2UGlFNEtGOCJ9",
+    "wrapping_key": "jzD_UV0a9sG39a4xL_26G0eQl0RfU7RND1WvHPUjhOw",
+    "content_key": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+    "nonce": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYX",
+    "wrap_nonce": "GBkaGxwdHh8gISIjJCUmJygpKissLS4v",
+    "plaintext": "eyJtdXRlZF9zb3VyY2VzIjpbXX0",
+    "ciphertext": "4t6kdTyoP3xWxeaopUleA6l-T4_qobZrtGkRsSjY315ZZWsC",
+    "wrapped_key": "gz6PSRxbVYLlyahSKGbyypD5Xwz6UNGtEhojTIE7oC6EYQ4Co29b1W6SHxo9b6OK"
+  }
+}
