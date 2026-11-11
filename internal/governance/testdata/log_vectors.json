@@ -1,0 +1,67 @@
+{
+  "command": "python -c \"import ast,hashlib,json;t=ast.parse(open('tests/economics_model.py').read());ns={'hashlib':hashlib};exec(compile(ast.Module([f for f in t.body if isinstance(f,ast.FunctionDef) and f.name in ('_split','_mth','_mpath')],[]),'m','exec'),ns);H=[bytes.fromhex(c*64) for c in '01234'];print(json.dumps({str(n):{'root':ns['_mth'](H[:n]).hex(),'paths':{str(i):[p.hex() for p in ns['_mpath'](i,H[:n])] for i in (0,2,4) if i<n}} for n in (3,5)}))\"",
+  "source": "tests/economics_model.py in the ForYou specification checkout; FoundationLog._mth and _mpath reference output",
+  "example_source": "examples/settlement.example.json fields foundation_log_head and vault_receipt",
+  "example": {
+    "foundation_log_head": {
+      "foundation_id": "did:key:z6MktFovzcapNZyZBWzFJpCXf26B8XLKdXtwfwnXXFebPgzM",
+      "size": 1,
+      "root": "fc0c8abdb2df1ed2e6d03d5da956a503839103e8a0a6d2c557e3d8d99174b6a5",
+      "signed_at": "2027-01-20T00:00:00Z",
+      "foundation_signature": "TFdTscVwnmYdTYuMo2sgVVWeZToyxsAYtMTkyN2sn0eWvgH6tCmKI_qeJv1dxnPTlhKLLvXwA-hmYzH7ls--Bg"
+    },
+    "vault_receipt": {
+      "foundation_id": "did:key:z6MktFovzcapNZyZBWzFJpCXf26B8XLKdXtwfwnXXFebPgzM",
+      "message_id": "fy1:a61585d751d87c693cafd0126a624e0223c6241405ddcdbe2ef6a84e801938fc",
+      "stored_at": "2027-01-07T00:00:00Z",
+      "foundation_signature": "UEFJHG_WoWk0u0Lai01EFHuQNvxKlkxGkbQyJUQEOHWRFAi3_nEcEVZ6wJqcRlxvNk9jmPNCa9Lz2-ayumY6Cw"
+    }
+  },
+  "heads_command": "python -c \"import ast,hashlib;t=ast.parse(open('tests/economics_model.py').read());ns={'hashlib':hashlib};exec(compile(ast.Module([f for f in t.body if isinstance(f,ast.FunctionDef) and f.name in ('_split','_mth','_mpath')],[]),'m','exec'),ns);print(ns['_mth']([bytes.fromhex(c*64) for c in '01']).hex(), ns['_mth']([bytes.fromhex(c*64) for c in 'a12']).hex())\"",
+  "heads": {
+    "two_root": "8ab671c69294e69917042ed794e5ea9dda18710ca307a65b986226344b87552a",
+    "rewritten_root": "9db4cfe7a82f11fe170380d29351d58e710eefd6c463375dbbd59a6bfdf05062"
+  },
+  "3": {
+    "hashes": [
+      "0000000000000000000000000000000000000000000000000000000000000000",
+      "1111111111111111111111111111111111111111111111111111111111111111",
+      "2222222222222222222222222222222222222222222222222222222222222222"
+    ],
+    "root": "cfdd57c49cf0b23df41b9ff2fce70eed9d15fd0242a185dbdb5b918f8b140cce",
+    "paths": {
+      "0": [
+        "4635e1fa62a599a7880a8d14a56f720a1d40f6e5448ab5a5e39bedc8bd87fa8e",
+        "bc6f27de60abf5319d16ff4c98fe3c42022c84f6a7a2b207c8df19b0ec3d8d58"
+      ],
+      "2": [
+        "8ab671c69294e69917042ed794e5ea9dda18710ca307a65b986226344b87552a"
+      ]
+    }
+  },
+  "5": {
+    "hashes": [
+      "0000000000000000000000000000000000000000000000000000000000000000",
+      "1111111111111111111111111111111111111111111111111111111111111111",
+      "2222222222222222222222222222222222222222222222222222222222222222",
+      "3333333333333333333333333333333333333333333333333333333333333333",
+      "4444444444444444444444444444444444444444444444444444444444444444"
+    ],
+    "root": "e68425ce96c5fff3a5f4ee6d49a0c3c84088038a9f27a568ca501ce69507c345",
+    "paths": {
+      "0": [
+        "4635e1fa62a599a7880a8d14a56f720a1d40f6e5448ab5a5e39bedc8bd87fa8e",
+        "96cfe136315282442cd0133b934dd99622a510c075930239725ced808ce7dfa0",
+        "a3d6d11f618ad57d28b109ac4c9ab4e76d0a5f6f73447e9bf3f83ee66037e6c4"
+      ],
+      "2": [
+        "5e5caeafc27155c368b6f201107d6f8b270747ce636ac5174a56c6e12ef89ad1",
+        "8ab671c69294e69917042ed794e5ea9dda18710ca307a65b986226344b87552a",
+        "a3d6d11f618ad57d28b109ac4c9ab4e76d0a5f6f73447e9bf3f83ee66037e6c4"
+      ],
+      "4": [
+        "23cddd0a87e9f0e8b557376ed3156858efd19c6666db3f1e176db6b9546e0a5e"
+      ]
+    }
+  }
+}
