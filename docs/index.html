@@ -3,125 +3,324 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="ForYou is an early-stage project for a decentralized social network built around public, signed text posts.">
-  <meta name="color-scheme" content="light">
-  <title>ForYou — A more open social network</title>
+  <meta name="description" content="ForYou is an open protocol and Go reference platform for a social network of signed public posts: you own your identity, reading is free, and a post costs about a hundredth of a cent.">
+  <meta name="color-scheme" content="light dark">
+  <meta property="og:title" content="ForYou — the social network nobody owns">
+  <meta property="og:description" content="Signed public posts, free reading, a fee set by an open specification, and independent providers rewarded for quality. Open specification and Go reference platform.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://monstercameron.github.io/ForYou-social-reference-platform/concepts/01-mixed-media-feed.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <title>ForYou — the social network nobody owns</title>
   <style>
-    :root { --ink:#10283f; --blue:#2558a8; --blue-dark:#193d76; --pale:#e7f0fa; --paper:#f8fafc; --white:#fff; --muted:#4c6072; --line:#c5d3df; }
+    :root {
+      --bg:#f7f8fc; --surface:#ffffff; --band:#eef0fb; --ink:#12142b; --muted:#555a75; --line:#d9dcec;
+      --brand:#3b3fe0; --brand-ink:#ffffff; --brand-soft:#e4e6ff; --accent:#0d7a55; --deep:#12142b; --deep-ink:#f2f3ff; --deep-muted:#b9bddb;
+      --shadow:0 18px 50px rgba(28,32,90,.16);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:#0d0e1a; --surface:#161829; --band:#12142a; --ink:#eef0ff; --muted:#a4a9c8; --line:#2a2d48;
+        --brand:#8f94ff; --brand-ink:#0d0e1a; --brand-soft:#22254a; --accent:#5fd6a6; --deep:#070812; --deep-ink:#f2f3ff; --deep-muted:#a4a9c8;
+        --shadow:0 18px 50px rgba(0,0,0,.5);
+      }
+    }
     * { box-sizing:border-box; }
     html { scroll-behavior:smooth; }
-    body { margin:0; color:var(--ink); background:var(--paper); font-family:"Trebuchet MS", "Segoe UI", sans-serif; font-size:17px; line-height:1.6; }
-    a { color:inherit; text-underline-offset:.2em; }
-    a:focus-visible { outline:3px solid #ac3d52; outline-offset:5px; }
-    .wrap { width:min(100% - 3rem, 1160px); margin-inline:auto; }
-    header { border-bottom:1px solid var(--line); }
-    .nav { min-height:76px; display:flex; align-items:center; justify-content:space-between; gap:1.5rem; }
-    .brand { font-size:1.55rem; font-weight:800; letter-spacing:-.08em; text-decoration:none; }
-    .brand span { color:var(--blue); }
-    nav { display:flex; flex-wrap:wrap; gap:clamp(1rem,3vw,2.2rem); align-items:center; font-size:.9rem; font-weight:700; }
-    nav a { text-decoration:none; }
-    nav a:hover, .text-link:hover { text-decoration:underline; }
-    .hero { padding:clamp(4rem,9vw,8rem) 0 clamp(4rem,8vw,7rem); overflow:hidden; }
-    .hero-grid { display:grid; grid-template-columns:1.08fr .92fr; gap:clamp(2rem,6vw,6rem); align-items:center; }
-    .status { display:inline-flex; align-items:center; gap:.55rem; color:var(--blue-dark); font-size:.85rem; font-weight:700; }
-    .status::before { content:""; width:.6rem; height:.6rem; background:#4386d2; border-radius:50%; }
+    body { margin:0; background:var(--bg); color:var(--ink); font-family:"Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif; font-size:17px; line-height:1.6; }
     h1,h2,h3,p { margin-top:0; }
-    h1 { max-width:11ch; margin:.75rem 0 1.5rem; font-size:clamp(3.4rem,7vw,6.8rem); line-height:.99; letter-spacing:-.065em; font-weight:800; }
-    .lead { max-width:35rem; font-size:clamp(1.1rem,1.6vw,1.3rem); color:var(--muted); line-height:1.65; }
-    .actions { display:flex; flex-wrap:wrap; align-items:center; gap:1.5rem; margin-top:2rem; }
-    .button { display:inline-block; padding:.8rem 1.25rem; background:var(--blue); color:var(--white); border-radius:.45rem; text-decoration:none; font-weight:700; }
-    .button:hover { background:var(--blue-dark); }
-    .text-link { color:var(--blue-dark); font-weight:700; }
-    .visual { position:relative; min-height:430px; background:var(--pale); border-radius:1.25rem; padding:2rem; display:flex; flex-direction:column; justify-content:center; gap:1rem; }
-    .visual::before { content:""; position:absolute; left:calc(2rem + 19px); top:22%; bottom:20%; width:2px; background:#8fb3df; }
-    .node { position:relative; display:flex; align-items:flex-start; gap:1rem; }
-    .dot { flex:0 0 40px; height:40px; border-radius:50%; background:var(--blue); border:6px solid var(--pale); }
-    .note { background:var(--white); border:1px solid #d2dfec; border-radius:.65rem; box-shadow:0 7px 18px #1d466510; padding:1rem 1.15rem; flex:1; }
-    .note strong { display:block; font-size:.96rem; line-height:1.3; }
-    .note span { color:var(--muted); font-size:.85rem; }
-    .node:nth-child(2) { margin-left:2.2rem; } .node:nth-child(3) { margin-left:.7rem; }
-    .visual::before { left:3.22rem; }
-    .statement { background:var(--ink); color:var(--white); padding:4.8rem 0; }
-    .statement-inner { display:grid; grid-template-columns:.8fr 1.2fr; gap:3rem; align-items:start; }
-    .statement h2 { max-width:13ch; font-size:clamp(2rem,4vw,3.5rem); line-height:1.08; letter-spacing:-.045em; }
-    .statement p { max-width:38rem; color:#d7e5f4; font-size:1.1rem; }
-    section { scroll-margin-top:2rem; }
-    .section { padding:clamp(4rem,8vw,7rem) 0; }
-    .section-head { display:grid; grid-template-columns:.8fr 1.2fr; gap:2rem; margin-bottom:3rem; }
-    .section-head h2 { max-width:14ch; margin-bottom:0; font-size:clamp(2.2rem,4vw,3.8rem); line-height:1.05; letter-spacing:-.045em; }
-    .section-head p { max-width:38rem; color:var(--muted); font-size:1.1rem; }
-    .comparison { border-top:2px solid var(--ink); }
-    .row { display:grid; grid-template-columns:.7fr 1.15fr 1.15fr; gap:2rem; border-bottom:1px solid var(--line); padding:1.5rem 0; }
-    .row h3, .row p { margin:0; } .row h3 { font-size:1rem; } .row p { font-size:.96rem; color:var(--muted); }
-    .row .ours { color:var(--ink); } .row.labels { font-size:.85rem; font-weight:700; color:var(--blue-dark); padding:1rem 0; }
-    .process { background:#e9f2fa; }
-    .steps { display:grid; grid-template-columns:repeat(4,1fr); gap:2rem; counter-reset:step; }
-    .step { counter-increment:step; border-top:2px solid var(--blue); padding-top:1.2rem; }
-    .step::before { content:counter(step, decimal-leading-zero); color:var(--blue); font-weight:700; font-size:.85rem; }
-    .step h3 { margin:.7rem 0 .5rem; font-size:1.2rem; }
+    a { color:inherit; text-underline-offset:.2em; }
+    a:focus-visible { outline:3px solid var(--brand); outline-offset:4px; border-radius:4px; }
+    .wrap { width:min(100% - 2rem, 1140px); margin-inline:auto; }
+    header { position:sticky; top:0; z-index:5; background:var(--bg); border-bottom:1px solid var(--line); }
+    .nav { min-height:64px; display:flex; align-items:center; justify-content:space-between; gap:.5rem 1rem; flex-wrap:wrap; padding:.5rem 0; }
+    .brand { font-size:1.45rem; font-weight:800; letter-spacing:-.05em; text-decoration:none; }
+    .brand span { color:var(--brand); }
+    nav { display:flex; flex-wrap:wrap; gap:.4rem 1.4rem; font-size:.92rem; font-weight:600; }
+    nav a { text-decoration:none; color:var(--muted); }
+    nav a:hover { color:var(--ink); }
+    .hero { padding:clamp(3rem,8vw,6.5rem) 0 clamp(2.5rem,6vw,4.5rem); text-align:center; }
+    .pill { display:inline-block; padding:.3rem .9rem; border-radius:99px; background:var(--brand-soft); color:var(--brand); font-size:.85rem; font-weight:700; }
+    h1 { margin:1.2rem auto 1.2rem; max-width:15ch; font-size:clamp(2.6rem,7vw,5.2rem); line-height:1.02; letter-spacing:-.05em; font-weight:800; text-wrap:balance; }
+    h1 em { font-style:normal; color:var(--brand); }
+    .lead { max-width:44rem; margin-inline:auto; font-size:clamp(1.08rem,1.7vw,1.3rem); color:var(--muted); text-wrap:pretty; }
+    .actions { display:flex; flex-wrap:wrap; justify-content:center; gap:.8rem; margin-top:2rem; }
+    .button { display:inline-block; padding:.8rem 1.4rem; border-radius:99px; font-weight:700; text-decoration:none; border:2px solid var(--brand); }
+    .button.primary { background:var(--brand); color:var(--brand-ink); }
+    .button.ghost { color:var(--brand); }
+    .button:hover { filter:brightness(1.1); }
+    figure { margin:0; }
+    .shot { margin:clamp(2.5rem,6vw,4rem) auto 0; max-width:1000px; }
+    .shot img, .gallery img { display:block; width:100%; height:auto; border-radius:14px; border:1px solid var(--line); box-shadow:var(--shadow); }
+    .shot .dark { display:none; }
+    @media (prefers-color-scheme: dark) { .shot .light { display:none; } .shot .dark { display:block; } }
+    figcaption { margin-top:.8rem; font-size:.85rem; color:var(--muted); text-align:center; }
+    .facts { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:14px; overflow:hidden; margin-top:clamp(2.5rem,6vw,4rem); }
+    .fact { background:var(--surface); padding:1.4rem 1.2rem; text-align:left; }
+    .fact b { display:block; font-size:clamp(1.5rem,3vw,2.1rem); letter-spacing:-.03em; line-height:1.1; color:var(--brand); font-variant-numeric:tabular-nums; }
+    .fact span { display:block; margin-top:.4rem; font-size:.9rem; color:var(--muted); }
+    section { scroll-margin-top:5rem; }
+    .section { padding:clamp(3.5rem,8vw,6rem) 0; }
+    .band { background:var(--band); }
+    .head { max-width:46rem; margin-bottom:2.5rem; }
+    .eyebrow { color:var(--brand); font-size:.85rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; }
+    h2 { margin:.4rem 0 .8rem; font-size:clamp(1.9rem,4vw,3rem); line-height:1.08; letter-spacing:-.04em; text-wrap:balance; }
+    .head p { color:var(--muted); font-size:1.08rem; margin-bottom:0; }
+    .soft { color:var(--muted); }
+    .cards { display:grid; grid-template-columns:repeat(3,1fr); gap:1.2rem; }
+    .card { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:1.5rem; }
+    .card h3 { font-size:1.15rem; margin-bottom:.5rem; letter-spacing:-.01em; }
+    .card p { margin:0; color:var(--muted); font-size:.97rem; }
+    .card .tag { display:inline-block; margin-bottom:.9rem; font-size:1.4rem; }
+    .steps { display:grid; grid-template-columns:repeat(4,1fr); gap:1.5rem; counter-reset:s; }
+    .step { counter-increment:s; border-top:3px solid var(--brand); padding-top:1rem; }
+    .step::before { content:counter(s, decimal-leading-zero); color:var(--brand); font-weight:800; font-size:.9rem; }
+    .step h3 { margin:.4rem 0 .4rem; font-size:1.15rem; }
     .step p { margin:0; color:var(--muted); font-size:.96rem; }
-    .details { display:grid; grid-template-columns:1fr 1fr; gap:clamp(3rem,7vw,7rem); }
-    .details h2 { font-size:clamp(2.1rem,4vw,3.4rem); line-height:1.1; letter-spacing:-.04em; }
-    .details p { color:var(--muted); }
-    .details ul { padding-left:1.15rem; } .details li { margin-bottom:.9rem; }
-    .notice { background:var(--white); border-left:4px solid var(--blue); padding:1.4rem 1.6rem; margin-top:2rem; }
-    .notice p:last-child { margin-bottom:0; }
-    footer { border-top:1px solid var(--line); padding:2rem 0; }
-    .foot { display:flex; justify-content:space-between; flex-wrap:wrap; gap:1rem 2rem; color:var(--muted); font-size:.9rem; }
+    .money { background:var(--deep); color:var(--deep-ink); }
+    .money .eyebrow { color:#9ea3ff; }
+    .money .head p { color:var(--deep-muted); }
+    .flow { display:grid; grid-template-columns:1fr auto 1fr auto 1fr; gap:1rem; align-items:stretch; }
+    .box { border:1px solid #34385f; border-radius:14px; padding:1.4rem; background:#191c36; }
+    .box h3 { font-size:1.05rem; margin-bottom:.4rem; }
+    .box p { margin:0; color:var(--deep-muted); font-size:.94rem; }
+    .arrow { align-self:center; color:#9ea3ff; font-size:1.6rem; font-weight:700; }
+    .split { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin-top:1.2rem; }
+    .split .box b { display:block; font-size:1.7rem; color:#9ea3ff; letter-spacing:-.03em; }
+    .scroll { overflow-x:auto; border:1px solid var(--line); border-radius:14px; background:var(--surface); }
+    table { width:100%; min-width:560px; border-collapse:collapse; }
+    th, td { text-align:left; vertical-align:top; padding:1rem 1.2rem; border-bottom:1px solid var(--line); font-size:.96rem; }
+    tbody tr:last-child td, tbody tr:last-child th { border-bottom:0; }
+    thead th { font-size:.82rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); background:var(--band); }
+    tbody th { width:18%; }
+    td:nth-child(2) { color:var(--muted); width:36%; }
+    .gallery { display:grid; grid-template-columns:repeat(2,1fr); gap:1.5rem; }
+    .two { display:grid; grid-template-columns:1fr 1fr; gap:clamp(2rem,5vw,4rem); }
+    .two > * { min-width:0; }
+    .check { list-style:none; padding:0; margin:0; }
+    .check li { padding:.55rem 0 .55rem 1.9rem; position:relative; border-bottom:1px solid var(--line); font-size:.97rem; }
+    .check li::before { position:absolute; left:0; font-weight:800; }
+    .check.yes li::before { content:"✓"; color:var(--accent); }
+    .check.no li::before { content:"○"; color:var(--muted); }
+    pre { margin:0; padding:1.2rem 1.4rem; background:var(--deep); color:var(--deep-ink); border:1px solid var(--line); border-radius:14px; overflow-x:auto; font-family:Consolas, "SFMono-Regular", Menlo, monospace; font-size:.9rem; line-height:1.7; }
+    pre .c { color:var(--deep-muted); }
+    .notice { margin-top:1.5rem; padding:1.1rem 1.3rem; border-left:4px solid var(--brand); background:var(--surface); border-radius:0 10px 10px 0; font-size:.95rem; color:var(--muted); }
+    .band .notice { background:var(--bg); }
+    .notice strong { color:var(--ink); }
+    .cta { text-align:center; }
+    .cta h2 { margin-inline:auto; max-width:20ch; }
+    .cta p { color:var(--muted); max-width:38rem; margin-inline:auto; }
+    footer { border-top:1px solid var(--line); padding:2rem 0; color:var(--muted); font-size:.9rem; }
+    .foot { display:flex; justify-content:space-between; flex-wrap:wrap; gap:.8rem 2rem; }
     .foot p { margin:0; }
-    @media(max-width:760px) { .wrap { width:min(100% - 2rem, 1160px); } .nav { padding:1rem 0; align-items:flex-start; flex-direction:column; gap:.6rem; } nav { gap:1rem; } .hero-grid,.statement-inner,.section-head,.details { grid-template-columns:1fr; } .hero { padding-top:3.5rem; } .visual { min-height:340px; } .statement-inner { gap:1rem; } .statement h2 { max-width:18ch; } .row { grid-template-columns:1fr; gap:.45rem; padding:1.2rem 0; } .row.labels { display:none; } .row p::before { display:block; font-size:.8rem; font-weight:700; color:var(--blue-dark); } .row .conventional::before { content:"Common platforms"; } .row .ours::before { content:"ForYou's direction"; } .steps { grid-template-columns:1fr 1fr; gap:2rem 1.5rem; } }
-    @media(max-width:420px) { h1 { font-size:3.4rem; } .steps { grid-template-columns:1fr; } .node:nth-child(2) { margin-left:1rem; } .visual { padding:1.2rem; } .visual::before { left:2.42rem; } }
-    @media(prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } }
+    @media (max-width:900px) {
+      .facts { grid-template-columns:1fr 1fr; } .cards { grid-template-columns:1fr 1fr; } .steps { grid-template-columns:1fr 1fr; }
+      .flow { grid-template-columns:1fr; } .arrow { justify-self:center; transform:rotate(90deg); } .split { grid-template-columns:1fr; }
+      .two, .gallery { grid-template-columns:1fr; }
+    }
+    @media (max-width:560px) { .cards, .steps { grid-template-columns:1fr; } header { position:static; } }
+    @media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } }
   </style>
 </head>
 <body>
   <header>
     <div class="wrap nav">
       <a class="brand" href="#top" aria-label="ForYou home">For<span>You</span></a>
-      <nav aria-label="Main navigation"><a href="#difference">What’s different</a><a href="#how">How it works</a><a href="#status">Project status</a><a href="https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification">Specification</a></nav>
+      <nav aria-label="Main navigation">
+        <a href="#why">Why</a><a href="#how">How it works</a><a href="#economics">Economics</a><a href="#client">The client</a><a href="#status">Status</a><a href="#run">Run it</a>
+        <a href="https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification">Specification</a>
+        <a href="https://github.com/monstercameron/ForYou-social-reference-platform">GitHub</a>
+      </nav>
     </div>
   </header>
+
   <main id="top">
     <section class="hero">
-      <div class="wrap hero-grid">
-        <div>
-          <span class="status">An open project in early development</span>
-          <h1>Social, on your terms.</h1>
-          <p class="lead">ForYou is an idea for a public social network where you choose your provider, control your identity, and can take part without depending on a single platform.</p>
-          <div class="actions"><a class="button" href="#how">See how it works</a><a class="text-link" href="#difference">Explore the difference</a></div>
+      <div class="wrap">
+        <span class="pill">Open specification 1.0 · Go reference platform in development</span>
+        <h1>The social network <em>nobody owns.</em></h1>
+        <p class="lead">ForYou is an open protocol for public posts that you sign with your own key. Anyone can read them for free, any app can display them, and any operator can store them. Posting costs about a hundredth of a cent, a price set by the specification and not by a company.</p>
+        <div class="actions">
+          <a class="button primary" href="https://github.com/monstercameron/ForYou-social-reference-platform">View the code</a>
+          <a class="button ghost" href="https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification">Read the specification</a>
         </div>
-        <div class="visual" aria-label="Concept: authors publish signed posts through providers, and readers choose where to read them">
-          <div class="node"><span class="dot" aria-hidden="true"></span><div class="note"><strong>Your identity</strong><span>Held by you, not one platform</span></div></div>
-          <div class="node"><span class="dot" aria-hidden="true"></span><div class="note"><strong>A post you sign</strong><span>Public text with a verifiable author</span></div></div>
-          <div class="node"><span class="dot" aria-hidden="true"></span><div class="note"><strong>Many ways to read</strong><span>Apps and readers choose their sources</span></div></div>
+        <figure class="shot">
+          <img class="light" src="concepts/01-mixed-media-feed.png" width="1536" height="1024" alt="Design concept of the ForYou client: a home feed with threaded text replies, a video post and a photo slideshow, each labelled with its receipt identifier.">
+          <img class="dark" src="concepts/06-dark-mode-feed.png" width="1536" height="1024" alt="Design concept of the ForYou client in dark mode: a home feed with threaded text replies, a video post and a photo slideshow.">
+          <figcaption>Design concept for the reference client. Not a screenshot of a live network.</figcaption>
+        </figure>
+        <div class="facts">
+          <div class="fact"><b>≈ $0.0001</b><span>to post, per started KiB of text. Set by the specification.</span></div>
+          <div class="fact"><b>$0</b><span>to read. No account, no wallet, no sign-in.</span></div>
+          <div class="fact"><b>1 year+</b><span>retention declared by every provider, plus a Lifetime Vault with no scheduled expiry.</span></div>
+          <div class="fact"><b>0 tokens</b><span>No coin to buy. Fees are paid in Bitcoin or Ethereum.</span></div>
         </div>
       </div>
     </section>
-    <section class="statement" aria-labelledby="purpose-title"><div class="wrap statement-inner"><h2 id="purpose-title">A network built around the message.</h2><div><p>Today, social platforms often bundle your identity, your content, and the way people find it into one service. ForYou explores a different foundation: signed public posts that independent providers can store and independent apps can present.</p><p>The aim is to make the core small and open to participation, while leaving room for people to build the social experiences they want.</p></div></div></section>
-    <section id="difference" class="section"><div class="wrap">
-      <div class="section-head"><h2>Different choices, by design.</h2><p>Platforms vary, and decentralization involves trade-offs. These are the choices ForYou intends to make—not features available in the current starter.</p></div>
-      <div class="comparison" role="table" aria-label="Comparing common platforms and the intended ForYou design">
-        <div class="row labels" role="row"><span role="columnheader">Area</span><span role="columnheader">Common platforms</span><span role="columnheader">ForYou’s direction</span></div>
-        <div class="row" role="row"><h3 role="rowheader">Identity</h3><p class="conventional" role="cell">An account and its identity are usually controlled by the platform.</p><p class="ours" role="cell">Your signing identity is yours to hold and use with a provider you choose.</p></div>
-        <div class="row" role="row"><h3 role="rowheader">Reading</h3><p class="conventional" role="cell">Access and discovery are typically mediated by the platform’s app and rules.</p><p class="ours" role="cell">Anyone can retrieve available public records, and different apps can build their own views.</p></div>
-        <div class="row" role="row"><h3 role="rowheader">Media</h3><p class="conventional" role="cell">Images and video are often uploaded to and hosted by the platform.</p><p class="ours" role="cell">You or your app choose the host; a post carries up to 16 external media links and content hashes.</p></div>
-        <div class="row" role="row"><h3 role="rowheader">Business model</h3><p class="conventional" role="cell">Platforms may rely on advertising, subscriptions or other models.</p><p class="ours" role="cell">The intended model uses a small fee per post, paid to the admitting provider. The economics still need validation.</p></div>
+
+    <section id="why" class="section band">
+      <div class="wrap">
+        <div class="head">
+          <span class="eyebrow">Why ForYou</span>
+          <h2>Your posts should outlive the app you wrote them in.</h2>
+          <p>Most platforms bundle your identity, your posts and your audience into one company's database. ForYou separates them. The core is small on purpose: signed posts, a small admission fee, and open retrieval. Everything else is left to the apps built on top.</p>
+        </div>
+        <div class="cards">
+          <div class="card"><span class="tag" aria-hidden="true">🔑</span><h3>You hold the identity</h3><p>An author is an Ed25519 key, not a row in someone's user table. Every post is signed, so any app can verify who wrote it without asking a platform.</p></div>
+          <div class="card"><span class="tag" aria-hidden="true">📖</span><h3>Reading is free and open</h3><p>Anyone can download public records from any provider that holds them. No reader account, no paywall, no API key.</p></div>
+          <div class="card"><span class="tag" aria-hidden="true">🪙</span><h3>A fee that stops spam, not people</h3><p>Each post pays a tiny fee that grows with its size. It is a hurdle for bulk spam, not a profit centre, and providers cannot raise it.</p></div>
+          <div class="card"><span class="tag" aria-hidden="true">🏗️</span><h3>Providers compete on quality</h3><p>Independent operators store and serve posts. Those with better measured quality and longer proven retention earn a larger share of the fees back.</p></div>
+          <div class="card"><span class="tag" aria-hidden="true">🧾</span><h3>History is kept, not rewritten</h3><p>There is no delete message. An edit is a new signed version that points at the one it replaces, so readers can always see what changed.</p></div>
+          <div class="card"><span class="tag" aria-hidden="true">🧩</span><h3>Apps own the experience</h3><p>Feeds, ranking, follows, likes and discovery are not protocol state. Any app can build its own on the same public records.</p></div>
+        </div>
       </div>
-    </div></section>
-    <section id="how" class="section process"><div class="wrap">
-      <div class="section-head"><h2>One post, many possibilities.</h2><p>Here’s the intended path from author to reader. The network is still being designed and these steps are not available yet.</p></div>
-      <div class="steps">
-        <div class="step"><h3>Choose</h3><p>Create and back up a signing identity, then choose and fund a provider.</p></div>
-        <div class="step"><h3>Write</h3><p>Compose text and, if you like, add links to media hosted separately.</p></div>
-        <div class="step"><h3>Publish</h3><p>Approve the quoted fee. The provider admits the post and issues a receipt for the signed record.</p></div>
-        <div class="step"><h3>Read</h3><p>Readers and apps retrieve available posts from chosen providers and verify their proofs.</p></div>
+    </section>
+
+    <section id="how" class="section">
+      <div class="wrap">
+        <div class="head">
+          <span class="eyebrow">How it works</span>
+          <h2>From a draft to a record anyone can verify.</h2>
+          <p>A post is Markdown text with up to 16 references to media hosted elsewhere. The protocol stores the text and the signed references. It never stores the media files.</p>
+        </div>
+        <div class="steps">
+          <div class="step"><h3>Sign</h3><p>Your app builds the post and signs it with your key. The post's ID is a hash of exactly what you signed.</p></div>
+          <div class="step"><h3>Pay</h3><p>You keep a small prepaid balance with a provider you choose. It quotes the fee for this exact post and debits it once.</p></div>
+          <div class="step"><h3>Admit</h3><p>The provider stores the post and issues a signed receipt. The fee is settled to the Foundation and audited by independent monitors.</p></div>
+          <div class="step"><h3>Read</h3><p>Anyone downloads the post, checks the signature and the settlement proof, and shows it however their app likes.</p></div>
+        </div>
+        <div class="notice"><strong>Replies and edits are posts too.</strong> A reply names its parent. An edit names the version it supersedes. Each pays its own fee and is verified the same way.</div>
       </div>
-    </div></section>
-    <section id="status" class="section"><div class="wrap details">
-      <div><h2>A small core.<br>Room to build.</h2><p>Replies are posts linked to an exact parent. Edits are new signed versions, so the original record stays distinct. Apps can create their own feeds, discovery and other features on top.</p><p>Providers are intended to retain finalized posts without a scheduled expiration, but providers can fail and local legal restrictions can affect access. Copies already downloaded by others may persist.</p><a class="text-link" href="https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification">Read the evolving specification</a></div>
-      <div><h2>Where we are now.</h2><p>ForYou is a project in its earliest stages—not a working network. The current implementation is a starter server; posting, payments and public retrieval are not yet built.</p><ul><li>There is an aspirational target of about $0.0001 per post, but the fee schedule and cost of long-term storage are unresolved.</li><li>The current specification differs from the intended fee and retention model described here and needs reconciliation.</li><li>Key custody, payment safety, accessibility and regional legal requirements need careful implementation and review.</li></ul><div class="notice"><strong>Public means public.</strong><p>There is no intended routine author-delete operation. Posts and their versions may be copied indefinitely, so an edit cannot erase what has already been shared.</p></div></div>
-    </div></section>
+    </section>
+
+    <section id="economics" class="section money">
+      <div class="wrap">
+        <div class="head">
+          <span class="eyebrow">Economics</span>
+          <h2>Follow the money. All of it is public.</h2>
+          <p>The fee is not revenue for whoever admits your post. Providers pass all of it to the ForYou Foundation, and the Foundation pays part of it back according to published measurements. Providers earn a living from the services they build on top.</p>
+        </div>
+        <div class="flow">
+          <div class="box"><h3>Author</h3><p>Pays 136 millisatoshis or 48.9 gwei for each started KiB. Larger posts cost more, which keeps short posts cheap and long posts possible.</p></div>
+          <div class="arrow" aria-hidden="true">→</div>
+          <div class="box"><h3>Provider</h3><p>Collects the fee and settles it with signed, hash-chained claims backed by on-chain deposits. Anyone can audit a claim from public data.</p></div>
+          <div class="arrow" aria-hidden="true">→</div>
+          <div class="box"><h3>Foundation</h3><p>Has no vote on settlement. A committee of at least five independent monitors decides, by more than two-thirds, which claims are settled.</p></div>
+        </div>
+        <div class="split">
+          <div class="box"><b>Up to 50%</b><h3>Back to providers</h3><p>Paid quarterly. The share rises with measured quality and with the years of retention a provider has actually proven.</p></div>
+          <div class="box"><b>Lifetime Vault</b><h3>Kept for the long term</h3><p>The Foundation funds and owns an archive of every settled post delivered to it, with no scheduled expiry.</p></div>
+          <div class="box"><b>5%</b><h3>Monitor committee</h3><p>Pays the independent monitors that audit every claim and publish their signed witnesses.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="wrap">
+        <div class="head">
+          <span class="eyebrow">The difference</span>
+          <h2>Different choices, made on purpose.</h2>
+        </div>
+        <div class="scroll">
+          <table>
+            <thead><tr><th scope="col">Area</th><th scope="col">Typical platform</th><th scope="col">ForYou</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Identity</th><td>An account the platform can suspend or reclaim.</td><td>A signing key you hold. You can rotate it and move to another provider.</td></tr>
+              <tr><th scope="row">Reading</th><td>Through the platform's app, under its rules and limits.</td><td>Open download from any provider. Any app can verify and display the records.</td></tr>
+              <tr><th scope="row">Price</th><td>Free, paid for with attention and data.</td><td>About $0.0001 per post, fixed by an open specification and bounded on every revision.</td></tr>
+              <tr><th scope="row">Storage</th><td>One company, for as long as it chooses.</td><td>Independent providers with a declared retention period, plus a Lifetime Vault.</td></tr>
+              <tr><th scope="row">Media</th><td>Uploaded to and held on the platform's servers.</td><td>Hosted wherever you choose. Posts carry links and SHA-256 hashes, so a swap is detectable.</td></tr>
+              <tr><th scope="row">Feed</th><td>One ranking algorithm you cannot inspect.</td><td>Not part of the protocol. Each app builds its own.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="client" class="section band">
+      <div class="wrap">
+        <div class="head">
+          <span class="eyebrow">The reference client</span>
+          <h2>Server-rendered, fast and small.</h2>
+          <p>The reference platform is one Go binary that runs four roles: client, provider, replica and foundation. The client renders HTML on the server and uses <a href="https://github.com/monstercameron/HTMLeX">HTMLeX</a> for interactions, so there is no single-page-app bundle to ship. These design concepts guide the build.</p>
+        </div>
+        <div class="gallery">
+          <figure><img loading="lazy" src="concepts/05-threaded-replies.png" width="1536" height="1024" alt="Design concept: a post with nested, threaded replies."><figcaption>Threaded replies, each tied to an exact post version.</figcaption></figure>
+          <figure><img loading="lazy" src="concepts/04-create-post-and-quote.png" width="1536" height="1024" alt="Design concept: the new post composer showing the size of the post and its fee quote."><figcaption>The composer shows the byte count and the fee before you sign.</figcaption></figure>
+          <figure><img loading="lazy" src="concepts/02-slideshow-viewer.png" width="1536" height="1024" alt="Design concept: a slideshow viewer for a post with several images."><figcaption>Media slots become galleries and slideshows.</figcaption></figure>
+          <figure><img loading="lazy" src="concepts/03-embedded-post.png" width="1536" height="1024" alt="Design concept: a ForYou post embedded in another web page."><figcaption>Any post can be embedded on another site.</figcaption></figure>
+        </div>
+      </div>
+    </section>
+
+    <section id="status" class="section">
+      <div class="wrap">
+        <div class="head">
+          <span class="eyebrow">Status</span>
+          <h2>Honest about where this is.</h2>
+          <p>The specification text is at release 1.0 and ships with JSON schemas, signed test vectors and a tested model of its economics. The reference platform is an early infrastructure demo. There is no live network yet.</p>
+        </div>
+        <div class="two">
+          <div>
+            <h3>Working today</h3>
+            <ul class="check yes">
+              <li>Four server roles over HTTP/3 and HTTP/1.1 with TLS</li>
+              <li>Server-rendered client with a mock feed, threads, slideshows, search and embeds</li>
+              <li>Light and dark themes with keyboard focus handling</li>
+              <li>Health and database readiness endpoints for each role</li>
+              <li>Go tests, <code>go vet</code> and formatting checks in CI</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Still to build</h3>
+            <ul class="check no">
+              <li>Message encoding, signatures and receipt verification against the specification's vectors</li>
+              <li>Storage schema, public retrieval and incremental sync</li>
+              <li>Key creation, signing and backup in the client</li>
+              <li>Balances, fee quotes, settlement claims and monitor witnesses</li>
+              <li>Independent security and legal review before any real funds</li>
+            </ul>
+          </div>
+        </div>
+        <div class="notice"><strong>Public means public.</strong> There is no author-delete operation. Posts and every version of them can be copied by anyone, so an edit cannot erase what has been shared. Do not use real funds or real signing keys with this code.</div>
+      </div>
+    </section>
+
+    <section id="run" class="section band">
+      <div class="wrap two">
+        <div>
+          <span class="eyebrow">Run it</span>
+          <h2>One binary. Two commands.</h2>
+          <p class="soft">You need Go 1.27 or newer. The demo needs no Node, Docker, database or wallet. Each role listens on its own loopback port, starting with the client on 8443.</p>
+          <p class="soft">The full setup, including PostgreSQL and the other three roles, is in the <a href="https://github.com/monstercameron/ForYou-social-reference-platform#getting-started">README</a>.</p>
+        </div>
+        <pre><span class="c"># create a local development certificate</span>
+go run ./cmd/devcert
+
+<span class="c"># start the client, then open https://127.0.0.1:8443</span>
+go run ./cmd/foryou -role client
+
+<span class="c"># run the checks</span>
+go test ./...</pre>
+      </div>
+    </section>
+
+    <section class="section cta">
+      <div class="wrap">
+        <h2>Read the rules. Then help build to them.</h2>
+        <p>The specification is the source of truth for every message, fee and proof. The reference platform is where it becomes running code. Both are MIT licensed and open to issues and pull requests.</p>
+        <div class="actions">
+          <a class="button primary" href="https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification">Read the specification</a>
+          <a class="button ghost" href="https://github.com/monstercameron/ForYou-social-reference-platform/issues">Open an issue</a>
+        </div>
+      </div>
+    </section>
   </main>
-  <footer><div class="wrap foot"><p><strong>ForYou</strong> · An open project in development</p><p><a href="https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification">Specification on GitHub</a> &nbsp; <a href="#top">Back to top</a></p></div></footer>
+
+  <footer>
+    <div class="wrap foot">
+      <p><strong>ForYou</strong> · Open specification and reference platform · MIT License</p>
+      <p><a href="https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification">Specification</a> &nbsp;·&nbsp; <a href="https://github.com/monstercameron/ForYou-social-reference-platform">Source</a> &nbsp;·&nbsp; <a href="#top">Back to top</a></p>
+    </div>
+  </footer>
 </body>
 </html>

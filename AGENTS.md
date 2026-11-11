@@ -8,3 +8,22 @@
 - Follow the [testing strategy](docs/adr/0002-testing-strategy.md) when writing or reviewing tests.
 - For client UI work, consult the [design concepts](docs/concepts/), including the light and dark feed references. Treat them as visual direction, not evidence that depicted features or privacy claims exist.
 - Treat protocol, key handling and payments as security-sensitive. Never claim that passing tests establishes security or production readiness.
+
+## Project context: the specification
+
+This repository is the reference platform for the ForYou protocol. The protocol is defined in a separate repository, the [ForYou specification](https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification), release 1.0. Read the relevant document there before working on protocol, payment, storage or client-verification code. A local checkout, when present, is usually a sibling directory named `ForYou-Social-Ecosystem-Specification`.
+
+- The specification is the source of truth. If this repository's code, README or design concepts disagree with it, follow the specification and report the difference. Do not change protocol behavior here to something the specification does not say; propose a specification change instead.
+- Where to look: [overview and goals](https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification/blob/main/docs/01-overview.md), [protocol](https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification/blob/main/docs/02-protocol.md) (signing, IDs, versions, replies, admission, Markdown and media rules), [economics](https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification/blob/main/docs/03-economics.md) (fees, settlement, distribution, retention, vault), [portability](https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification/blob/main/docs/05-portability.md) (public reads, sync), [governance](https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification/blob/main/docs/06-governance.md), [clients](https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification/blob/main/docs/07-clients.md), [API catalog](https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification/blob/main/docs/API-catalog.md).
+- Conformance material lives there too: `schemas/launch.schema.json`, `schemas/operations.schema.json`, `tests/security-vectors.json` and the executable model `tests/economics_model.py`. Test protocol code here against those vectors and schemas.
+
+Facts that are easy to get wrong:
+
+- The specification sets the fee, never a provider: 136 millisatoshis or 48,900,000,000 wei per started KiB under fee schedule 1. It is an anti-spam hurdle, not provider revenue.
+- Providers settle the whole fee to the ForYou Foundation. The Foundation returns up to half per quarter, scaled by measured quality and proven retention. A committee of independent monitors (at least 5, quorum of more than two-thirds) decides settlement; the Foundation has no vote.
+- Reading is free and needs no account. There is no protocol token.
+- There is no delete message. An edit is a new signed post whose `supersedes` names the earlier version; a reply is a post whose `reply_to` names its parent.
+- Content is `text/plain` or CommonMark 0.31.2 with no extensions. Raw HTML is literal text. Media is never stored: a post has up to 16 external media slots with SHA-256 hashes.
+- Providers declare retention of at least one year. The Foundation's Lifetime Vault keeps settled posts with no scheduled expiry.
+- The core is storage, admission and retrieval. Feeds, ranking, likes, follows and profiles are application features and are not protocol state.
+- This repository is an infrastructure demo with mock data. It implements none of the above yet, so never describe it as conformant.

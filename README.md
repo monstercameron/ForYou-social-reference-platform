@@ -1,18 +1,45 @@
-# ForYou
+# ForYou reference platform
 
-ForYou is an early-stage project to build a decentralized social network around public, signed text posts. Authors choose where to publish, and readers and applications choose where to retrieve records. The project aims to make participation possible without relying on one company to own everyone’s identity, audience, or access to posts.
+[![CI](https://github.com/monstercameron/ForYou-social-reference-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/monstercameron/ForYou-social-reference-platform/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Specification 1.0](https://img.shields.io/badge/specification-1.0-3b3fe0.svg)](https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification)
 
-This repository is the beginning of a Go provider and a server-rendered application. The separate [ForYou specification](https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification) is still evolving. **Its current foundation, fee-distribution, and retention model differs from the project direction described here**, which reflects the owner’s latest decisions: the admitting provider receives the post fee, replicas are optional, and finalized posts have no scheduled expiration. The discrepancy needs reconciliation before claiming protocol conformance.
+**The social network nobody owns.** [Project site](https://monstercameron.github.io/ForYou-social-reference-platform/) · [Specification](https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification)
+
+![Design concept of the ForYou client feed](docs/concepts/01-mixed-media-feed.png)
+
+*Design concept for the client. Not a screenshot of a live network.*
+
+ForYou is an open protocol for a social network built on public, signed text posts. Authors hold their own signing identity and choose where to publish. Anyone can read for free, and any application can verify and display the records. Posting costs about US$0.0001 per KiB, a fee set by the specification as an anti-spam hurdle and not by any provider. The aim is participation that does not depend on one company owning everyone's identity, audience or access to posts.
+
+This repository is the Go reference platform for that protocol: one binary with four roles (client, provider, replica and foundation) and a server-rendered application. It is an early infrastructure demo and does not yet implement the protocol.
+
+## Specification
+
+The [ForYou specification](https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification), release 1.0, is the source of truth for this project. When this README, the code or a design concept disagrees with it, the specification is right and the difference is a bug here.
+
+| Topic | Specification document |
+| --- | --- |
+| Scope, actors and design goals | [Overview](https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification/blob/main/docs/01-overview.md) |
+| Signed messages, versions, replies, admission and content rules | [Protocol](https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification/blob/main/docs/02-protocol.md) |
+| Fees, settlement, distribution, retention and the Lifetime Vault | [Economics](https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification/blob/main/docs/03-economics.md) |
+| Provider accountability and rights | [Compliance](https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification/blob/main/docs/04-compliance.md) |
+| Public download, incremental sync and provider exit | [Portability](https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification/blob/main/docs/05-portability.md) |
+| Foundation, release keys and versioning | [Governance](https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification/blob/main/docs/06-governance.md) |
+| What a client must do | [Clients](https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification/blob/main/docs/07-clients.md) |
+| Routes and errors | [API catalog](https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification/blob/main/docs/API-catalog.md) |
+
+The specification repository also holds the JSON schemas (`schemas/`), signed test vectors and an executable economics model (`tests/`). The protocol code written here is to be tested against those vectors.
 
 ## Goals
 
 - **Make publishing portable.** Authors control their signing identity and can choose another provider; applications can verify signed records independently.
 - **Keep reading open.** Anyone should be able to retrieve available public posts without paying or creating a reader account, subject to provider limits and applicable restrictions.
 - **Keep the network focused.** The core handles signed posts, paid admission, public retrieval, replies and versions. Applications can build their own feeds, discovery and other social features.
-- **Support independent operation.** Providers can run independently, users can choose whom to trust, and no mandatory central directory, network token or global feed is required by the intended design.
-- **Make costs understandable.** The target is roughly $0.0001 per post, with provider-local balances to batch Bitcoin or Ethereum deposits. That target is not a fixed or validated fee; funding long-term retention and other operating costs remains unresolved.
+- **Support independent operation.** Providers run independently and users choose whom to trust. There is no network token, global feed or mandatory directory. The shared parts are few and public: the ForYou Foundation receives the fees, and a committee of independent monitors audits settlement.
+- **Make costs understandable.** Fee schedule 1 charges 136 millisatoshis or 48,900,000,000 wei per started KiB, about US$0.0001. Authors pay from a provider-local balance funded in Bitcoin or Ethereum. Providers settle the whole fee to the Foundation, which returns up to half each quarter, more for better measured quality and longer proven retention.
 - **Leave media hosting to users and applications.** Posts can refer to externally hosted images and videos; the network stores the text and signed references, not the media files.
-- **Build for longevity.** Finalized posts are intended to have no scheduled expiration. Providers can fail or locally restrict access, and indefinite availability cannot be guaranteed.
+- **Build for longevity.** Each provider declares a retention period of at least one year. The Foundation funds and owns a Lifetime Vault that keeps settled posts with no scheduled expiry. Providers can fail or locally restrict access, and indefinite availability cannot be guaranteed.
 
 These goals do not guarantee global availability, legal compliance, sustainable economics, or security. Those require design, implementation, testing and independent review.
 
@@ -37,13 +64,13 @@ Do not use real funds, sensitive information, or real signing keys with this cod
 
 ## Funding and reading
 
-The intended design uses a provider-local prepaid balance funded with Bitcoin or Ethereum. An author would compose a post, obtain and approve a quote for its exact contents, authorize the fee, and sign the post after the provider issues a receipt. The entire protocol fee goes to the admitting provider; optional replicas are separately arranged. The initial fee schedule and payment implementation remain unresolved. A provider-local balance is held by that provider and does not automatically transfer to another one; provider failure or insolvency may put it at risk.
+The intended design uses a provider-local prepaid balance funded with Bitcoin or Ethereum. An author would compose a post, obtain and approve a quote for its exact contents, authorize the fee, and sign the post after the provider issues a receipt. The provider settles the entire fee to the ForYou Foundation with prepaid on-chain deposits and signed claims that a committee of independent monitors audits. Each quarter the Foundation returns part of it to the provider according to measured quality and proven retention. The fee schedule is fixed by the specification; the payment implementation here is not started. A provider-local balance is held by that provider and does not automatically transfer to another one; provider failure or insolvency may put it at risk.
 
 Readers would select providers, download posts and verify their signatures and receipts. A provider's response represents that provider's available records, not a complete view of the entire network. Applications can group replies and post versions while preserving the exact signed records and their original links.
 
 ## Persistence and safety
 
-The intended protocol requires providers to retain finalized posts without a scheduled expiration, subject to applicable local legal restrictions. This is an obligation, not a guarantee that every provider or copy will survive. Public posts and all versions can be copied indefinitely; publishing a new version cannot erase copies of an earlier one. Authors will need clear warnings before publishing.
+Each provider declares how long it retains posts, with a minimum of one year, subject to applicable local legal restrictions. The Foundation's Lifetime Vault keeps settled posts with no scheduled expiry. These are obligations, not a guarantee that every provider or copy will survive. Public posts and all versions can be copied indefinitely; publishing a new version cannot erase copies of an earlier one. Authors will need clear warnings before publishing.
 
 The network stores text and signed metadata. The author or application chooses and manages any media host. Admission does not fetch those media URLs. Media availability, safety, and ownership are separate from the post; a content hash can detect a change but cannot guarantee that the media remains available.
 
@@ -58,7 +85,7 @@ The initial implementation will favor a small, understandable stack:
 | Data | PostgreSQL connections, configured separately per role | Readiness checks implemented; no application schema yet |
 | Protocol | Shared Go packages for message processing and verification | Planned |
 | Quality | Go tests, `go vet`, formatting checks, and GitHub Actions | Starter checks exist |
-| Planning | GitHub Issues | Planned once a remote repository is configured |
+| Planning | [GitHub Issues](https://github.com/monstercameron/ForYou-social-reference-platform/issues) | Open |
 
 HTMLeX is a browser runtime for server-driven interactions, so the application can use Go-rendered pages and fragments without a separate single-page application. The server must escape untrusted content and protect state-changing requests. The design for author-controlled signing and protected keys in an SSR application still needs to be worked out; server rendering alone does not solve key custody.
 
@@ -72,7 +99,7 @@ Visual references for the intended client, including light and dark feed concept
 
 Each mock feed post has a post page and an embeddable view. The Embed control reveals the post URL and iframe code. Set `FORYOU_PUBLIC_ORIGIN` to the client server's externally reachable HTTPS origin to generate links for another host; otherwise links use `https://127.0.0.1:8443` and only work on the local machine. External embedding requires a publicly reachable server with a trusted TLS certificate. These demo URLs and IDs are not yet protocol post identifiers.
 
-The draft protocol uses signed records, provider receipts, provider-local balances, and persistent storage. Exact APIs, schema migrations, deployment topology, wallet integration, and operational controls will be implemented and tested as the project develops. No payment, availability, or compliance guarantee is implied by this scaffold.
+The protocol uses signed records, provider receipts, provider-local balances, and persistent storage. Exact APIs, schema migrations, deployment topology, wallet integration, and operational controls will be implemented and tested as the project develops. No payment, availability, or compliance guarantee is implied by this scaffold.
 
 ## Getting started
 
@@ -83,7 +110,7 @@ The draft protocol uses signed records, provider receipts, provider-local balanc
 
 The HTTP demo requires no Node, database, Docker, or crypto wallet. A PostgreSQL server is needed to demonstrate a successful database connection. Go downloads the dependencies listed in `go.mod` on the first build.
 
-The [project introduction](docs/index.html) is a static GitHub Pages site. Once this repository is hosted on GitHub, Pages can publish it from the `docs` folder on the chosen branch.
+The [project site](https://monstercameron.github.io/ForYou-social-reference-platform/) is a static page, [docs/index.html](docs/index.html), published by GitHub Pages from the `docs` folder of the `master` branch.
 
 ### Configure the demo
 
@@ -130,7 +157,7 @@ go test ./...
 go vet ./...
 ```
 
-Follow the [Go style decision](docs/adr/0001-go-style.md) and [testing strategy](docs/adr/0002-testing-strategy.md). Format Go files with `gofmt`. The [GitHub Actions workflow](.github/workflows/ci.yml) checks formatting, runs tests, and runs `go vet` on pushes and pull requests. A remote repository and enabled Actions are needed before it runs on GitHub.
+Follow the [Go style decision](docs/adr/0001-go-style.md) and [testing strategy](docs/adr/0002-testing-strategy.md). Format Go files with `gofmt`. The [GitHub Actions workflow](.github/workflows/ci.yml) checks formatting, runs tests, and runs `go vet` on pushes and pull requests.
 
 ## Repository layout
 
@@ -140,13 +167,16 @@ cmd/devcert/                 Local development certificate generator
 internal/server/             HTTP routes and server tests
 internal/server/templates/   Server-rendered HTML templates
 internal/transport/          HTTP/3 and HTTP/1.1 listeners
+docs/index.html              Project site (GitHub Pages)
+docs/adr/                    Engineering decisions
+docs/concepts/               Client design concepts
 .github/workflows/           GitHub Actions checks
 go.mod                       Go module and toolchain requirement
 ```
 
 ## Planned work
 
-The order and scope will be tracked in GitHub Issues when the project has a remote. Early work includes:
+The order and scope are tracked in [GitHub Issues](https://github.com/monstercameron/ForYou-social-reference-platform/issues). Early work includes:
 
 1. Integrate and test HTMLeX with Go-rendered HTML and establish safe template and request handling.
 2. Design storage and migrations, then implement public post retrieval and date filtering.
@@ -160,8 +190,8 @@ This is a starting roadmap, not a release schedule. In particular, payment rates
 
 ## Contributing
 
-Issues and pull requests will be used for discussion and changes once a GitHub repository is connected. For now, keep changes focused, run the checks above, and document behavior and limitations alongside new features. Security-sensitive protocol and payment changes require careful review and meaningful tests.
+Use [issues](https://github.com/monstercameron/ForYou-social-reference-platform/issues) and pull requests for discussion and changes. Protocol questions belong in the [specification repository](https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification/issues). Keep changes focused, run the checks above, and document behavior and limitations alongside new features. Security-sensitive protocol and payment changes require careful review and meaningful tests.
 
 ## License
 
-ForYou is released under the [MIT License](LICENSE).
+ForYou is released under the [MIT License](LICENSE). The specification is MIT licensed as well.
