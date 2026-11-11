@@ -7,6 +7,7 @@ require (
 	github.com/jackc/pgx/v5 v5.7.6
 	github.com/joho/godotenv v1.5.1
 	github.com/quic-go/quic-go v0.65.0
+	golang.org/x/net v0.56.0
 )
 
 require (
@@ -16,7 +17,6 @@ require (
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/yuin/goldmark v1.8.7 // indirect
 	golang.org/x/crypto v0.54.0 // indirect
-	golang.org/x/net v0.56.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/text v0.40.0 // indirect
