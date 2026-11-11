@@ -211,10 +211,23 @@ func TestComposerAndMobileActions(t *testing.T) {
 			t.Errorf("%s: missing %q (status %d)", path, want, w.Code)
 		}
 	}
-	check("/", `aria-label="Create a new post"`)
+	check("/", `aria-label="New post"`)
 	check("/compose", `name="draft_token"`)
 	check("/compose", `source="#draft"`)
+	check("/compose", `aria-label="Main navigation"`)
+	check("/compose", `href="/compose" class="nav-compose is-current" aria-current="page"`)
+	check("/compose", `trigger="input" debounce="400" source="#draft"`)
+	check("/compose", `id="byte-count"`)
 	check("/static/tailwind.css", `min-height`)
+}
+
+func TestHomeHasOneSearchForm(t *testing.T) {
+	w := httptest.NewRecorder()
+	newHandler("client", nil).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/", nil))
+	body := w.Body.String()
+	if w.Code != http.StatusOK || strings.Count(body, `type="search"`) != 1 || strings.Contains(body, "Search ForYou") {
+		t.Errorf("home has %d search inputs; status %d", strings.Count(body, `type="search"`), w.Code)
+	}
 }
 
 func TestNoScriptComposerFallback(t *testing.T) {
@@ -331,6 +344,24 @@ func TestQuoteFragmentPost(t *testing.T) {
 	newHandler("client", nil).ServeHTTP(w, r)
 	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "16000 bytes") || !strings.Contains(w.Body.String(), "Check again after editing.") {
 		t.Errorf("large quote: status %d; expected 16000-byte response", w.Code)
+	}
+}
+
+func TestQuoteFragmentPostReturnsUTF8ByteCount(t *testing.T) {
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+	if err := writer.WriteField("text", "héllo"); err != nil {
+		t.Fatal(err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+	r := httptest.NewRequest(http.MethodPost, "/quote/fragment", &body)
+	r.Header.Set("Content-Type", writer.FormDataContentType())
+	w := httptest.NewRecorder()
+	newHandler("client", nil).ServeHTTP(w, r)
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `<fragment target="#byte-count(innerHTML)">6 bytes</fragment>`) {
+		t.Errorf("quote fragment = %d %q; want byte-count fragment with 6 bytes", w.Code, w.Body.String())
 	}
 }
 

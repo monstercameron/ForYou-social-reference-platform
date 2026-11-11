@@ -1,1 +1,14 @@
-{{define "mobile-header"}}<header class="mobile-top"><a href="/" class="brand"><span class="brand-icon">◢</span> ForYou</a><div class="mobile-theme"><a href="{{if eq .Section "explore"}}/explore{{else}}/{{end}}?theme=light&amp;filter={{.Filter}}&amp;q={{.Query}}">Light</a><a href="{{if eq .Section "explore"}}/explore{{else}}/{{end}}?theme=dark&amp;filter={{.Filter}}&amp;q={{.Query}}">Dark</a></div><a href="/compose" class="ml-3 inline-flex min-h-10 items-center rounded-full bg-[var(--accent)] px-4 text-xs font-bold text-[var(--on-accent)] transition-opacity hover:opacity-80 focus-visible:outline-2" aria-label="Create a new post">✎ <span class="ml-1">Post</span></a></header><nav class="flex gap-2 border-b border-[var(--line)] px-4 min-[850px]:hidden" aria-label="Mobile navigation"><a href="/" {{if eq .Section "home"}}aria-current="page"{{end}} class="inline-flex min-h-11 items-center px-2 text-sm font-semibold text-[var(--text)] hover:text-[var(--accent)]">Home</a><a href="/explore" {{if eq .Section "explore"}}aria-current="page"{{end}} class="inline-flex min-h-11 items-center px-2 text-sm font-semibold text-[var(--text)] hover:text-[var(--accent)]">Explore</a><a href="/settings" class="inline-flex min-h-11 items-center px-2 text-sm font-semibold text-[var(--text)] hover:text-[var(--accent)]">Settings</a></nav>{{end}}
+{{define "mobile-header"}}
+<header class="mobile-top">
+  <a href="/" class="brand" aria-label="ForYou home"><span class="brand-icon">{{template "icon-nav-brand" .}}</span><span>ForYou</span></a>
+  <div class="mobile-actions">
+    <a class="mobile-theme-button" href="/settings" aria-label="Appearance settings">{{if eq .Theme "light"}}{{template "icon-nav-sun" .}}{{else if eq .Theme "dark"}}{{template "icon-nav-moon" .}}{{else}}{{template "icon-nav-system" .}}{{end}}</a>
+    <a href="/compose" class="mobile-compose" {{if eq .Section "compose"}}aria-current="page"{{end}} aria-label="New post">{{template "icon-nav-compose" .}}<span>New post</span></a>
+  </div>
+</header>
+<nav class="mobile-nav" aria-label="Primary navigation">
+  <a href="/" {{if eq .Section "home"}}aria-current="page"{{end}}>{{template "icon-nav-home" .}}<span>Home</span></a>
+  <a href="/explore" {{if eq .Section "explore"}}aria-current="page"{{end}}>{{template "icon-nav-explore" .}}<span>Explore</span></a>
+  <a href="/settings" {{if eq .Section "settings"}}aria-current="page"{{end}}>{{template "icon-nav-settings" .}}<span>Settings</span></a>
+</nav>
+{{end}}

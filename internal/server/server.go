@@ -17,6 +17,11 @@ var templates embed.FS
 
 var home = template.Must(template.ParseFS(templates, "templates/*.html"))
 
+type notFoundPage struct {
+	Theme   string
+	Section string
+}
+
 // DefaultAddress returns a loopback address for each independent demo process.
 func DefaultAddress(role string) (string, bool) {
 	switch role {
@@ -93,6 +98,14 @@ func newHandler(role string, ping func(context.Context) error) http.Handler {
 			return
 		}
 	})
+	if role == "client" {
+		mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			w.Header().Set("Cache-Control", "no-store")
+			w.WriteHeader(http.StatusNotFound)
+			_ = home.ExecuteTemplate(w, "not-found-page", notFoundPage{Theme: requestTheme(r)})
+		})
+	}
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{"role": role, "status": "ok"})
 	})

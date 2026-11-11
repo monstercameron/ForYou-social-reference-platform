@@ -9,6 +9,7 @@ type settingsPage struct {
 	Theme         string
 	Choice        string
 	FeedbackCount int
+	Section       string
 }
 
 // settingsHandler uses navigable links so appearance changes work without
@@ -39,5 +40,5 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "private, no-store")
-	_ = home.ExecuteTemplate(w, "settings-page", settingsPage{Theme: theme, Choice: choice, FeedbackCount: len(feedbackEntries(r))})
+	_ = home.ExecuteTemplate(w, "settings-page", settingsPage{Theme: theme, Choice: choice, FeedbackCount: len(feedbackEntries(r)), Section: "settings"})
 }

@@ -10,6 +10,40 @@
   .identicon.mint { @apply bg-[#47bda7]; }
   .identicon.blue { @apply bg-[#528be8]; }
   .identicon.violet { @apply bg-[#7768e5]; }
+  .component-card { @apply rounded-xl border border-[var(--line)] bg-[var(--panel)] p-5; }
+  .component-card h2 { @apply m-0 text-[19px] leading-[1.35] tracking-[-.2px]; }
+  .component-card > p { @apply leading-[1.55]; }
+  .button { @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-[9px] border border-transparent px-4 py-[9px] font-semibold leading-[1.2] transition-colors; }
+  .button-primary { @apply bg-[var(--accent)] text-[var(--on-accent)] hover:opacity-85; }
+  .button-secondary { @apply border-[var(--line)] bg-[var(--control)] text-[var(--text)] hover:bg-[var(--accent-soft)]; }
+  .button-link { @apply no-underline; }
+  .segmented-control { @apply grid min-h-[52px] grid-cols-3 gap-[3px] rounded-xl border border-[var(--line)] bg-[var(--control)] p-[3px]; }
+  .segmented-control a { @apply flex min-h-11 min-w-0 items-center justify-center gap-1.5 rounded-[9px] whitespace-nowrap text-[13px] font-semibold text-[var(--muted)] hover:bg-[var(--panel)] hover:text-[var(--text)]; }
+  .segmented-control a[aria-current="true"] { @apply bg-[var(--panel)] text-[var(--accent)]; }
+  .segmented-control svg { @apply h-5 w-5 shrink-0; }
+  .page-heading { @apply mb-6; }
+  .page-heading .eyebrow { @apply mb-1 text-[13px] font-bold tracking-wide text-[var(--accent)]; }
+  .page-heading h1 { @apply m-0 text-[28px] leading-tight tracking-[-.6px]; }
+  .page-heading > p:last-child { @apply mt-2 leading-[1.55] text-[var(--muted)]; }
+  .settings-card h2 { @apply mb-2; }
+  .settings-card > p { @apply mb-4 text-[var(--muted)]; }
+  .settings-card .segmented-control { @apply max-w-[460px]; }
+  .settings-card .settings-meta { @apply mb-3 text-[13px]; }
+  .network-panel h2 { @apply mb-3; }
+  .network-status { @apply mb-2 flex items-center gap-2 rounded-[9px] bg-[var(--accent-soft)] px-2.5 py-[9px] text-[13px] font-semibold text-[var(--accent)]; }
+  .network-status svg { @apply h-5 w-5 shrink-0; }
+  .network-list { @apply m-0; }
+  .network-list > div { @apply grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-t border-[var(--line)] py-2.5; }
+  .network-list dt { @apply flex min-w-0 items-center gap-2 text-[13px] font-semibold; }
+  .network-list dt svg, .about-panel svg { @apply h-5 w-5 shrink-0 text-[var(--muted)]; }
+  .network-list dd { @apply m-0 text-right text-[13px] text-[var(--muted)]; }
+  .about-panel h2 { @apply mb-3; }
+  .about-panel > div { @apply flex items-start gap-2.5 text-[var(--muted)]; }
+  .about-panel > div + div { @apply mt-2.5; }
+  .about-panel p { @apply m-0 text-[13px] leading-[1.5]; }
+  .appearance-panel h2 { @apply mb-2.5 text-sm; }
+  .compose-editor .notice { @apply mt-5 mb-0 mx-0 items-start gap-2.5 rounded-[10px] p-3 text-sm leading-[1.5]; }
+  .compose-editor .notice > span { @apply text-base; }
   .embed-action { @apply inline; }
   .landscape-1 { background-image:url('/static/demo-landscape-1.svg'); }
   .landscape-2 { background-image:url('/static/demo-landscape-2.svg'); }

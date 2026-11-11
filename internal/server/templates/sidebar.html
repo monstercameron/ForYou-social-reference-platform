@@ -1,12 +1,12 @@
 {{define "sidebar"}}
-<aside class="sticky top-0 hidden h-screen flex-col items-center border-r border-[var(--line)] bg-[var(--rail)] px-2 py-6 min-[541px]:flex min-[851px]:items-stretch min-[851px]:px-3.5 min-[851px]:py-8 min-[1101px]:px-5" aria-label="Main navigation">
-  <a href="/" class="brand" aria-label="ForYou home"><span class="brand-icon" aria-hidden="true">◢</span><span class="hidden min-[851px]:inline">ForYou</span></a>
-  <nav class="mt-10 grid w-full gap-2" aria-label="Primary">
-    <a class="flex min-h-11 items-center justify-center gap-3 rounded-lg px-3 py-3 transition-colors hover:bg-[var(--accent-soft)] min-[851px]:justify-start {{if eq .Section "home"}}bg-[var(--accent-soft)] text-[var(--accent)]{{end}}" href="/" {{if eq .Section "home"}}aria-current="page"{{end}} aria-label="Home"><span class="text-xl" aria-hidden="true">⌂</span><span class="hidden font-semibold min-[851px]:inline">Home</span></a>
-    <a class="flex min-h-11 items-center justify-center gap-3 rounded-lg px-3 py-3 transition-colors hover:bg-[var(--accent-soft)] min-[851px]:justify-start {{if eq .Section "explore"}}bg-[var(--accent-soft)] text-[var(--accent)]{{end}}" href="/explore" {{if eq .Section "explore"}}aria-current="page"{{end}} aria-label="Explore"><span class="text-xl" aria-hidden="true">⌕</span><span class="hidden font-semibold min-[851px]:inline">Explore</span></a>
-    <a class="flex min-h-11 items-center justify-center gap-3 rounded-lg px-3 py-3 transition-colors hover:bg-[var(--accent-soft)] min-[851px]:justify-start" href="/settings" aria-label="Settings"><span class="text-xl" aria-hidden="true">⚙</span><span class="hidden font-semibold min-[851px]:inline">Settings</span></a>
+<aside class="sidebar" aria-label="Main navigation">
+  <a href="/" class="brand" aria-label="ForYou home"><span class="brand-icon">{{template "icon-nav-brand" .}}</span><span class="brand-word">ForYou</span></a>
+  <nav class="sidebar-nav" aria-label="Primary">
+    <a class="nav-link {{if eq .Section "home"}}is-current{{end}}" href="/" {{if eq .Section "home"}}aria-current="page"{{end}} aria-label="Home">{{template "icon-nav-home" .}}<span>Home</span></a>
+    <a class="nav-link {{if eq .Section "explore"}}is-current{{end}}" href="/explore" {{if eq .Section "explore"}}aria-current="page"{{end}} aria-label="Explore">{{template "icon-nav-explore" .}}<span>Explore</span></a>
+    <a class="nav-link {{if eq .Section "settings"}}is-current{{end}}" href="/settings" {{if eq .Section "settings"}}aria-current="page"{{end}} aria-label="Settings">{{template "icon-nav-settings" .}}<span>Settings</span></a>
   </nav>
-  <a href="/compose" class="mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-4 py-3 font-bold text-[var(--on-accent)] transition-opacity hover:opacity-80" aria-label="Create a new post"><span class="text-xl" aria-hidden="true">✎</span><span class="hidden min-[851px]:inline">New post</span></a>
-  <div class="mt-auto flex items-center gap-2.5 px-2 py-4"><span class="identicon violet" aria-hidden="true"></span><div class="hidden min-[851px]:grid min-[851px]:gap-1"><strong>Your space</strong><small class="text-xs text-[var(--muted)]">No account connected</small></div></div>
+  <a href="/compose" class="nav-compose {{if eq .Section "compose"}}is-current{{end}}" {{if eq .Section "compose"}}aria-current="page"{{end}} aria-label="New post">{{template "icon-nav-compose" .}}<span>New post</span></a>
+  <div class="account-block"><span class="identicon violet" aria-hidden="true"></span><div><strong>Your space</strong><small>No account connected</small></div></div>
 </aside>
 {{end}}

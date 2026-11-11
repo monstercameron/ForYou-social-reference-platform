@@ -1,7 +1,7 @@
 {{define "about-panel"}}
-<section class="mt-5 rounded-xl border border-[var(--line)] bg-[var(--panel)] p-5" id="about-demo">
-  <h2 class="mt-0 mb-3 text-xl font-bold tracking-tight">About this feed</h2>
-  <div class="flex gap-4 text-xs leading-relaxed text-[var(--muted)]"><span class="text-lg text-[var(--text)]" aria-hidden="true">▤</span><p class="mt-0 mb-4">A place for short updates, threaded conversations, images, and video.</p></div>
-  <div class="flex gap-4 text-xs leading-relaxed text-[var(--muted)]"><span class="text-lg text-[var(--text)]" aria-hidden="true">▷</span><p class="m-0">Images and videos are hosted separately.</p></div>
+<section class="component-card about-panel" id="about-demo">
+  <h2>About this feed</h2>
+  <div>{{template "icon-nav-info" .}}<p>A place for short updates, threaded conversations, images, and video.</p></div>
+  <div>{{template "icon-nav-media" .}}<p>Images and videos are hosted separately.</p></div>
 </section>
 {{end}}

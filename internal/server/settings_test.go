@@ -11,8 +11,8 @@ func TestSettingsAppearance(t *testing.T) {
 	t.Run("default follows system", func(t *testing.T) {
 		w := httptest.NewRecorder()
 		settingsHandler(w, httptest.NewRequest(http.MethodGet, "/settings", nil))
-		if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `href="/settings?theme=system" aria-current="true"`) || !strings.Contains(w.Body.String(), `href="/"`) {
-			t.Errorf("default settings status %d; system selection or back link missing", w.Code)
+		if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `aria-label="Main navigation"`) || !strings.Contains(w.Body.String(), `href="/settings" aria-current="page"`) || !strings.Contains(w.Body.String(), `href="/settings?theme=system" aria-current="true"`) {
+			t.Errorf("default settings status %d; shell navigation or system selection missing", w.Code)
 		}
 	})
 	t.Run("dark selection persists", func(t *testing.T) {

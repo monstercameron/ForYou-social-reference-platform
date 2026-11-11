@@ -41,10 +41,40 @@ func TestRoleRoutes(t *testing.T) {
 	t.Run("foundation identity", func(t *testing.T) { check(t, "foundation", "/", "foundation", http.StatusOK) })
 	t.Run("replica identity", func(t *testing.T) { check(t, "replica", "/", "replica", http.StatusOK) })
 	t.Run("client settings", func(t *testing.T) { check(t, "client", "/settings", "Settings", http.StatusOK) })
+	t.Run("client compose", func(t *testing.T) { check(t, "client", "/compose", "New post", http.StatusOK) })
 	t.Run("client explore", func(t *testing.T) { check(t, "client", "/explore", "Explore", http.StatusOK) })
 	t.Run("provider excludes settings", func(t *testing.T) { check(t, "provider", "/settings", "404", http.StatusNotFound) })
 	t.Run("foundation excludes explore", func(t *testing.T) { check(t, "foundation", "/explore", "404", http.StatusNotFound) })
-	t.Run("unknown route", func(t *testing.T) { check(t, "client", "/missing", "404", http.StatusNotFound) })
+	t.Run("unknown client route", func(t *testing.T) { check(t, "client", "/missing", "Page not found", http.StatusNotFound) })
+	t.Run("unknown provider route", func(t *testing.T) { check(t, "provider", "/missing", "404 page not found", http.StatusNotFound) })
+	t.Run("provider rejects POST health with method not allowed", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		newHandler("provider", nil).ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/healthz", nil))
+		if w.Code != http.StatusMethodNotAllowed {
+			t.Errorf("POST /healthz = %d; want 405", w.Code)
+		}
+	})
+	t.Run("client settings rejects POST with method not allowed", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		newHandler("client", nil).ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/settings", nil))
+		if w.Code != http.StatusMethodNotAllowed {
+			t.Errorf("POST /settings = %d; want 405", w.Code)
+		}
+	})
+}
+
+func TestClientUnknownPageShellAndHealth(t *testing.T) {
+	h := newHandler("client", nil)
+	missing := httptest.NewRecorder()
+	h.ServeHTTP(missing, httptest.NewRequest(http.MethodGet, "/missing", nil))
+	if missing.Code != http.StatusNotFound || !strings.Contains(missing.Header().Get("Content-Type"), "text/html") || !strings.Contains(missing.Body.String(), `aria-label="Main navigation"`) || !strings.Contains(missing.Body.String(), `href="/">Go to Home</a>`) {
+		t.Errorf("unknown page = %d %q; want styled 404 shell with home link", missing.Code, missing.Body.String())
+	}
+	health := httptest.NewRecorder()
+	h.ServeHTTP(health, httptest.NewRequest(http.MethodGet, "/healthz", nil))
+	if health.Code != http.StatusOK || !strings.Contains(health.Header().Get("Content-Type"), "application/json") || !strings.Contains(health.Body.String(), `"status":"ok"`) {
+		t.Errorf("health response = %d %q; want JSON health response", health.Code, health.Body.String())
+	}
 }
 
 func TestReplicaRejectsClientFeedback(t *testing.T) {

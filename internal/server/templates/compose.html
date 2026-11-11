@@ -1,14 +1,16 @@
 {{define "compose-page"}}
 <!doctype html>
-<html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Create a post · ForYou</title><link rel="stylesheet" href="/static/tailwind.css"><noscript><link rel="stylesheet" href="/static/no-js.css"></noscript><script type="module" src="/static/app.js"></script></head>
-<body data-theme="{{.Theme}}">
-<div class="mx-auto my-6 max-w-[1120px] px-4 sm:my-10 sm:px-6">
-  <a class="back-link" href="/">← Back to feed</a>
-  <div class="grid grid-cols-1 gap-5 min-[700px]:grid-cols-[minmax(0,1.5fr)_minmax(260px,1fr)]">
-    {{template "compose-form" .}}
-    {{template "compose-quote-panel" .}}
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>New post · ForYou</title><link rel="stylesheet" href="/static/tailwind.css"><noscript><link rel="stylesheet" href="/static/no-js.css"></noscript><script type="module" src="/static/app.js"></script></head>
+<body data-theme="{{.Theme}}"><div class="layout layout-wide">
+{{template "sidebar" .}}
+<main class="center">{{template "mobile-header" .}}
+  <div class="page-content compose-content">
+    <header class="page-heading"><p class="eyebrow">Your space</p><h1>New post</h1><p>Draft text for this local demo.</p></header>
+    <div class="compose-grid">
+      {{template "compose-form" .}}
+      {{template "compose-quote-panel" .}}
+    </div>
   </div>
-</div>
+</main></div>
 </body></html>
 {{end}}

@@ -1,0 +1,13 @@
+{{define "not-found-page"}}
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Page not found · ForYou</title><link rel="stylesheet" href="/static/tailwind.css"><script type="module" src="/static/app.js"></script></head>
+<body data-theme="{{.Theme}}"><div class="layout">
+{{template "sidebar" .}}
+<main class="center">{{template "mobile-header" .}}
+  <section class="page-content not-found-content">
+    <header class="page-heading"><p class="eyebrow">ForYou</p><h1>Page not found</h1><p>We couldn't find that page.</p></header>
+    <a class="button button-primary button-link" href="/">Go to Home</a>
+  </section>
+</main>
+{{template "rightbar" .}}</div></body></html>
+{{end}}

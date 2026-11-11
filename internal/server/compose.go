@@ -10,10 +10,11 @@ import (
 )
 
 type quotePreview struct {
-	Bytes int
-	Text  string
-	Token string
-	Theme string
+	Bytes   int
+	Text    string
+	Token   string
+	Theme   string
+	Section string
 }
 
 func draftToken() (string, error) {
@@ -32,7 +33,8 @@ func composeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
-	_ = home.ExecuteTemplate(w, "compose-page", quotePreview{Token: token, Theme: requestTheme(r)})
+	rememberTheme(w, r)
+	_ = home.ExecuteTemplate(w, "compose-page", quotePreview{Token: token, Theme: requestTheme(r), Section: "compose"})
 }
 
 func quoteHandler(w http.ResponseWriter, r *http.Request) {
@@ -61,7 +63,7 @@ func quoteHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "draft is too long or invalid", http.StatusBadRequest)
 		return
 	}
-	preview := quotePreview{Bytes: len(text), Text: text, Theme: requestTheme(r)}
+	preview := quotePreview{Bytes: len(text), Text: text, Theme: requestTheme(r), Section: "compose"}
 	if r.URL.Path == "/quote" {
 		token, err := draftToken()
 		if err != nil {

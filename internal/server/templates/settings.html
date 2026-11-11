@@ -1,31 +1,27 @@
 {{define "settings-page"}}
 <!doctype html>
-<html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Settings · ForYou</title><link rel="stylesheet" href="/static/tailwind.css"></head>
-<body data-theme="{{.Theme}}">
-<main class="mx-auto min-h-screen max-w-[800px] px-4 py-6 sm:px-6 sm:py-10">
-  <a class="back-link inline-flex min-h-11 items-center" href="/">← Back to feed</a>
-  <header class="mb-6 mt-4"><p class="m-0 text-xs font-bold uppercase tracking-wider text-[var(--accent)]">Your experience</p><h1 class="mt-2 mb-1 text-2xl font-bold tracking-tight">Settings</h1><p class="m-0 text-sm leading-relaxed text-[var(--muted)]">Choose how ForYou looks on this browser.</p></header>
-  <section class="rounded-xl border border-[var(--line)] bg-[var(--panel)] p-5 sm:p-6" aria-labelledby="appearance-title">
-    <h2 class="m-0 text-xl font-bold" id="appearance-title">Appearance</h2>
-    <p class="mt-2 mb-4 text-sm leading-relaxed text-[var(--muted)]">Use your device preference or select a theme. Your choice is saved in this browser.</p>
-    <nav class="grid grid-cols-1 gap-3 min-[541px]:grid-cols-3" aria-label="Appearance">
-      <a href="/settings?theme=system" {{if eq .Choice "system"}}aria-current="true"{{end}} class="min-h-11 rounded-lg border px-4 py-3 font-semibold transition-colors {{if eq .Choice "system"}}border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]{{else}}border-[var(--line)] text-[var(--text)] hover:bg-[var(--control)]{{end}}">◐ &nbsp; System{{if eq .Choice "system"}} <span class="sr-only">(selected)</span>{{end}}</a>
-      <a href="/settings?theme=light" {{if eq .Choice "light"}}aria-current="true"{{end}} class="min-h-11 rounded-lg border px-4 py-3 font-semibold transition-colors {{if eq .Choice "light"}}border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]{{else}}border-[var(--line)] text-[var(--text)] hover:bg-[var(--control)]{{end}}">☀ &nbsp; Light{{if eq .Choice "light"}} <span class="sr-only">(selected)</span>{{end}}</a>
-      <a href="/settings?theme=dark" {{if eq .Choice "dark"}}aria-current="true"{{end}} class="min-h-11 rounded-lg border px-4 py-3 font-semibold transition-colors {{if eq .Choice "dark"}}border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]{{else}}border-[var(--line)] text-[var(--text)] hover:bg-[var(--control)]{{end}}">☾ &nbsp; Dark{{if eq .Choice "dark"}} <span class="sr-only">(selected)</span>{{end}}</a>
-    </nav>
-  </section>
-  <section class="mt-5 rounded-xl border border-[var(--line)] bg-[var(--panel)] p-5 sm:p-6" aria-labelledby="feedback-title">
-    <h2 class="m-0 text-xl font-bold" id="feedback-title">Personal feedback</h2>
-    <p class="mt-2 text-sm leading-relaxed text-[var(--muted)]">Thumbs up and down are saved in this browser and sent to this server with requests. The 24 most recent choices are used; older choices are cleaned up on updates. They do not change the feed yet.</p>
-    <p class="text-sm text-[var(--muted)]">Saved choices: {{.FeedbackCount}}</p>
-    <form action="/feedback/clear" method="post"><button class="min-h-11 rounded-lg border border-[var(--line)] bg-[var(--control)] px-4 py-2 font-semibold text-[var(--text)] transition-colors hover:bg-[var(--accent-soft)]" type="submit">Clear feedback</button></form>
-  </section>
-  <section class="mt-5 rounded-xl border border-[var(--line)] bg-[var(--panel)] p-5 sm:p-6" aria-labelledby="connection-title">
-    <h2 class="m-0 text-xl font-bold" id="connection-title">Connection</h2>
-    <p class="mt-2 mb-0 text-sm leading-relaxed text-[var(--muted)]">No provider is connected. Demo posts are stored on this client server until it restarts.</p>
-  </section>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Settings · ForYou</title><link rel="stylesheet" href="/static/tailwind.css"><script type="module" src="/static/app.js"></script></head>
+<body data-theme="{{.Theme}}"><div class="layout layout-wide">
+{{template "sidebar" .}}
+<main class="center">{{template "mobile-header" .}}
+  <div class="page-content settings-content">
+    <header class="page-heading"><p class="eyebrow">Your experience</p><h1>Settings</h1><p>Choose how ForYou looks on this browser.</p></header>
+    <section class="component-card settings-card" aria-labelledby="appearance-title">
+      <h2 id="appearance-title">Appearance</h2>
+      <p>Use your device preference or select a theme. Your choice is saved in this browser.</p>
+      {{template "appearance-control" .}}
+    </section>
+    <section class="component-card settings-card" aria-labelledby="feedback-title">
+      <h2 id="feedback-title">Personal feedback</h2>
+      <p>Thumbs up and down are saved in this browser and sent to this server with requests. The 24 most recent choices are used; older choices are cleaned up on updates. They do not change the feed yet.</p>
+      <p class="settings-meta">Saved choices: {{.FeedbackCount}}</p>
+      <form action="/feedback/clear" method="post"><button class="button button-secondary" type="submit">Clear feedback</button></form>
+    </section>
+    <section class="component-card settings-card" aria-labelledby="connection-title">
+      <h2 id="connection-title">Connection</h2>
+      <p>No provider is connected. Demo posts are stored on this client server until it restarts.</p>
+    </section>
+  </div>
 </main>
-</body>
-</html>
+</div></body></html>
 {{end}}

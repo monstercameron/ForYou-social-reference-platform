@@ -1,13 +1,84 @@
 @layer components {
-  .layout {
-    @apply mx-auto grid min-h-screen max-w-[1440px] grid-cols-[250px_minmax(0,780px)_minmax(260px,390px)];
-    @apply max-[1100px]:grid-cols-[200px_minmax(0,1fr)_300px] max-[850px]:grid-cols-[72px_minmax(0,1fr)] max-[540px]:block;
+  .layout { @apply mx-auto grid min-h-screen max-w-[1440px] grid-cols-[250px_minmax(0,780px)_minmax(260px,390px)]; }
+  .layout-wide { @apply grid-cols-[250px_minmax(0,1fr)]; }
+  .center { @apply min-w-0 border-r border-[var(--line)]; }
+  .layout-wide .center { @apply border-r-0; }
+  .sidebar { @apply sticky top-0 flex h-screen flex-col items-stretch border-r border-[var(--line)] bg-[var(--rail)] px-5 py-7; }
+  .brand { @apply flex min-h-10 items-center gap-2.5 text-[27px] font-bold tracking-[-1.2px]; }
+  .brand-icon { @apply grid h-8 w-8 shrink-0 place-items-center rounded-[9px] bg-[var(--accent)] text-[var(--on-accent)]; }
+  .brand-icon svg { @apply h-5 w-5; }
+  .sidebar-nav { @apply mt-10 grid gap-2; }
+  .nav-link, .nav-compose { @apply flex min-h-12 items-center justify-start gap-3 rounded-[10px] px-3 py-2.5 font-semibold transition-colors; }
+  .nav-link svg, .nav-compose svg { @apply h-5 w-5 shrink-0; }
+  .nav-link:hover { @apply bg-[var(--accent-soft)]; }
+  .nav-link[aria-current="page"], .nav-compose[aria-current="page"] { @apply bg-[var(--accent-soft)] text-[var(--accent)]; }
+  .nav-compose { @apply mt-4 justify-center rounded-full bg-[var(--accent)] text-[var(--on-accent)]; }
+  .nav-compose:hover { @apply opacity-85; }
+  .account-block { @apply mt-auto flex items-center gap-2.5 px-1 py-4; }
+  .account-block > div { @apply grid min-w-0 gap-1; }
+  .account-block strong { @apply text-sm; }
+  .account-block small { @apply text-[13px] leading-5 text-[var(--muted)]; }
+  .rightbar { @apply min-w-0 bg-[var(--subtle)]; }
+  .rightbar-content { @apply sticky top-0 grid gap-4 p-6; }
+  .mobile-top, .mobile-nav { @apply hidden; }
+  .mobile-theme-button:hover, .mobile-nav a:hover { @apply bg-[var(--accent-soft)]; }
+  .mobile-compose:hover { @apply opacity-85; }
+  .page-content { @apply mx-auto w-full max-w-[760px] px-6 py-8; }
+  .settings-content { @apply max-w-[728px]; }
+  .settings-card + .settings-card { @apply mt-4; }
+  .compose-content { @apply max-w-[1200px]; }
+  .compose-grid { @apply grid grid-cols-1 items-start gap-5; }
+  .compose-editor, .compose-quote { @apply min-w-0; }
+  .compose-title { @apply m-0 text-2xl leading-tight tracking-[-.4px]; }
+  .compose-description { @apply my-2 mb-6 leading-[1.55] text-[var(--muted)]; }
+  .compose-form { @apply grid gap-2.5; }
+  .compose-label { @apply font-bold; }
+  .compose-textarea { @apply min-h-[190px] w-full resize-y rounded-[9px] border border-[var(--line)] bg-[var(--bg)] p-3 leading-[1.55] text-[var(--text)]; }
+  .byte-count { @apply m-0 min-h-5 text-[13px] text-[var(--muted)]; }
+  .compose-actions { @apply flex flex-wrap gap-2; }
+  .compose-actions .button { @apply whitespace-nowrap; }
+  .compose-status { @apply mt-2 min-h-5; }
+  .media-note { @apply mt-6 border-t border-[var(--line)] pt-5; }
+  .media-note p { @apply mt-1.5 leading-[1.55] text-[var(--muted)]; }
+  .notice svg { @apply shrink-0 text-[var(--accent)]; }
+  .quote-status { @apply mt-2.5 min-h-5 text-[13px] text-[var(--muted)]; }
+  .quote-note { @apply mt-4 leading-[1.55] text-[var(--muted)]; }
+  .quote-description { @apply leading-[1.55] text-[var(--muted)]; }
+  .quote-value { @apply flex flex-wrap justify-between gap-2 border-t border-[var(--line)] pt-3.5; }
+  .not-found-content { @apply pt-[clamp(48px,12vh,120px)]; }
+  @media(max-width:1100px) {
+    .layout { @apply grid-cols-[200px_minmax(0,1fr)_300px]; }
+    .layout-wide { @apply grid-cols-[200px_minmax(0,1fr)]; }
+    .sidebar { @apply px-3.5; }
   }
-  .center { @apply min-w-0 border-r border-[var(--line)] max-[850px]:border-r-0; }
-  .brand { @apply flex items-center gap-2.5 text-[27px] font-bold tracking-[-1.2px]; }
-  .brand-icon { @apply grid h-8 w-8 place-items-center rounded-[9px] bg-[var(--accent)] text-[21px] text-[var(--on-accent)]; }
-  .mobile-top { @apply hidden max-[850px]:flex max-[850px]:border-b max-[850px]:border-[var(--line)] max-[850px]:px-4 max-[850px]:py-3.5; }
-  .mobile-top .brand { @apply max-[540px]:text-xl; }
-  .mobile-top .brand-icon { @apply max-[540px]:h-[27px] max-[540px]:w-[27px] max-[540px]:text-lg; }
-  .mobile-theme { @apply hidden max-[850px]:ml-auto max-[850px]:flex max-[850px]:items-center max-[850px]:gap-2.5 max-[850px]:text-xs max-[850px]:text-[var(--accent)]; }
+  @media(max-width:850px) {
+    .layout { @apply grid-cols-[72px_minmax(0,1fr)]; }
+    .sidebar { @apply items-center px-2 py-6; }
+    .brand-word, .nav-link span, .nav-compose span, .account-block > div { @apply hidden; }
+    .sidebar-nav { @apply w-full; }
+    .nav-link, .nav-compose { @apply justify-center p-2.5; }
+    .rightbar { @apply hidden; }
+    .center { @apply border-r-0; }
+  }
+  @media(max-width:540px) {
+    .layout { @apply block pb-[calc(56px+env(safe-area-inset-bottom))]; }
+    .sidebar { @apply hidden; }
+    .mobile-top { @apply flex h-14 items-center justify-between gap-3 border-b border-[var(--line)] bg-[var(--rail)] px-4; }
+    .mobile-top .brand { @apply gap-2 text-xl; }
+    .mobile-top .brand-icon { @apply h-7 w-7 rounded-lg; }
+    .mobile-actions { @apply flex items-center gap-2; }
+    .mobile-theme-button, .mobile-compose { @apply inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full; }
+    .mobile-theme-button { @apply w-11 border border-[var(--line)] bg-[var(--panel)]; }
+    .mobile-compose { @apply whitespace-nowrap bg-[var(--accent)] px-3 text-[13px] font-bold text-[var(--on-accent)]; }
+    .mobile-nav { @apply fixed inset-x-0 bottom-0 z-10 grid h-[calc(56px+env(safe-area-inset-bottom))] grid-cols-3 border-t border-[var(--line)] bg-[var(--rail)] px-2 pt-1 pb-[env(safe-area-inset-bottom)]; }
+    .mobile-nav a { @apply flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 rounded-[9px] text-xs font-semibold text-[var(--muted)]; }
+    .mobile-nav a[aria-current="page"] { @apply bg-[var(--accent-soft)] text-[var(--accent)]; }
+    .page-content { @apply px-4 py-6; }
+    .compose-grid { @apply grid-cols-1 gap-3; }
+    .compose-actions { @apply gap-2; }
+    .compose-actions .button { @apply min-w-0 flex-1 px-2 text-[13px]; }
+  }
+  @media(min-width:1101px) {
+    .compose-grid { @apply grid-cols-[minmax(0,1.4fr)_minmax(280px,1fr)]; }
+  }
 }
