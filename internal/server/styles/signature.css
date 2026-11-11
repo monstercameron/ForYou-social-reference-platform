@@ -19,4 +19,7 @@
   @media(hover:none) { .follow-button { min-height:40px; } }
   @container (max-width:380px) { .signed-key code { display:none; } }
   .detail-embed .post-signature { margin:10px 0 0; }
+  /* An author's picture takes the place of the key pattern and keeps its size and shape. */
+  .identicon.avatar { display:block; border:1px solid var(--line); background:var(--control); object-fit:cover; }
+  .post:hover > .identicon.avatar { transform:scale(1.05); }
 }
