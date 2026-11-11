@@ -3,7 +3,6 @@
   .notice { @apply mx-6 mb-3 flex items-start gap-3 rounded-[10px] bg-[var(--accent-soft)] px-[15px] py-[13px] text-xs leading-[1.45] text-[var(--text)] max-[1100px]:mx-[18px]; }
   .notice > span { @apply text-[19px]; }
   .notice p { @apply m-0; }
-  .search-status { @apply mx-6 min-h-3 text-[11px] text-[var(--muted)] max-[1100px]:mx-[18px]; }
   .identicon { @apply h-[42px] w-[42px] shrink-0 rounded-full bg-[#a88af4] max-[540px]:h-[34px] max-[540px]:w-[34px]; background-image:linear-gradient(45deg,transparent 25%,#ffffffad 25%,#ffffffad 50%,transparent 50%,transparent 75%,#ffffffad 75%); background-size:15px 15px; }
   .identicon.small { @apply h-8 w-8; background-size:12px 12px; }
   .identicon.peach { @apply bg-[#eeaa5a]; }
@@ -21,10 +20,9 @@
   .segmented-control a { @apply flex min-h-11 min-w-0 items-center justify-center gap-1.5 rounded-[9px] whitespace-nowrap text-[13px] font-semibold text-[var(--muted)] hover:bg-[var(--panel)] hover:text-[var(--text)]; }
   .segmented-control a[aria-current="true"] { @apply bg-[var(--panel)] text-[var(--accent)]; }
   .segmented-control svg { @apply h-5 w-5 shrink-0; }
-  .page-heading { @apply mb-6; }
-  .page-heading .eyebrow { @apply mb-1 text-[13px] font-bold tracking-wide text-[var(--accent)]; }
-  .page-heading h1 { @apply m-0 text-[28px] leading-tight tracking-[-.6px]; }
-  .page-heading > p:last-child { @apply mt-2 leading-[1.55] text-[var(--muted)]; }
+  .page-heading { @apply mb-4; }
+  .page-heading h1 { @apply m-0 text-2xl font-bold tracking-[-.025em]; }
+  .page-heading > p { @apply mt-1 mb-0 text-[13px] text-[var(--muted)]; }
   .settings-card h2 { @apply mb-2; }
   .settings-card > p { @apply mb-4 text-[var(--muted)]; }
   .settings-card .segmented-control { @apply max-w-[460px]; }
