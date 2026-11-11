@@ -1,8 +1,23 @@
 @layer components {
-  .share-panel { @apply mt-3.5 rounded-[10px] border border-[var(--line)] bg-[var(--subtle)] p-[15px]; }
-  .share-heading { @apply flex justify-between; }
-  .share-heading a, .embed-action, .embed-credit, .back-link { @apply text-[var(--accent)]; }
-  .share-panel label { @apply mt-2.5 mb-[5px] block text-[11px] font-bold text-[var(--muted)]; }
-  .share-panel input, .share-panel textarea { @apply w-full rounded-md border border-[var(--line)] bg-[var(--bg)] p-2 font-mono text-[11px] leading-[1.4] text-[var(--text)]; }
-  .share-panel p, .thread-disclaimer { @apply text-[11px] text-[var(--muted)]; }
+  .share-panel { margin-top:16px; padding:16px; border:1px solid var(--line); border-radius:12px; background:var(--panel); color:var(--text); }
+  .share-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .share-heading strong { font-size:16px; }
+  .share-heading .detail-control { border:1px solid var(--line); color:var(--text); font-size:14px; }
+  .share-heading .detail-control:hover { color:var(--accent); }
+  .share-panel label { display:block; margin:16px 0 6px; color:var(--muted); font-size:13px; font-weight:600; }
+  .detail-copy-row { display:flex; align-items:flex-start; gap:8px; min-width:0; }
+  .detail-copy-row input, .detail-copy-row textarea {
+    flex:1; width:0; min-width:0; min-height:44px; margin:0; padding:10px 12px; border:1px solid var(--line); border-radius:8px;
+    background:var(--bg); color:var(--text); font:13px/1.45 ui-monospace,SFMono-Regular,Consolas,monospace;
+  }
+  .detail-copy-row textarea { resize:vertical; white-space:pre-wrap; overflow-wrap:anywhere; word-break:break-all; }
+  .detail-copy { flex:none; }
+  .share-panel p { margin:12px 0 0; color:var(--muted); font-size:13px; line-height:1.5; }
+  .detail-live { min-height:20px; margin-top:4px; color:var(--accent); font-size:13px; font-weight:600; }
+  @media(max-width:540px) {
+    .share-panel { padding:12px; }
+    .detail-code-row { flex-direction:column; align-items:stretch; }
+    .detail-code-row textarea { width:100%; flex:none; }
+    .detail-code-row .detail-copy { align-self:flex-end; }
+  }
 }

@@ -27,7 +27,7 @@ func TestPostEmbeds(t *testing.T) {
 	t.Run("second post", func(t *testing.T) { check(t, "/embed/elliot", "small things growing", http.StatusOK) })
 	t.Run("technology video on post page", func(t *testing.T) { check(t, "/posts/tech-video", "demo-tech.mp4", http.StatusOK) })
 	t.Run("technology video in embed", func(t *testing.T) { check(t, "/embed/tech-video", "demo-tech.mp4", http.StatusOK) })
-	t.Run("unknown post", func(t *testing.T) { check(t, "/embed/unknown", "Not Found", http.StatusNotFound) })
+	t.Run("unknown post", func(t *testing.T) { check(t, "/embed/unknown", "Post not found", http.StatusNotFound) })
 }
 
 func TestInvalidPublicOrigin(t *testing.T) {
@@ -65,7 +65,92 @@ func TestStandalonePostWithoutTopic(t *testing.T) {
 func TestShareFallbackReturnsToPost(t *testing.T) {
 	w := httptest.NewRecorder()
 	newHandler("client", nil).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/share?id=maya", nil))
-	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `action="/posts/maya"`) {
-		t.Errorf("share fallback does not return to its post, status %d", w.Code)
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `action="/posts/maya"`) || strings.Contains(w.Body.String(), `get="/share/fragment"`) {
+		t.Errorf("share page close does not return to its post as a plain form, status %d", w.Code)
+	}
+}
+
+func TestDetailPagesUseTheAppShell(t *testing.T) {
+	h := newHandler("client", nil)
+	checkShell := func(t *testing.T, path string) {
+		t.Helper()
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
+		if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `<nav`) || !strings.Contains(w.Body.String(), `aria-label="Primary"`) {
+			t.Errorf("%s: status %d; app navigation landmark missing", path, w.Code)
+		}
+	}
+	t.Run("post page", func(t *testing.T) { checkShell(t, "/posts/maya") })
+	t.Run("thread page", func(t *testing.T) { checkShell(t, "/thread?id=maya") })
+	t.Run("share page", func(t *testing.T) { checkShell(t, "/share?id=maya") })
+	t.Run("gallery page", func(t *testing.T) { checkShell(t, "/gallery?id=sofia&slide=1") })
+	t.Run("embed omits the shell", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/embed/maya", nil))
+		if w.Code != http.StatusOK || strings.Contains(w.Body.String(), `aria-label="Primary"`) {
+			t.Errorf("embed page unexpectedly includes navigation (status %d)", w.Code)
+		}
+	})
+}
+
+func TestDetailNotFoundPages(t *testing.T) {
+	h := newHandler("client", nil)
+	check := func(t *testing.T, path, want string, hasShell bool) {
+		t.Helper()
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
+		body := w.Body.String()
+		if w.Code != http.StatusNotFound || !strings.Contains(body, want) || strings.Contains(body, `aria-label="Primary"`) != hasShell {
+			t.Errorf("%s: status %d; want 404 with %q and shell=%t", path, w.Code, want, hasShell)
+		}
+	}
+	t.Run("post", func(t *testing.T) { check(t, "/posts/unknown", "Page not found", true) })
+	t.Run("thread", func(t *testing.T) { check(t, "/thread?id=unknown", "Page not found", true) })
+	t.Run("share", func(t *testing.T) { check(t, "/share?id=unknown", "Page not found", true) })
+	t.Run("embed", func(t *testing.T) { check(t, "/embed/unknown", "Post not found", false) })
+	t.Run("unknown gallery post", func(t *testing.T) { check(t, "/gallery?id=unknown&slide=1", "Page not found", true) })
+	t.Run("post without gallery", func(t *testing.T) { check(t, "/gallery?id=journal&slide=1", "Page not found", true) })
+}
+
+func TestPostPageActionsStayInsideCard(t *testing.T) {
+	w := httptest.NewRecorder()
+	newHandler("client", nil).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/posts/maya", nil))
+	body := w.Body.String()
+	card := strings.Index(body, `<article class="post detail-post-card">`)
+	actions := strings.Index(body, `detail-post-actions"`)
+	thread := strings.Index(body, `id="thread-maya"`)
+	end := -1
+	if card >= 0 {
+		end = strings.Index(body[card:], `</article>`)
+	}
+	if w.Code != http.StatusOK || card < 0 || actions < card || end < 0 || actions > card+end || thread < card+end || !strings.Contains(body, `aria-label="Positive feedback"`) || !strings.Contains(body, `>Embed</span>`) || !strings.Contains(body, `>Replies</span>`) {
+		t.Errorf("post actions are not inside the post card, or the thread is not below it (status %d)", w.Code)
+	}
+}
+
+func TestShareCopyFieldsUseConfiguredOrigin(t *testing.T) {
+	t.Setenv("FORYOU_PUBLIC_ORIGIN", "https://example.test")
+	w := httptest.NewRecorder()
+	newHandler("client", nil).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/share/fragment?id=maya", nil))
+	body := w.Body.String()
+	if w.Code != http.StatusOK || strings.Count(body, `data-copy-target="`) != 2 || !strings.Contains(body, `value="https://example.test/posts/maya"`) || !strings.Contains(body, "https://example.test/embed/maya") || !strings.Contains(body, "This URL works only where this server is reachable.") {
+		t.Errorf("share panel copy controls or configured origin missing (status %d)", w.Code)
+	}
+}
+
+func TestGalleryViewerControlsAndCounter(t *testing.T) {
+	w := httptest.NewRecorder()
+	newHandler("client", nil).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/gallery?id=sofia&slide=2", nil))
+	body := w.Body.String()
+	if w.Code != http.StatusOK || !strings.Contains(body, "2 / 3") || !strings.Contains(body, "Image 2 of 3") || !strings.Contains(body, `alt="Illustrated mountain landscape, image 2 of 3"`) || !strings.Contains(body, `aria-label="Previous image"`) || !strings.Contains(body, `aria-label="Next image"`) {
+		t.Errorf("gallery viewer counter or image text missing (status %d)", w.Code)
+	}
+}
+
+func TestPostPageIgnoresInvalidThreadPage(t *testing.T) {
+	w := httptest.NewRecorder()
+	newHandler("client", nil).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/posts/maya?page=3", nil))
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `id="thread-maya"`) || strings.Contains(w.Body.String(), `id="thread-"`) {
+		t.Errorf("invalid embedded thread page was not reset (status %d)", w.Code)
 	}
 }

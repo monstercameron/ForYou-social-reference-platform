@@ -28,7 +28,7 @@ func TestReplyThreads(t *testing.T) {
 		check(t, "/thread/fragment?id=maya&page=2", "More community gardens, online and off.", "Show more replies", http.StatusOK)
 	})
 	t.Run("collapse", func(t *testing.T) {
-		check(t, "/thread/fragment?id=maya&view=closed", "View 4 replies", "more tending", http.StatusOK)
+		check(t, "/thread/fragment?id=maya&view=closed", `<span class="reply-count">4</span>`, "more tending", http.StatusOK)
 	})
 	t.Run("closing expanded thread", func(t *testing.T) {
 		check(t, "/thread/fragment?id=maya&page=2&view=closing", "More community gardens, online and off.", "Show more replies", http.StatusOK)

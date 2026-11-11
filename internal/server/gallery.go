@@ -6,9 +6,10 @@ import (
 )
 
 type galleryPage struct {
-	ID                string
-	Slide, Prev, Next int
-	Standalone        bool
+	ID                            string
+	Slide, Prev, Next             int
+	Standalone                    bool
+	Theme, Section, Filter, Query string
 }
 
 func readGallery(r *http.Request) (galleryPage, bool) {
@@ -32,10 +33,12 @@ func readGallery(r *http.Request) (galleryPage, bool) {
 func galleryPageHandler(w http.ResponseWriter, r *http.Request) {
 	page, ok := readGallery(r)
 	if !ok {
-		http.NotFound(w, r)
+		writeDetailNotFound(w, requestTheme(r))
 		return
 	}
 	page.Standalone = true
+	page.Theme = requestTheme(r)
+	page.Filter = "all"
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_ = home.ExecuteTemplate(w, "gallery-page", page)
 }

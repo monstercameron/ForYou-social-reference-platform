@@ -10,9 +10,12 @@ import (
 )
 
 type shareDetails struct {
-	Post                    post
-	PostURL, EmbedURL, Code string
-	Theme                   string
+	Post                          post
+	PostURL, EmbedURL, Code       string
+	Theme, Section, Filter, Query string
+	Thread                        thread
+	// Standalone renders the share panel on its own page, where Close is a plain link back to the post.
+	Standalone bool
 }
 
 var staticPostsByID = func() map[string]post {
@@ -67,12 +70,36 @@ func shareData(r *http.Request, id string) (shareDetails, int) {
 	postURL := origin + "/posts/" + url.PathEscape(p.ID)
 	embedURL := origin + "/embed/" + url.PathEscape(p.ID)
 	code := fmt.Sprintf(`<iframe src="%s" title="ForYou post %s" width="480" height="480" loading="lazy"></iframe>`, html.EscapeString(embedURL), html.EscapeString(p.Receipt))
-	return shareDetails{Post: p, PostURL: postURL, EmbedURL: embedURL, Code: code, Theme: requestTheme(r)}, http.StatusOK
+	return shareDetails{Post: p, PostURL: postURL, EmbedURL: embedURL, Code: code, Theme: requestTheme(r), Filter: "all"}, http.StatusOK
+}
+
+// writeDetailNotFound answers an unknown post with the app's shared not-found page, inside the shell.
+func writeDetailNotFound(w http.ResponseWriter, theme string) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(http.StatusNotFound)
+	_ = home.ExecuteTemplate(w, "not-found-page", notFoundPage{Theme: theme})
+}
+
+// postThread reads the first page of a post's replies for rendering inside its page.
+func postThread(r *http.Request, id string) (thread, int) {
+	threadRequest := r.Clone(r.Context())
+	threadRequest.URL = &url.URL{Path: "/thread", RawQuery: url.Values{"id": {id}}.Encode()}
+	t, status := readThread(threadRequest)
+	t.Static = true
+	return t, status
 }
 
 func postPageHandler(w http.ResponseWriter, r *http.Request) {
 	details, status := shareData(r, r.PathValue("id"))
+	if status == http.StatusOK {
+		details.Thread, status = postThread(r, details.Post.ID)
+	}
 	if status != http.StatusOK {
+		if status == http.StatusNotFound {
+			writeDetailNotFound(w, requestTheme(r))
+			return
+		}
 		http.Error(w, http.StatusText(status), status)
 		return
 	}
@@ -82,9 +109,17 @@ func postPageHandler(w http.ResponseWriter, r *http.Request) {
 	_ = home.ExecuteTemplate(w, "post-page", details)
 }
 
+// embedTheme honors only an explicit query choice, so an embed otherwise follows the host reader's color scheme.
+func embedTheme(r *http.Request) string {
+	if theme := r.URL.Query().Get("theme"); theme == "light" || theme == "dark" {
+		return theme
+	}
+	return ""
+}
+
 func embedPageHandler(w http.ResponseWriter, r *http.Request) {
 	details, status := shareData(r, r.PathValue("id"))
-	if status != http.StatusOK {
+	if status != http.StatusOK && status != http.StatusNotFound {
 		http.Error(w, http.StatusText(status), status)
 		return
 	}
@@ -92,15 +127,26 @@ func embedPageHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "private, no-store")
 	w.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'self'; img-src 'self'; media-src 'self'; base-uri 'none'; form-action 'none'")
 	w.Header().Set("Referrer-Policy", "no-referrer")
+	if status == http.StatusNotFound {
+		w.WriteHeader(http.StatusNotFound)
+		_ = home.ExecuteTemplate(w, "embed-error-page", struct{ Theme string }{Theme: embedTheme(r)})
+		return
+	}
+	details.Theme = embedTheme(r)
 	_ = home.ExecuteTemplate(w, "embed-page", details)
 }
 
 func sharePageHandler(w http.ResponseWriter, r *http.Request) {
 	details, status := shareData(r, r.URL.Query().Get("id"))
 	if status != http.StatusOK {
+		if status == http.StatusNotFound {
+			writeDetailNotFound(w, requestTheme(r))
+			return
+		}
 		http.Error(w, http.StatusText(status), status)
 		return
 	}
+	details.Standalone = true
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "private, no-store")
 	_ = home.ExecuteTemplate(w, "share-page", details)

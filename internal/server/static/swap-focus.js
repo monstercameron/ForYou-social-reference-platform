@@ -68,3 +68,20 @@ function restoreFocus(root) {
   next.focus({ preventScroll: true });
 }
 document.addEventListener('htmlex:dom-updated', event => restoreFocus(event.detail?.root));
+
+// Clipboard writes are a browser capability HTMLeX does not provide.
+document.addEventListener('click', async event => {
+  const button = event.target.closest('[data-copy-target]');
+  const field = button && document.getElementById(button.dataset.copyTarget);
+  const status = button?.closest('.share-panel')?.querySelector('[data-copy-status]');
+  if (!(button instanceof HTMLButtonElement) || !(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) || !status) return;
+  status.textContent = '';
+  try {
+    await navigator.clipboard.writeText(field.value);
+    status.textContent = 'Copied';
+  } catch {
+    field.focus();
+    field.select();
+    status.textContent = 'Select and copy the field';
+  }
+});

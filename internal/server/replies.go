@@ -11,12 +11,14 @@ type reply struct {
 }
 
 type thread struct {
-	Parent   post
-	Theme    string
-	Replies  []reply
-	Extra    []reply
-	HasMore  bool
-	Expanded bool
+	Parent                 post
+	Theme                  string
+	Section, Filter, Query string
+	Replies                []reply
+	Extra                  []reply
+	HasMore                bool
+	Expanded               bool
+	Static                 bool
 }
 
 func readThread(r *http.Request) (thread, int) {
@@ -39,7 +41,7 @@ func readThread(r *http.Request) (thread, int) {
 	} else if more {
 		replies = replies[:2]
 	}
-	return thread{Theme: requestTheme(r), Parent: parent, Replies: limitReplyDepth(replies, 3), Extra: limitReplyDepth(extra, 3), HasMore: more, Expanded: expanded}, http.StatusOK
+	return thread{Theme: requestTheme(r), Filter: "all", Parent: parent, Replies: limitReplyDepth(replies, 3), Extra: limitReplyDepth(extra, 3), HasMore: more, Expanded: expanded}, http.StatusOK
 }
 
 func limitReplyDepth(replies []reply, depth int) []reply {
@@ -58,9 +60,15 @@ func limitReplyDepth(replies []reply, depth int) []reply {
 func threadPageHandler(w http.ResponseWriter, r *http.Request) {
 	t, status := readThread(r)
 	if status != http.StatusOK {
+		if status == http.StatusNotFound {
+			writeDetailNotFound(w, requestTheme(r))
+			return
+		}
 		http.Error(w, http.StatusText(status), status)
 		return
 	}
+	t.Parent.Feedback = feedbackSelections(r)[t.Parent.ID]
+	t.Static = true
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
 	_ = home.ExecuteTemplate(w, "thread-page", t)
