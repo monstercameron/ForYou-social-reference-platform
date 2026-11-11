@@ -1,0 +1,103 @@
+{
+  "profile": "ForYou strict Ed25519 v1",
+  "cases": [
+    {
+      "name": "valid",
+      "public_key_hex": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+      "message_hex": "466f72596f752073747269637420766563746f72207631",
+      "signature_hex": "7df7c1b01918063b1c1faaca825886a16e9c86a9c66521ee78147a1c7e77a4b4481437f19962804e6a9920ca34549886cc07357be73755d224235495e8ded104",
+      "valid": true
+    },
+    {
+      "name": "message_modified",
+      "public_key_hex": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+      "message_hex": "466f72596f752073747269637420766563746f7220763121",
+      "signature_hex": "7df7c1b01918063b1c1faaca825886a16e9c86a9c66521ee78147a1c7e77a4b4481437f19962804e6a9920ca34549886cc07357be73755d224235495e8ded104",
+      "valid": false
+    },
+    {
+      "name": "identity_public_key",
+      "public_key_hex": "0100000000000000000000000000000000000000000000000000000000000000",
+      "message_hex": "466f72596f752073747269637420766563746f72207631",
+      "signature_hex": "7df7c1b01918063b1c1faaca825886a16e9c86a9c66521ee78147a1c7e77a4b4481437f19962804e6a9920ca34549886cc07357be73755d224235495e8ded104",
+      "valid": false
+    },
+    {
+      "name": "identity_R",
+      "public_key_hex": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+      "message_hex": "466f72596f752073747269637420766563746f72207631",
+      "signature_hex": "0100000000000000000000000000000000000000000000000000000000000000481437f19962804e6a9920ca34549886cc07357be73755d224235495e8ded104",
+      "valid": false
+    },
+    {
+      "name": "order_two_public_key",
+      "public_key_hex": "ecffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f",
+      "message_hex": "466f72596f752073747269637420766563746f72207631",
+      "signature_hex": "7df7c1b01918063b1c1faaca825886a16e9c86a9c66521ee78147a1c7e77a4b4481437f19962804e6a9920ca34549886cc07357be73755d224235495e8ded104",
+      "valid": false
+    },
+    {
+      "name": "order_two_R",
+      "public_key_hex": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+      "message_hex": "466f72596f752073747269637420766563746f72207631",
+      "signature_hex": "ecffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f481437f19962804e6a9920ca34549886cc07357be73755d224235495e8ded104",
+      "valid": false
+    },
+    {
+      "name": "mixed_order_public_key",
+      "public_key_hex": "9599999999999999999999999999999999999999999999999999999999999999",
+      "message_hex": "466f72596f752073747269637420766563746f72207631",
+      "signature_hex": "7df7c1b01918063b1c1faaca825886a16e9c86a9c66521ee78147a1c7e77a4b4481437f19962804e6a9920ca34549886cc07357be73755d224235495e8ded104",
+      "valid": false
+    },
+    {
+      "name": "mixed_order_R",
+      "public_key_hex": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+      "message_hex": "466f72596f752073747269637420766563746f72207631",
+      "signature_hex": "9599999999999999999999999999999999999999999999999999999999999999481437f19962804e6a9920ca34549886cc07357be73755d224235495e8ded104",
+      "valid": false
+    },
+    {
+      "name": "noncanonical_y_public_key",
+      "public_key_hex": "edffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f",
+      "message_hex": "466f72596f752073747269637420766563746f72207631",
+      "signature_hex": "7df7c1b01918063b1c1faaca825886a16e9c86a9c66521ee78147a1c7e77a4b4481437f19962804e6a9920ca34549886cc07357be73755d224235495e8ded104",
+      "valid": false
+    },
+    {
+      "name": "noncanonical_y_R",
+      "public_key_hex": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+      "message_hex": "466f72596f752073747269637420766563746f72207631",
+      "signature_hex": "edffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f481437f19962804e6a9920ca34549886cc07357be73755d224235495e8ded104",
+      "valid": false
+    },
+    {
+      "name": "invalid_x_sign_public_key",
+      "public_key_hex": "0100000000000000000000000000000000000000000000000000000000000080",
+      "message_hex": "466f72596f752073747269637420766563746f72207631",
+      "signature_hex": "7df7c1b01918063b1c1faaca825886a16e9c86a9c66521ee78147a1c7e77a4b4481437f19962804e6a9920ca34549886cc07357be73755d224235495e8ded104",
+      "valid": false
+    },
+    {
+      "name": "invalid_x_sign_R",
+      "public_key_hex": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+      "message_hex": "466f72596f752073747269637420766563746f72207631",
+      "signature_hex": "0100000000000000000000000000000000000000000000000000000000000080481437f19962804e6a9920ca34549886cc07357be73755d224235495e8ded104",
+      "valid": false
+    },
+    {
+      "name": "scalar_equal_L",
+      "public_key_hex": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+      "message_hex": "466f72596f752073747269637420766563746f72207631",
+      "signature_hex": "7df7c1b01918063b1c1faaca825886a16e9c86a9c66521ee78147a1c7e77a4b4edd3f55c1a631258d69cf7a2def9de1400000000000000000000000000000010",
+      "valid": false
+    },
+    {
+      "name": "cofactored_only_forgery",
+      "public_key_hex": "9599999999999999999999999999999999999999999999999999999999999999",
+      "message_hex": "466f72596f75206d697865642d6f726465722072656772657373696f6e",
+      "signature_hex": "b862409fb5c4c4123df2abf7462b88f041ad36dd6864ce872fd5472be363c5b17419441927da79ea91c685a641620436a8a5e85e0f3c6d5aa485b5da260aa40d",
+      "valid": false
+    }
+  ]
+}
