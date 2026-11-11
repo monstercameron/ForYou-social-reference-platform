@@ -1,0 +1,4 @@
+Sources copied from the read-only specification checkout:
+- examples/post-comment-thread.json
+- examples/post-version-chain.json
+- examples/settlement.example.json
