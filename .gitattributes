@@ -1,0 +1,5 @@
+# Keep text files LF in every checkout: gofmt and the hooks reject CRLF in Go files.
+* text=auto eol=lf
+*.png binary
+*.mp4 binary
+*.exe binary
