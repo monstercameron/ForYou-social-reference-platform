@@ -1,0 +1,50 @@
+@layer components {
+  /* Post actions follow the width of their card, not of the window, so labels never crowd in a narrow column. */
+  .posts { container-type:inline-size; }
+  @container (max-width:540px) {
+    .posts > .post .post-action > span:not(.reply-text), .posts > .post .reply-label { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
+  }
+
+  @container (max-width:300px) {
+    .posts > .post .post-top .receipt-badge { display:none; }
+  }
+
+  /* Between tablet and desktop the navigation becomes an icon rail, which leaves the reading column and the side panels room. */
+  @media(min-width:851px) and (max-width:1100px) {
+    .layout { grid-template-columns:72px minmax(0,1fr) 280px; }
+    .layout-wide { grid-template-columns:72px minmax(0,1fr); }
+    .sidebar { align-items:center; padding:24px 8px; }
+    .brand-word, .nav-link span, .nav-compose span, .account-block > div { display:none; }
+    .sidebar-nav { width:100%; }
+    .nav-link, .nav-compose { justify-content:center; padding:10px; }
+    .rightbar-content { padding:16px; }
+  }
+
+  /* Past the layout's maximum width the page reads as one framed column set instead of three bands. */
+  @media(min-width:1441px) {
+    body { background:var(--rail); }
+    .layout { border-inline:1px solid var(--line); background:var(--bg); }
+  }
+
+  /* Short windows: the rails scroll on their own instead of clipping their last items. */
+  .sidebar, .rightbar-content { overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; }
+  .rightbar-content { max-height:100vh; }
+  @media(max-height:560px) and (min-width:541px) {
+    .sidebar { padding-top:16px; padding-bottom:12px; }
+    .sidebar-nav { margin-top:16px; gap:2px; }
+    .account-block { padding-top:8px; padding-bottom:0; }
+  }
+
+  /* Narrow phones: filters scroll sideways before they wrap or clip. */
+  .feed-filters { max-width:100%; overflow-x:auto; scrollbar-width:none; }
+  .feed-filters::-webkit-scrollbar { display:none; }
+
+  /* Media never grows taller than the window can show with its caption and actions. */
+  .posts > .post .post-media-frame, .posts > .post .post-gallery-frame { max-height:min(72vh,620px); }
+
+  /* Touch screens have no hover: lifts and tilts stay for pointers that can hover. */
+  @media(hover:none) {
+    .posts > .post:hover { border-color:var(--line); box-shadow:none; }
+    .post:hover > .identicon, .reply:hover > .identicon, .post-action:hover svg, .nav-link:hover svg, .detail-back:hover svg { transform:none; }
+  }
+}

@@ -10,6 +10,7 @@
 @import "./share.css";
 @import "./shared.css";
 @import "./motion.css";
+@import "./responsive.css";
 @source "../templates";
 
 @keyframes gallery-enter {
