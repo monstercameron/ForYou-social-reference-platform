@@ -1,11 +1,20 @@
 #!/bin/sh
-# Nothing reaches the remote unless the whole module is formatted, vets and passes its tests.
+# Format, lint and test the whole module, so nothing reaches the remote unchecked.
 set -e
+
+echo "pre-push: format"
 unformatted=$(gofmt -l .)
 if [ -n "$unformatted" ]; then
-  echo "pre-push: run gofmt on:" >&2
+  echo "run gofmt -w on:" >&2
   echo "$unformatted" >&2
   exit 1
 fi
+
+echo "pre-push: lint"
 go vet ./...
+if command -v staticcheck >/dev/null 2>&1; then
+  staticcheck ./...
+fi
+
+echo "pre-push: test"
 go test -count=1 ./...

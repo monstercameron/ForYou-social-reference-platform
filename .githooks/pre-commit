@@ -1,16 +1,24 @@
 #!/bin/sh
-# Checks only what is staged, so it stays fast. Enable with: git config core.hooksPath .githooks
+# Format, lint and test what is staged, so the hook stays fast.
+# Enable once per clone with: git config core.hooksPath .githooks
 set -e
 files=$(git diff --cached --name-only --diff-filter=ACMR -- '*.go')
 [ -z "$files" ] && exit 0
+packages=$(for f in $files; do dirname "$f"; done | sort -u | sed 's|^|./|')
 
+echo "pre-commit: format"
 unformatted=$(gofmt -l $files)
 if [ -n "$unformatted" ]; then
-  echo "pre-commit: run gofmt on:" >&2
+  echo "run gofmt -w on:" >&2
   echo "$unformatted" >&2
   exit 1
 fi
 
-packages=$(for f in $files; do dirname "$f"; done | sort -u | sed 's|^|./|')
+echo "pre-commit: lint"
 go vet $packages
+if command -v staticcheck >/dev/null 2>&1; then
+  staticcheck $packages
+fi
+
+echo "pre-commit: test"
 go test -count=1 $packages
