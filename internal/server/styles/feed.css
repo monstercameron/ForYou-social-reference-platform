@@ -1,1 +1,15 @@
-@layer components {}
+@layer components {
+  /* Ads have their own section; a reason line says why one is shown. */
+  .ads-note { margin:0 16px 12px; padding:10px 14px; border:1px solid var(--line); border-radius:12px; background:var(--subtle); color:var(--muted); font-size:13px; line-height:1.5; }
+  .posts > .post .post-why { display:inline-block; margin:8px 0 0 6px; border-radius:9999px; background:var(--accent-soft); padding:3px 9px; color:var(--accent); font-size:13px; }
+  .ads-panel h2 { margin-bottom:10px; }
+  .ads-panel ul { display:grid; gap:12px; margin:0; padding:0; list-style:none; }
+  .ads-panel li a { display:-webkit-box; overflow:hidden; -webkit-box-orient:vertical; -webkit-line-clamp:2; color:var(--text); font-size:14px; line-height:1.45; }
+  .ads-panel li a:hover { color:var(--accent); }
+  .ads-panel li span { display:block; margin-top:4px; color:var(--accent); font-size:12px; }
+  .ads-panel-all { display:inline-flex; min-height:44px; align-items:center; margin-top:4px; color:var(--accent); font-size:14px; font-weight:600; }
+  .ads-panel > p { margin:0; color:var(--muted); font-size:12px; }
+  /* Seven filters do not fit beside the title: they take their own row and scroll on narrow screens. */
+  .feed-heading { flex-wrap:wrap; }
+  @media(max-width:540px) { .ads-note { margin-right:12px; margin-left:12px; } }
+}

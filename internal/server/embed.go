@@ -31,6 +31,9 @@ var staticPostsByID = func() map[string]post {
 	for _, p := range staticDemoPosts {
 		byID[p.ID] = p
 	}
+	for _, p := range adsOutsideFeed {
+		byID[p.ID] = p
+	}
 	return byID
 }()
 

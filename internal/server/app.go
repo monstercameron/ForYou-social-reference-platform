@@ -91,5 +91,12 @@ func (a *App) layout(r *http.Request, section, title string) Layout {
 	if filter == "" {
 		filter = "all"
 	}
-	return Layout{Title: title, Section: section, Theme: requestTheme(r), Dev: a.config.Dev, Query: r.URL.Query().Get("q"), Filter: filter, Rightbar: section != "compose" && section != "settings" && section != "gallery"}
+	shell := Layout{Title: title, Section: section, Theme: requestTheme(r), Dev: a.config.Dev, Query: r.URL.Query().Get("q"), Filter: filter, Rightbar: section != "compose" && section != "settings" && section != "gallery"}
+	if shell.Rightbar {
+		shell.Ads = adsFor(r)
+		if len(shell.Ads) > 2 {
+			shell.Ads = shell.Ads[:2]
+		}
+	}
+	return shell
 }

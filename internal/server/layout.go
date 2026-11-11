@@ -14,6 +14,8 @@ type Layout struct {
 	Network               []NetworkLine
 	Query, Filter         string
 	Rightbar              bool
+	// Ads are the ads most relevant to this reader, for the right bar.
+	Ads []post
 }
 
 // NetworkLine describes one line in the local network summary.

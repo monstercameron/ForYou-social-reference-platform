@@ -5,3 +5,11 @@
   <div>{{template "layout-icon-nav-media" .}}<p>Images and videos are hosted separately.</p></div>
 </section>
 {{end}}
+{{define "layout-ads-panel"}}{{if .Ads}}
+<section class="component-card ads-panel" aria-label="Ads for you">
+  <h2>Ads for you</h2>
+  <ul>{{range .Ads}}<li><a href="/posts/{{.ID}}">{{.Text}}</a>{{if .Why}}<span>{{.Why}}</span>{{end}}</li>{{end}}</ul>
+  <a class="ads-panel-all" href="/?filter=ads&amp;theme={{.Theme}}">See all ads</a>
+  <p>Chosen on this device from your likes.</p>
+</section>
+{{end}}{{end}}

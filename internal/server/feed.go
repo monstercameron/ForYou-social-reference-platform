@@ -3,6 +3,7 @@ package server
 import (
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -26,10 +27,40 @@ type feedPage struct {
 	Anchor    string
 }
 
+// feedFilter is the reader's choice of posts: a kind of post, or their own
+// follows, likes or the ads section.
+type feedFilter struct {
+	name     string
+	followed map[string]bool
+	liked    map[string]bool
+}
+
+var feedFilterNames = []string{"all", "notes", "replies", "text", "images", "video", "following", "liked", "ads"}
+
+func (f feedFilter) matches(p post) bool {
+	switch f.name {
+	case "all", "ads":
+		return true
+	case "notes":
+		return !p.IsReply
+	case "replies":
+		return p.IsReply
+	case "following":
+		return f.followed[p.AuthorID]
+	case "liked":
+		return f.liked[p.ID]
+	}
+	return f.name == p.Kind
+}
+
 // matchingPosts counts through the requested limit but retains only the window.
-// One extra match determines whether another page exists.
-func matchingPosts(filter, query, anchor string, offset, limit int, added []post, followed map[string]bool) ([]post, string, int, bool) {
-	capacity := len(added) + len(staticDemoPosts)
+// One extra match determines whether another page exists. The lists are read
+// in order and never joined.
+func matchingPosts(f feedFilter, query, anchor string, offset, limit int, lists ...[]post) ([]post, string, int, bool) {
+	capacity := 0
+	for _, list := range lists {
+		capacity += len(list)
+	}
 	if capacity > limit-offset {
 		capacity = limit - offset
 	}
@@ -38,10 +69,9 @@ func matchingPosts(filter, query, anchor string, offset, limit int, added []post
 	found := anchor == ""
 	first := ""
 	count := 0
-	appendMatches := func(posts []post) bool {
-		for _, p := range posts {
-			matchesFilter := filter == "all" || filter == p.Kind || (filter == "notes" && !p.IsReply) || (filter == "replies" && p.IsReply) || (filter == "following" && followed[p.AuthorID])
-			if !matchesFilter {
+	for _, list := range lists {
+		for _, p := range list {
+			if !f.matches(p) {
 				continue
 			}
 			if needle != "" && !strings.Contains(strings.ToLower(p.Receipt+" "+p.Text), needle) {
@@ -58,16 +88,12 @@ func matchingPosts(filter, query, anchor string, offset, limit int, added []post
 			}
 			count++
 			if count > limit {
-				return true
+				return filtered, first, count, found
 			}
 			if count > offset {
 				filtered = append(filtered, p)
 			}
 		}
-		return false
-	}
-	if !appendMatches(added) {
-		appendMatches(staticDemoPosts)
 	}
 	return filtered, first, count, found
 }
@@ -81,7 +107,7 @@ func (a *App) readFeedRequest(r *http.Request, more bool) (feedPage, bool) {
 	if filter == "" {
 		filter = "all"
 	}
-	if filter != "all" && filter != "notes" && filter != "replies" && filter != "text" && filter != "images" && filter != "video" && filter != "following" {
+	if !slices.Contains(feedFilterNames, filter) {
 		return feedPage{}, false
 	}
 	query := strings.TrimSpace(values.Get("q"))
@@ -115,7 +141,18 @@ func (a *App) readFeedRequest(r *http.Request, more bool) (feedPage, bool) {
 	if store := a.store; store != nil {
 		added = store.list()
 	}
-	posts, first, count, found := matchingPosts(filter, query, anchor, offset, limit, added, followSet(r))
+	lists := [][]post{added, staticDemoPosts}
+	chosen := feedFilter{name: filter}
+	switch filter {
+	case "following":
+		chosen.followed = followSet(r)
+	case "liked":
+		chosen.liked = likedSet(r)
+		lists = append(lists, adsOutsideFeed)
+	case "ads":
+		lists = [][]post{adsFor(r)}
+	}
+	posts, first, count, found := matchingPosts(chosen, query, anchor, offset, limit, lists...)
 	if !found {
 		return feedPage{}, false
 	}
