@@ -1,6 +1,7 @@
 package faux
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"os"
@@ -216,11 +217,108 @@ func TestLedgerMutationFailures(t *testing.T) {
 	})
 	t.Run("journal_rejects_malformed_records", func(t *testing.T) {
 		path := filepath.Join(t.TempDir(), "invalid.jsonl")
-		if err := os.WriteFile(path, []byte("{invalid}\n"), 0600); err != nil {
+		if err := os.WriteFile(path, []byte("{invalid}\n{}\n"), 0600); err != nil {
 			t.Fatal(err)
 		}
 		if _, err := Open(Config{JournalPath: path, Now: fixedClock()}); err == nil {
 			t.Fatal("opened malformed journal")
 		}
 	})
+}
+
+func journalLinesWithThreeTransfers(t *testing.T, path string) [][]byte {
+	t.Helper()
+	ledger, err := Open(Config{JournalPath: path, Now: fixedClock()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ledger.Submit(context.Background(), SubmitRequest{Network: BitcoinMainnet, Recipient: DevAddress(BitcoinMainnet, "alice"), AmountChainUnits: "1", ClientRef: "first"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ledger.Submit(context.Background(), SubmitRequest{Network: BitcoinMainnet, Recipient: DevAddress(BitcoinMainnet, "alice"), AmountChainUnits: "2", ClientRef: "second"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ledger.Submit(context.Background(), SubmitRequest{Network: BitcoinMainnet, Recipient: DevAddress(BitcoinMainnet, "alice"), AmountChainUnits: "3", ClientRef: "torn-third"}); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return bytes.Split(data[:len(data)-1], []byte{'\n'})
+}
+
+func TestLedgerJournalRecoversTornFinalRecord(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "faux.jsonl")
+	lines := journalLinesWithThreeTransfers(t, path)
+	validPrefix := append(append(append([]byte{}, lines[0]...), '\n'), lines[1]...)
+	validPrefix = append(validPrefix, '\n')
+	torn := append(append([]byte{}, validPrefix...), lines[2][:len(lines[2])/2]...)
+	if err := os.WriteFile(path, torn, 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	ledger, err := Open(Config{JournalPath: path, Now: fixedClock()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	transfers, err := ledger.Transfers(context.Background(), Query{Network: BitcoinMainnet, Limit: 1000})
+	if err != nil || len(transfers) != 2 {
+		t.Fatalf("transfers = %+v, %v; want the first two records", transfers, err)
+	}
+	gotJournal, err := os.ReadFile(path)
+	if err != nil || !bytes.Equal(gotJournal, validPrefix) {
+		t.Fatalf("journal after recovery = %q, %v; want %q", gotJournal, err, validPrefix)
+	}
+
+	retry, err := ledger.Submit(context.Background(), SubmitRequest{Network: BitcoinMainnet, Recipient: DevAddress(BitcoinMainnet, "alice"), AmountChainUnits: "3", ClientRef: "torn-third"})
+	if err != nil || retry.Sequence != 3 {
+		t.Fatalf("retry = %+v, %v; want a new third transfer", retry, err)
+	}
+}
+
+func TestLedgerJournalRejectsDamagedMiddleRecordWithoutChangingFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "faux.jsonl")
+	lines := journalLinesWithThreeTransfers(t, path)
+	damaged := append([]byte{}, lines[1]...)
+	damaged[0] = '['
+	contents := append(append(append(append([]byte{}, lines[0]...), '\n'), damaged...), '\n')
+	contents = append(contents, lines[2]...)
+	contents = append(contents, '\n')
+	if err := os.WriteFile(path, contents, 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := Open(Config{JournalPath: path, Now: fixedClock()}); err == nil {
+		t.Fatal("opened journal with a damaged middle record")
+	}
+	got, err := os.ReadFile(path)
+	if err != nil || !bytes.Equal(got, contents) {
+		t.Fatalf("journal after failed open = %q, %v; want unchanged %q", got, err, contents)
+	}
+}
+
+func TestLedgerJournalAcceptsValidFinalRecordWithoutNewline(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "faux.jsonl")
+	lines := journalLinesWithThreeTransfers(t, path)
+	if err := os.WriteFile(path, append([]byte{}, lines[0]...), 0600); err != nil {
+		t.Fatal(err)
+	}
+	request := SubmitRequest{Network: BitcoinMainnet, Recipient: DevAddress(BitcoinMainnet, "alice"), AmountChainUnits: "4", ClientRef: "after-unterminated"}
+	ledger, err := Open(Config{JournalPath: path, Now: fixedClock()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ledger.Submit(context.Background(), request); err != nil {
+		t.Fatal(err)
+	}
+
+	reopened, err := Open(Config{JournalPath: path, Now: fixedClock()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	transfers, err := reopened.Transfers(context.Background(), Query{Network: BitcoinMainnet, Limit: 1000})
+	if err != nil || len(transfers) != 2 || transfers[1].ClientRef != request.ClientRef {
+		t.Fatalf("replayed transfers = %+v, %v; want original and appended transfer", transfers, err)
+	}
 }

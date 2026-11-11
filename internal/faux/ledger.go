@@ -1,13 +1,13 @@
 package faux
 
 import (
-	"bufio"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -172,21 +172,64 @@ func Open(cfg Config) (*Ledger, error) {
 		return nil, err
 	}
 	defer f.Close()
-	scanner := bufio.NewScanner(f)
-	scanner.Buffer(make([]byte, 64*1024), 2<<20)
-	for scanner.Scan() {
-		var record journalRecord
-		if err := json.Unmarshal(scanner.Bytes(), &record); err != nil {
-			return nil, fmt.Errorf("faux: invalid journal: %w", err)
-		}
-		if err := l.replay(record); err != nil {
-			return nil, fmt.Errorf("faux: invalid journal: %w", err)
-		}
-	}
-	if err := scanner.Err(); err != nil {
+	data, err := io.ReadAll(f)
+	if err != nil {
 		return nil, err
 	}
+	start := 0
+	for start < len(data) {
+		end := start
+		for end < len(data) && data[end] != '\n' {
+			end++
+		}
+		terminated := end < len(data)
+		var record journalRecord
+		recordErr := json.Unmarshal(data[start:end], &record)
+		if recordErr == nil {
+			recordErr = l.replay(record)
+		}
+		if recordErr != nil {
+			if terminated && end+1 < len(data) {
+				return nil, fmt.Errorf("faux: invalid journal: %w", recordErr)
+			}
+			if err := truncateJournal(cfg.JournalPath, int64(start)); err != nil {
+				return nil, err
+			}
+			break
+		}
+		if !terminated {
+			file, err := os.OpenFile(cfg.JournalPath, os.O_WRONLY|os.O_APPEND, 0600)
+			if err != nil {
+				return nil, err
+			}
+			_, writeErr := file.Write([]byte{'\n'})
+			if writeErr == nil {
+				writeErr = file.Sync()
+			}
+			closeErr := file.Close()
+			if writeErr != nil {
+				return nil, writeErr
+			}
+			if closeErr != nil {
+				return nil, closeErr
+			}
+			break
+		}
+		start = end + 1
+	}
 	return l, nil
+}
+
+func truncateJournal(path string, size int64) error {
+	file, err := os.OpenFile(path, os.O_WRONLY, 0600)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	if err := file.Truncate(size); err != nil {
+		return err
+	}
+	return file.Sync()
 }
 
 func supported(network string) bool { return network == BitcoinMainnet || network == EthereumMainnet }
