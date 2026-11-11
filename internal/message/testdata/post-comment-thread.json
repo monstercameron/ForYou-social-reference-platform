@@ -1,0 +1,145 @@
+{
+  "status": "SYNTHETIC ONLY: public test keys, imaginary balances and test amounts. Not an activated schedule, funding proof, debit proof or deployment.",
+  "description": "Synthetic signed posts linked by immutable reply_to IDs.",
+  "schedule": {
+    "profile_major": 2,
+    "profile_minor": 0,
+    "revision": 1,
+    "network": "bitcoin-mainnet",
+    "denomination": "millisatoshi",
+    "base_fee_base_units": "1",
+    "per_kib_fee_base_units": "1",
+    "effective_at": "2026-01-01T00:00:00Z",
+    "expires_at": "2027-01-01T00:00:00Z",
+    "schedule_id": "fyfs2:28f524f836f7e81dc358cf5d86711185cad127a876cec0b1d770db471a5dc854"
+  },
+  "quotes": [
+    {
+      "provider_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+      "author_id": "did:key:z6MkehRgf7yJbgaGfYsdoAsKdBPE3dj2CYhowQdcjqSJgvVd",
+      "message_id": "fy1:52ef5b8da8d2dfe1da62510f148807fe1e098ba633299e2722a7c5f529981f67",
+      "schedule_id": "fyfs2:28f524f836f7e81dc358cf5d86711185cad127a876cec0b1d770db471a5dc854",
+      "billable_bytes": 253,
+      "network": "bitcoin-mainnet",
+      "amount_base_units": "2",
+      "preflight_at": "2026-11-11T00:00:01Z",
+      "expires_at": "2026-11-11T00:10:00Z",
+      "quote_id": "fyfq2:146b8a1bae0a9342852fae981074bf6e763abff064529c914e71158876d9fcb6",
+      "provider_signature": "oqrFMH6Pbk-QHszd9fZYxIEscR3KvkdaH8FgMhQDzIrZlRnPnDYVtFsM2YizK9Ara19oVE62K9wCIGs0jq77CQ"
+    },
+    {
+      "provider_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+      "author_id": "did:key:z6Mkg26jczDiqsPK4momfvhZTTyFefWEyxYiSisFJ2wWJFkg",
+      "message_id": "fy1:42b8efb077bb3542a6a49cdab628e002571d5efcd841fb187142faa80c4a3fad",
+      "schedule_id": "fyfs2:28f524f836f7e81dc358cf5d86711185cad127a876cec0b1d770db471a5dc854",
+      "billable_bytes": 322,
+      "network": "bitcoin-mainnet",
+      "amount_base_units": "2",
+      "preflight_at": "2026-11-11T00:00:02Z",
+      "expires_at": "2026-11-11T00:10:00Z",
+      "quote_id": "fyfq2:a15e90131514857a0275ea3e44215d066d240a2be847f13deeff5ea6572ab03b",
+      "provider_signature": "OMe_O23s3aY9xniqbUjlpa3OD9C6pgkcVGx1P983HLb08j8c9dYw2cuGUyhEiU7kQXP895HjkAdtOGniqPPBCw"
+    },
+    {
+      "provider_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+      "author_id": "did:key:z6MkehRgf7yJbgaGfYsdoAsKdBPE3dj2CYhowQdcjqSJgvVd",
+      "message_id": "fy1:fd23c3b0539258425ec1c0faa056465777e5d5b2d92ef390a71f164748b1f6f8",
+      "schedule_id": "fyfs2:28f524f836f7e81dc358cf5d86711185cad127a876cec0b1d770db471a5dc854",
+      "billable_bytes": 310,
+      "network": "bitcoin-mainnet",
+      "amount_base_units": "2",
+      "preflight_at": "2026-11-11T00:00:03Z",
+      "expires_at": "2026-11-11T00:10:00Z",
+      "quote_id": "fyfq2:33ba35ceab4dadb9d96e2d4c61d1b5fec026ac7946c4c34d81c7c0c7b9f4d930",
+      "provider_signature": "XrdJJvIGXyKuhNlm6UdrCRCmVvbkkgDhdICWZNh7_c78B28m_4_XiEM0l7bRkrUdQ654axxoltS5nWUAOEsGAQ"
+    }
+  ],
+  "messages": [
+    {
+      "author_id": "did:key:z6MkehRgf7yJbgaGfYsdoAsKdBPE3dj2CYhowQdcjqSJgvVd",
+      "timestamp": "2026-11-11T00:00:01Z",
+      "message_type": "post",
+      "version": {
+        "major": 2,
+        "minor": 0
+      },
+      "payload": {
+        "content_format": "text/plain",
+        "text": "A public text post with no hosted media."
+      },
+      "message_id": "fy1:52ef5b8da8d2dfe1da62510f148807fe1e098ba633299e2722a7c5f529981f67",
+      "submission_receipt": {
+        "provider_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+        "author_id": "did:key:z6MkehRgf7yJbgaGfYsdoAsKdBPE3dj2CYhowQdcjqSJgvVd",
+        "message_id": "fy1:52ef5b8da8d2dfe1da62510f148807fe1e098ba633299e2722a7c5f529981f67",
+        "receipt_id": "IPk9rALoLfalCtchMJByqsTqWvvsW_C-ZLbgI2mBnbw",
+        "quote_id": "fyfq2:146b8a1bae0a9342852fae981074bf6e763abff064529c914e71158876d9fcb6",
+        "schedule_id": "fyfs2:28f524f836f7e81dc358cf5d86711185cad127a876cec0b1d770db471a5dc854",
+        "network": "bitcoin-mainnet",
+        "amount_base_units": "2",
+        "authorization_at": "2026-11-11T00:00:01Z",
+        "issued_at": "2026-11-11T00:00:01Z",
+        "provider_signature": "o_x4qGkxSBZHNFpWd9A4SGPPn0T21qlJ97MjaqXUFPFLRACeMueOrb-euM7SP51hL-TkYXyO6oGfUYdUTG1UAg"
+      },
+      "signature": "OtMc9q3EAPVZzSEOT4sbZtQBv3eiXoXhtrjz6Cg6MRqPXGU1B5qVzCzx-lRC39Im0UgbAVNuJNnniW53y1N7Bg"
+    },
+    {
+      "author_id": "did:key:z6Mkg26jczDiqsPK4momfvhZTTyFefWEyxYiSisFJ2wWJFkg",
+      "timestamp": "2026-11-11T00:00:02Z",
+      "message_type": "post",
+      "version": {
+        "major": 2,
+        "minor": 0
+      },
+      "payload": {
+        "content_format": "text/plain",
+        "text": "A reply to the public post.",
+        "reply_to": "fy1:52ef5b8da8d2dfe1da62510f148807fe1e098ba633299e2722a7c5f529981f67"
+      },
+      "message_id": "fy1:42b8efb077bb3542a6a49cdab628e002571d5efcd841fb187142faa80c4a3fad",
+      "submission_receipt": {
+        "provider_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+        "author_id": "did:key:z6Mkg26jczDiqsPK4momfvhZTTyFefWEyxYiSisFJ2wWJFkg",
+        "message_id": "fy1:42b8efb077bb3542a6a49cdab628e002571d5efcd841fb187142faa80c4a3fad",
+        "receipt_id": "7Ie9vb5zcLdCHUnt00_uD9qj-EY0pqt9uD-hfwg6OjM",
+        "quote_id": "fyfq2:a15e90131514857a0275ea3e44215d066d240a2be847f13deeff5ea6572ab03b",
+        "schedule_id": "fyfs2:28f524f836f7e81dc358cf5d86711185cad127a876cec0b1d770db471a5dc854",
+        "network": "bitcoin-mainnet",
+        "amount_base_units": "2",
+        "authorization_at": "2026-11-11T00:00:02Z",
+        "issued_at": "2026-11-11T00:00:02Z",
+        "provider_signature": "uikrfFC1YkDhEeoNyGh6-CKaOgLwwmAHe0TdqhRTvDnA51xAJd4gvdPkFM4eXS2TN_WwOxLjy4_2mIMcsEuVCA"
+      },
+      "signature": "7-P8ylhBEw49IsdHptokmjTPH5XfSkbASRLHKNzCyHOnaekI-UMIpmnStiEgyJxWNTyOSZCtOeE_1k3omUkIAA"
+    },
+    {
+      "author_id": "did:key:z6MkehRgf7yJbgaGfYsdoAsKdBPE3dj2CYhowQdcjqSJgvVd",
+      "timestamp": "2026-11-11T00:00:03Z",
+      "message_type": "post",
+      "version": {
+        "major": 2,
+        "minor": 0
+      },
+      "payload": {
+        "content_format": "text/plain",
+        "text": "A nested reply.",
+        "reply_to": "fy1:42b8efb077bb3542a6a49cdab628e002571d5efcd841fb187142faa80c4a3fad"
+      },
+      "message_id": "fy1:fd23c3b0539258425ec1c0faa056465777e5d5b2d92ef390a71f164748b1f6f8",
+      "submission_receipt": {
+        "provider_id": "did:key:z6MkhFwXNFWosLeugvSf4wcL9t3uuRXueGSFTRgSvHhWj5G2",
+        "author_id": "did:key:z6MkehRgf7yJbgaGfYsdoAsKdBPE3dj2CYhowQdcjqSJgvVd",
+        "message_id": "fy1:fd23c3b0539258425ec1c0faa056465777e5d5b2d92ef390a71f164748b1f6f8",
+        "receipt_id": "rXugUXk5WKN-nJ673wpt1cFBbr8OlAqO-SQN8228_PI",
+        "quote_id": "fyfq2:33ba35ceab4dadb9d96e2d4c61d1b5fec026ac7946c4c34d81c7c0c7b9f4d930",
+        "schedule_id": "fyfs2:28f524f836f7e81dc358cf5d86711185cad127a876cec0b1d770db471a5dc854",
+        "network": "bitcoin-mainnet",
+        "amount_base_units": "2",
+        "authorization_at": "2026-11-11T00:00:03Z",
+        "issued_at": "2026-11-11T00:00:03Z",
+        "provider_signature": "7So2Q30T3G9yeQPf2X3mf34xpsd1YyciCXF5ik1xtAR5oVKv2xm1quSv3ywRU6upHAGqFW60Aib6fSTLpIa4Ag"
+      },
+      "signature": "-XevENi5nVwXhFL0Vt5NJlXq87_cv1g_7NvntR4ZythKiIPRMYVh4DMPGORbc_N2VT7E-RBSOTNA5NBjeuqKCw"
+    }
+  ]
+}
