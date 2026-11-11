@@ -114,7 +114,7 @@ func New(cfg Config) (*Service, error) {
 	if cfg.Members == nil {
 		cfg.Members = []keys.PrivateKey{devnet.MonitorKey(0), devnet.MonitorKey(1), devnet.MonitorKey(2), devnet.MonitorKey(3), devnet.MonitorKey(4)}
 	}
-	certificates := devnet.Certificates(cfg.Now())
+	certificates := devnet.Certificates(cfg.Now().UTC().Truncate(time.Second))
 	trust, err := governance.NewTrust(cfg.Genesis, nil, certificates[1:], nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("monitor: build trust: %w", err)
@@ -264,8 +264,8 @@ func (s *Service) DB() *store.DB { return s.shared }
 // View returns the verified trust and committee view.
 func (s *Service) View() *View { return s.view }
 
-// Now returns the configured service time.
-func (s *Service) Now() time.Time { return s.config.Now() }
+// Now returns the service time in UTC and whole seconds, as every protocol time is.
+func (s *Service) Now() time.Time { return s.config.Now().UTC().Truncate(time.Second) }
 
 // Peers returns a copy of configured peer base URLs.
 func (s *Service) Peers() map[string]string {

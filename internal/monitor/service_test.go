@@ -305,3 +305,22 @@ func mustTrust(t *testing.T) *governance.Trust {
 	}
 	return trust
 }
+
+func TestClockIsWholeSecondsForTrust(t *testing.T) {
+	fractional := time.Date(2026, 11, 11, 23, 4, 21, 123456789, time.FixedZone("local", -5*3600))
+	ledger, err := faux.Open(faux.Config{Now: func() time.Time { return fractional }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	svc, err := New(Config{Genesis: devnet.Genesis(), DataDir: t.TempDir(), Now: func() time.Time { return fractional }, Faux: ledger})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer svc.Close()
+	if got, want := svc.Now(), time.Date(2026, 11, 12, 4, 4, 21, 0, time.UTC); !got.Equal(want) || got.Location() != time.UTC {
+		t.Errorf("Now() = %v; want %v in UTC", got, want)
+	}
+	if _, ok := svc.View().Trust().CurrentFoundationID(svc.Now()); !ok {
+		t.Error("with a wall clock that has fractions of a second, the genesis Foundation key must still be in force")
+	}
+}

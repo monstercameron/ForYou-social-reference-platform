@@ -41,7 +41,7 @@ func New(cfg Config) (*Service, error) {
 		cfg.HeadInterval = time.Hour
 	}
 	cfg = cloneConfig(cfg)
-	now := cfg.Clock()
+	now := cfg.Clock().UTC().Truncate(time.Second)
 	trust, err := cfg.validate(now)
 	if err != nil {
 		return nil, err
@@ -139,8 +139,8 @@ func (s *Service) Run(ctx context.Context) error {
 	return ctx.Err()
 }
 
-// Clock returns the configured service clock in UTC.
-func (s *Service) Clock() time.Time { return s.cfg.Clock().UTC() }
+// Clock returns the service time in UTC and whole seconds, as every protocol time is.
+func (s *Service) Clock() time.Time { return s.cfg.Clock().UTC().Truncate(time.Second) }
 
 // Trust returns the verified trust state for certificates issued by the current time.
 func (s *Service) Trust() *governance.Trust {

@@ -127,3 +127,18 @@ func signedReceipt(t *testing.T, service *Service, messageID, storedAt string) (
 	}
 	return entry, signed
 }
+
+func TestClockIsWholeSecondsForTrust(t *testing.T) {
+	fractional := time.Date(2026, 11, 11, 23, 4, 21, 123456789, time.FixedZone("local", -5*3600))
+	service, err := New(testConfig(t, &fractional))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer service.Close()
+	if got, want := service.Clock(), time.Date(2026, 11, 12, 4, 4, 21, 0, time.UTC); !got.Equal(want) || got.Location() != time.UTC {
+		t.Errorf("Clock() = %v; want %v in UTC", got, want)
+	}
+	if _, ok := service.Trust().CurrentFoundationID(service.Clock()); !ok {
+		t.Error("with a wall clock that has fractions of a second, the Foundation key must still be in force")
+	}
+}
