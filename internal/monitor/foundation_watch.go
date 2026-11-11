@@ -99,7 +99,7 @@ func watchFoundation(s *Service, parent context.Context) error {
 		return err
 	}
 	baseTrust := s.View().Trust()
-	foundationID, ok := baseTrust.CurrentFoundationID(s.Now())
+	foundationID, ok := alFoundationID(s)
 	if !ok {
 		log.Printf("monitor: foundation watch: no current certified Foundation key")
 		return nil

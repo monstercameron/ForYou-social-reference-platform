@@ -282,6 +282,13 @@ func (v *View) Trust() *governance.Trust {
 	return v.trust
 }
 
+// SetTrust replaces the verified Foundation trust used for later policy checks.
+func (v *View) SetTrust(trust *governance.Trust) {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+	v.trust = trust
+}
+
 // Close flushes and closes the view journal.
 func (v *View) Close() error { return v.db.Close() }
 
