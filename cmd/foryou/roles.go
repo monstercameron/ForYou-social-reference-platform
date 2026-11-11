@@ -18,7 +18,7 @@ type service interface {
 type builder func(roleConfig) (service, error)
 
 // builders maps each role to its current service builder.
-var builders = demoBuilders()
+var builders = map[string]builder{}
 
 // registerRole replaces the builder for a role in roleOrder.
 func registerRole(name string, b builder) {
