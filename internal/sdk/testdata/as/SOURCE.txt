@@ -1,0 +1,5 @@
+Sources from ForYou-Social-Ecosystem-Specification at commit eefdeaeae02b2a7a89ef441aea8ff02589450772:
+examples/post-version-chain.json
+examples/post-comment-thread.json
+examples/post-with-refs.json
+examples/settlement.example.json
