@@ -40,14 +40,15 @@ type vaultTestWorld struct {
 	leaves      []wire.SettlementLeaf
 	witnesses   []wire.SettlementWitness
 
-	mu             sync.Mutex
-	serveProof     bool
-	shownWitnesses int
-	vaultHolds     bool
-	vaultNotReady  bool
-	changesAfter   []string
-	deliveries     []wire.VaultDelivery
-	deliveredBytes []json.RawMessage
+	mu                sync.Mutex
+	serveProof        bool
+	shownWitnesses    int
+	vaultHolds        bool
+	vaultNotReady     bool
+	changesAfter      []string
+	changesProviderID string
+	deliveries        []wire.VaultDelivery
+	deliveredBytes    []json.RawMessage
 }
 
 func TestVaultDelivery(t *testing.T) {
@@ -133,6 +134,20 @@ func TestVaultDelivery(t *testing.T) {
 			t.Errorf("delivery attempts = %d; want the refused one and one retry", len(w.deliveries))
 		}
 	})
+	t.Run("provider identity mismatch does not deliver or advance the cursor", func(t *testing.T) {
+		w := vaultNewWorld(t)
+		w.changesProviderID = keys.DIDOf(devnet.ProviderKey(1))
+		w.runOnce(t)
+		w.runOnce(t)
+		w.mu.Lock()
+		defer w.mu.Unlock()
+		if len(w.deliveries) != 0 {
+			t.Errorf("deliveries = %d; want 0", len(w.deliveries))
+		}
+		if strings.Join(w.changesAfter, ",") != "0,0" {
+			t.Errorf("changes requested after %v; want 0 on both passes", w.changesAfter)
+		}
+	})
 }
 
 func vaultNewWorld(t *testing.T) *vaultTestWorld {
@@ -167,23 +182,23 @@ func vaultNewWorld(t *testing.T) *vaultTestWorld {
 	w.witnesses = []wire.SettlementWitness{
 		vaultTestWitness(t, 0, w.claim), vaultTestWitness(t, 1, w.claim), vaultTestWitness(t, 2, w.claim), vaultTestWitness(t, 3, w.claim),
 	}
-	manifest := vaultTestManifest(t, providerKey)
-
 	provider := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		w.mu.Lock()
 		defer w.mu.Unlock()
 		rw.Header().Set("Content-Type", "application/json")
 		switch {
-		case r.URL.Path == "/.well-known/foryou-operator.json":
-			_, _ = rw.Write(manifest)
 		case r.URL.Path == "/v1/changes":
 			after := r.URL.Query().Get("after")
 			w.changesAfter = append(w.changesAfter, after)
+			changesProviderID := w.changesProviderID
+			if changesProviderID == "" {
+				changesProviderID = providerID
+			}
 			if after == "0" {
-				_, _ = io.WriteString(rw, `{"items":[{"message":`+string(w.message)+`,"sequence":1}],"more":false,"next_after":1,"provider_id":"`+providerID+`"}`)
+				_, _ = io.WriteString(rw, `{"items":[{"message":`+string(w.message)+`,"sequence":1}],"more":false,"next_after":1,"provider_id":"`+changesProviderID+`"}`)
 				return
 			}
-			_, _ = io.WriteString(rw, `{"items":[],"more":false,"next_after":1,"provider_id":"`+providerID+`"}`)
+			_, _ = io.WriteString(rw, `{"items":[],"more":false,"next_after":1,"provider_id":"`+changesProviderID+`"}`)
 		case r.URL.Path == "/v1/settlements/"+w.receipt.ReceiptID && w.serveProof:
 			proof, err := settlement.BuildProof(w.claim, w.leaves, 0, w.witnesses, nil)
 			if err != nil {
@@ -324,29 +339,6 @@ func vaultTestMessage(t *testing.T, providerKey keys.PrivateKey, issuedAt time.T
 		t.Fatal(err)
 	}
 	return raw, receipt
-}
-
-func vaultTestManifest(t *testing.T, key keys.PrivateKey) []byte {
-	t.Helper()
-	manifest := wire.OperatorManifest{
-		OperatorID: keys.DIDOf(key), ManifestVersion: 1, IssuedAt: wire.FormatTime(vaultTestNow.Add(-time.Hour)), ExpiresAt: wire.FormatTime(vaultTestNow.Add(29 * 24 * time.Hour)),
-		ServiceRoles: []string{"storage"}, ServiceEndpoints: []string{"https://provider.example"}, SupportedProfiles: []string{"ForYouExportSet-1"},
-		PolicyURL: "https://provider.example/policy", PolicyDigest: strings.Repeat("a", 64), LegalContact: "legal@example.org", AbuseContact: "abuse@example.org",
-		PrivacyContact: "privacy@example.org", AppealURL: "https://provider.example/appeal", MarketsAssessed: []string{},
-	}
-	unsigned, err := canon.EncodeWithout(manifest, "signature")
-	if err != nil {
-		t.Fatal(err)
-	}
-	manifest.Signature, err = keys.Sign(key, "operator-manifest", unsigned)
-	if err != nil {
-		t.Fatal(err)
-	}
-	raw, err := canon.Encode(manifest)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return raw
 }
 
 func vaultTestReceipt(t *testing.T, messageID string) wire.VaultReceipt {

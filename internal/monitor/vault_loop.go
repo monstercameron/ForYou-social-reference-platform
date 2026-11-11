@@ -70,9 +70,9 @@ func vaultDeliver(s *Service, ctx context.Context) error {
 		proofContext.PreviousCommittee = previous
 		proofContext.ChangedAt = &changedAt
 	}
-	for _, providerURL := range s.Providers() {
-		if err := vaultFollowProvider(s, ctx, providerURL, vault, proofContext); err != nil {
-			log.Printf("monitor: vault delivery from %s: %v", providerURL, err)
+	for _, provider := range s.ProviderList() {
+		if err := vaultFollowProvider(s, ctx, provider, vault, proofContext); err != nil {
+			log.Printf("monitor: vault delivery from %s (%s): %v", provider.ID, provider.URL, err)
 		}
 	}
 	return nil
@@ -87,34 +87,17 @@ func vaultOnCommittee(s *Service, now time.Time) bool {
 	return false
 }
 
-// vaultProviderClient pins the provider to the operator key of its self-signed manifest. The core
-// configures provider URLs only; nothing delivered depends on this pin, because every delivery
-// carries a settlement proof verified against the committee.
-func vaultProviderClient(s *Service, ctx context.Context, providerURL string, placeholderID string) (*sdk.Client, string, error) {
-	// OperatorManifest does not read the pin, so the bootstrap client may use any valid did:key.
-	bootstrap, err := sdk.New(providerURL, sdk.Options{ServiceID: placeholderID, AllowLoopbackHTTP: true, HTTPClient: s.HTTPClient(), Now: s.Now})
-	if err != nil {
-		return nil, "", err
-	}
-	manifest, raw, err := bootstrap.OperatorManifest(ctx)
-	if err != nil {
-		return nil, "", err
-	}
-	if status := sdk.NewManifestPins().Check(manifest.OperatorID, raw, manifest, s.Now()); status != sdk.ManifestCurrent {
-		return nil, "", fmt.Errorf("operator manifest is %s", status)
-	}
-	client, err := sdk.New(providerURL, sdk.Options{ServiceID: manifest.OperatorID, AllowLoopbackHTTP: true, HTTPClient: s.HTTPClient(), Now: s.Now})
-	if err != nil {
-		return nil, "", err
-	}
-	return client, manifest.OperatorID, nil
+// vaultProviderClient pins the provider client to its locally configured identity.
+func vaultProviderClient(s *Service, provider Provider) (*sdk.Client, error) {
+	return sdk.New(provider.URL, sdk.Options{ServiceID: provider.ID, AllowLoopbackHTTP: true, HTTPClient: s.HTTPClient(), Now: s.Now})
 }
 
-func vaultFollowProvider(s *Service, ctx context.Context, providerURL string, vault *sdk.Client, proofContext settlement.ProofContext) error {
-	provider, providerID, err := vaultProviderClient(s, ctx, providerURL, vault.ServiceID())
+func vaultFollowProvider(s *Service, ctx context.Context, configured Provider, vault *sdk.Client, proofContext settlement.ProofContext) error {
+	provider, err := vaultProviderClient(s, configured)
 	if err != nil {
 		return err
 	}
+	providerURL, providerID := configured.URL, configured.ID
 	budget := vaultRecordsPerPass
 	retries, err := vaultListPending(s, providerURL, providerID)
 	if err != nil {
@@ -355,11 +338,11 @@ func vaultLeaves(ctx context.Context, provider *sdk.Client, claim wire.Settlemen
 	return leaves, nil
 }
 
-// vaultMemberWitnesses reads the hosted members' witness pages in process; Member.Do is the only access to that state.
+// vaultMemberWitnesses reads the hosted members' witness pages in process.
 func vaultMemberWitnesses(s *Service, providerID, network string, afterSequence int64) map[string][]wire.SettlementWitness {
 	byClaim := make(map[string][]wire.SettlementWitness)
 	for _, member := range s.Members() {
-		if err := member.Do(func(m *committee.Monitor) error {
+		if err := member.View(func(m *committee.Monitor) error {
 			for _, witness := range m.Page(providerID, network, afterSequence, vaultChainLimit+1).Witnesses {
 				byClaim[witness.ClaimID] = append(byClaim[witness.ClaimID], witness)
 			}

@@ -99,6 +99,21 @@ func (m *Member) Do(fn func(*committee.Monitor) error) error {
 	return nil
 }
 
+// View runs fn on a snapshot copy for reads without writing a journal snapshot.
+// A change made inside fn is lost and corrupts nothing durable.
+func (m *Member) View(fn func(*committee.Monitor) error) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if fn == nil {
+		return errors.New("monitor: nil member view")
+	}
+	monitor, err := committee.Restore(committee.Config{Key: m.key, Schedules: m.schedules, Deposits: m.deposits}, m.snapshot)
+	if err != nil {
+		return fmt.Errorf("monitor: restore member %d for view: %w", m.index, err)
+	}
+	return fn(monitor)
+}
+
 func (m *Member) restoreSnapshot() error {
 	restored, err := committee.Restore(committee.Config{Key: m.key, Schedules: m.schedules, Deposits: m.deposits}, m.snapshot)
 	if err != nil {

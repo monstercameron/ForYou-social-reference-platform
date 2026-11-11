@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -49,6 +50,72 @@ func testService(t *testing.T, root string, chain faux.Chain) *Service {
 		t.Fatal(err)
 	}
 	return svc
+}
+
+func TestProviderConfiguration(t *testing.T) {
+	t.Run("dev default maps provider peer to its identity", func(t *testing.T) {
+		svc, err := New(Config{DataDir: t.TempDir(), Peers: map[string]string{"provider": "http://127.0.0.1:8445"}, Faux: &testChain{}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer svc.Close()
+		want := []Provider{{ID: keys.DIDOf(devnet.ProviderKey(0)), URL: "http://127.0.0.1:8445"}}
+		if got := svc.ProviderList(); !reflect.DeepEqual(got, want) {
+			t.Errorf("ProviderList() = %#v; want %#v", got, want)
+		}
+	})
+	t.Run("explicit providers are sorted and looked up by identity", func(t *testing.T) {
+		firstID := keys.DIDOf(devnet.ProviderKey(0))
+		secondID := keys.DIDOf(devnet.ProviderKey(1))
+		providers := map[string]string{secondID: "https://provider-b.example", firstID: "https://provider-a.example"}
+		svc, err := New(Config{DataDir: t.TempDir(), Providers: providers, Faux: &testChain{}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer svc.Close()
+		providers[secondID] = "https://changed.example"
+		want := []Provider{{ID: firstID, URL: "https://provider-a.example"}, {ID: secondID, URL: "https://provider-b.example"}}
+		if got := svc.ProviderList(); !reflect.DeepEqual(got, want) {
+			t.Errorf("ProviderList() = %#v; want %#v", got, want)
+		}
+		if got, ok := svc.ProviderURL(secondID); !ok || got != "https://provider-b.example" {
+			t.Errorf("ProviderURL(%q) = %q, %t", secondID, got, ok)
+		}
+		if got, ok := svc.ProviderURL(keys.DIDOf(devnet.ProviderKey(2))); ok || got != "" {
+			t.Errorf("ProviderURL(unknown) = %q, %t; want empty, false", got, ok)
+		}
+	})
+	checkRejected := func(t *testing.T, providers map[string]string, peers map[string]string, wantError string) {
+		t.Helper()
+		_, err := New(Config{DataDir: t.TempDir(), Providers: providers, Peers: peers, Faux: &testChain{}})
+		if err == nil || !strings.Contains(err.Error(), wantError) {
+			t.Fatalf("New() error = %v; want error containing %q", err, wantError)
+		}
+	}
+	t.Run("rejects an identity that is not did:key", func(t *testing.T) {
+		checkRejected(t, map[string]string{"did:web:provider.example": "https://provider.example"}, nil, "identity")
+	})
+	t.Run("rejects a relative URL", func(t *testing.T) {
+		checkRejected(t, map[string]string{keys.DIDOf(devnet.ProviderKey(0)): "/provider"}, nil, "URL")
+	})
+	t.Run("rejects a URL with a query", func(t *testing.T) {
+		checkRejected(t, map[string]string{keys.DIDOf(devnet.ProviderKey(0)): "https://provider.example?token=x"}, nil, "query")
+	})
+	t.Run("rejects a URL with an empty query marker", func(t *testing.T) {
+		checkRejected(t, map[string]string{keys.DIDOf(devnet.ProviderKey(0)): "https://provider.example?"}, nil, "query")
+	})
+	t.Run("rejects a URL with an empty fragment marker", func(t *testing.T) {
+		checkRejected(t, map[string]string{keys.DIDOf(devnet.ProviderKey(0)): "https://provider.example#"}, nil, "fragment")
+	})
+	t.Run("rejects two identities sharing one URL", func(t *testing.T) {
+		checkRejected(t, map[string]string{keys.DIDOf(devnet.ProviderKey(0)): "https://provider.example", keys.DIDOf(devnet.ProviderKey(1)): "https://provider.example"}, nil, "share")
+	})
+	t.Run("rejects an unmappable provider peer name", func(t *testing.T) {
+		checkRejected(t, nil, map[string]string{"providerx": "http://127.0.0.1:8445"}, "providerx")
+	})
+	t.Run("rejects duplicate dev identities from provider peers", func(t *testing.T) {
+		checkRejected(t, nil, map[string]string{"provider": "http://127.0.0.1:8445", "provider0": "http://127.0.0.1:8446"}, "duplicate dev identity")
+	})
 }
 
 func TestHandlerRoutesMembersAndHealth(t *testing.T) {

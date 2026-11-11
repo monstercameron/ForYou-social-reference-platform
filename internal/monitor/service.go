@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -37,6 +38,7 @@ type Config struct {
 	Genesis      wire.GenesisManifest  // Genesis pins the release trust root and initial policy objects.
 	Members      []keys.PrivateKey     // Members overrides the default five dev monitor identities.
 	Peers        map[string]string     // Peers maps service names to their base URLs.
+	Providers    map[string]string     // Providers maps provider did:key identities to base URLs.
 	DataDir      string                // DataDir is the monitor role's journal directory.
 	Now          func() time.Time      // Now supplies the service clock.
 	LoopInterval time.Duration         // LoopInterval sets the scheduler interval.
@@ -70,6 +72,12 @@ type Service struct {
 	memberMux  *http.ServeMux
 }
 
+// Provider identifies a configured provider and its base URL.
+type Provider struct {
+	ID  string
+	URL string
+}
+
 // New opens journals and restores the configured monitor members.
 func New(cfg Config) (*Service, error) {
 	if cfg.DataDir == "" {
@@ -77,6 +85,9 @@ func New(cfg Config) (*Service, error) {
 	}
 	if cfg.Genesis.Release == "" {
 		cfg.Genesis = devnet.Genesis()
+	}
+	if err := configureProviders(&cfg); err != nil {
+		return nil, err
 	}
 	if cfg.Now == nil {
 		cfg.Now = time.Now
@@ -142,6 +153,62 @@ func New(cfg Config) (*Service, error) {
 		register(s, s.memberMux)
 	}
 	return s, nil
+}
+
+func configureProviders(cfg *Config) error {
+	if cfg.Providers == nil {
+		cfg.Providers = make(map[string]string)
+		for name, baseURL := range cfg.Peers {
+			if !strings.HasPrefix(name, "provider") {
+				continue
+			}
+			suffix := strings.TrimPrefix(name, "provider")
+			index := 0
+			if suffix != "" {
+				parsed, err := strconv.Atoi(suffix)
+				if err != nil || parsed < 0 || strconv.Itoa(parsed) != suffix {
+					return fmt.Errorf("monitor: cannot map provider peer %q to a dev identity", name)
+				}
+				index = parsed
+			}
+			id := keys.DIDOf(devnet.ProviderKey(index))
+			if _, exists := cfg.Providers[id]; exists {
+				return fmt.Errorf("monitor: provider peers map to duplicate dev identity %q", id)
+			}
+			cfg.Providers[id] = baseURL
+		}
+	}
+	providers := make(map[string]string, len(cfg.Providers))
+	urls := make(map[string]string, len(cfg.Providers))
+	for id, baseURL := range cfg.Providers {
+		if _, err := keys.ParseDID(id); err != nil {
+			return fmt.Errorf("monitor: invalid provider identity %q: %w", id, err)
+		}
+		if err := validProviderURL(baseURL); err != nil {
+			return fmt.Errorf("monitor: invalid provider URL for %q: %w", id, err)
+		}
+		if previous, exists := urls[baseURL]; exists {
+			return fmt.Errorf("monitor: providers %q and %q share URL %q", previous, id, baseURL)
+		}
+		urls[baseURL] = id
+		providers[id] = baseURL
+	}
+	cfg.Providers = providers
+	return nil
+}
+
+func validProviderURL(baseURL string) error {
+	parsed, err := url.Parse(baseURL)
+	if err != nil || parsed.Host == "" || parsed.User != nil || parsed.Opaque != "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+		return errors.New("URL must be absolute http or https with a host and no userinfo")
+	}
+	if parsed.RawQuery != "" || parsed.ForceQuery || strings.Contains(baseURL, "?") {
+		return errors.New("URL must not contain a query")
+	}
+	if parsed.Fragment != "" || strings.Contains(baseURL, "#") {
+		return errors.New("URL must not contain a fragment")
+	}
+	return nil
 }
 
 func storePath(root, child string) string { return filepath.Join(root, child) }
@@ -215,13 +282,27 @@ func (s *Service) Calendar() distribution.Calendar { return s.config.Calendar }
 // VaultURL returns the Foundation base URL used for vault delivery.
 func (s *Service) VaultURL() string { return s.config.Peers["foundation"] }
 
+// ProviderList returns providers sorted by identity.
+func (s *Service) ProviderList() []Provider {
+	providers := make([]Provider, 0, len(s.config.Providers))
+	for id, baseURL := range s.config.Providers {
+		providers = append(providers, Provider{ID: id, URL: baseURL})
+	}
+	sort.Slice(providers, func(i, j int) bool { return providers[i].ID < providers[j].ID })
+	return providers
+}
+
+// ProviderURL returns the configured URL for id.
+func (s *Service) ProviderURL(id string) (string, bool) {
+	baseURL, ok := s.config.Providers[id]
+	return baseURL, ok
+}
+
 // Providers returns a sorted copy of provider base URLs configured for audit.
 func (s *Service) Providers() []string {
 	var providers []string
-	for name, url := range s.config.Peers {
-		if strings.HasPrefix(name, "provider") {
-			providers = append(providers, url)
-		}
+	for _, baseURL := range s.config.Providers {
+		providers = append(providers, baseURL)
 	}
 	sort.Strings(providers)
 	return providers
