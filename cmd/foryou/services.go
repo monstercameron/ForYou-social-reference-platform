@@ -143,6 +143,10 @@ func buildMonitor(config roleConfig) (service, error) {
 	return core, nil
 }
 
+// Every local role reaches the provider from the same loopback address, so one
+// source is allowed the whole capacity. The limits themselves stay in force.
+var sharedSourceReads = provider.ReadLimits{DirectPerMinute: 6000, DirectPerSourcePerMinute: 6000, ListingPerMinute: 600, ListingPerSourcePerMinute: 600}
+
 func buildProvider(config roleConfig) (service, error) {
 	if err := requireDev(config); err != nil {
 		return nil, err
@@ -156,6 +160,7 @@ func buildProvider(config roleConfig) (service, error) {
 	}
 	coreConfig.DataDir = config.DataDir
 	coreConfig.Faux = faux.NewClient(config.Peers["faux"], serviceHTTPClient)
+	coreConfig.Reads = sharedSourceReads
 	coreConfig.PublicOrigin, err = httpsOrigin(config.URL)
 	if err != nil {
 		return nil, err

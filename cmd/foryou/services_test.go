@@ -83,6 +83,21 @@ func TestBuildServices(t *testing.T) {
 	})
 }
 
+func TestProviderRoleServesItsLocalPeersFromOneAddress(t *testing.T) {
+	_, svc := buildTestRole(t, "provider")
+	listing := func() int {
+		recorder := httptest.NewRecorder()
+		svc.Handler().ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/v1/settlement-claims?network=bitcoin-mainnet", nil))
+		return recorder.Code
+	}
+	// A monitor's pass alone makes more listing reads in a minute than the
+	// production floor of six for one source.
+	statuses := [12]int{listing(), listing(), listing(), listing(), listing(), listing(), listing(), listing(), listing(), listing(), listing(), listing()}
+	if statuses != [12]int{200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200} {
+		t.Errorf("twelve listing reads from one address answered %v; want all 200", statuses)
+	}
+}
+
 func TestBuildProviderRejectsClaimPeriodAboveDay(t *testing.T) {
 	config, _, err := loadRoleConfig("provider", mapEnv(map[string]string{"FORYOU_DEV": "1", "FORYOU_DATA_DIR": t.TempDir()}))
 	if err != nil {
