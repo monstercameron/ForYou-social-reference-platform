@@ -1,0 +1,16 @@
+animals: animal bird cat cow dog fox horse kitten owl pet puppy rabbit wildlife zoo
+art: art artist canvas drawing exposure gallery illustration museum paint painting photo photography portrait sculpture sketch
+books: author book chapter fiction librarian library novel poem poetry publisher
+crypto: bitcoin blockchain btc crypto defi eth ethereum exchange mining mnemonic nft satoshi seed token wallet
+food: bake baking bread breakfast cheese chickpea cook cooking dinner dough flour kitchen lunch meal oven recipe salad sauce soup yeast
+games: boss console controller dungeon game gaming multiplayer puzzle quest rpg speedrun
+garden: bloom compost flower garden gardening greenhouse harvest mulch plant prune ripe ripened soil tomato tomatoes vegetable weed
+health: diet doctor exercise health hospital injury medicine mental nurse sleep symptom therapy vaccine workout
+money: bank budget budgeting cost debt expense invest investing loan money mortgage payday price rent salary saving savings tariff tax
+music: album band chord concert drum gig guitar lyric melody music musician playlist singer song vinyl
+news: announced breaking council headline journalist news official police reporter
+politics: campaign congress democracy election government law minister parliament party policy politician president senator vote
+science: atom biology chemistry energy evolution experiment gene hypothesis lab molecule physics quantum research scientist telescope
+sports: coach cricket fixture football goal kickoff league match penalty player ref referee soccer stadium team tennis
+tech: api bug code compile compiler config database debug deploy developer docker error function git golang javascript kernel linux programming python repo rust server software terminal
+travel: airport beach flight holiday hotel itinerary journey luggage passport tourist train travel trip vacation
