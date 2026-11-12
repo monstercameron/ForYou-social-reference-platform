@@ -1,0 +1,119 @@
+@layer components {
+  .ledger-content .notice { @apply mx-0 mb-4; }
+  .ledger-content .notice.notice-warn { background: var(--warn-soft); }
+  .ledger-content .notice.notice-bad { background: var(--bad-soft); }
+  .ledger-content .notice p { @apply m-0; }
+  .ledger-content .button { @apply mt-3; }
+  .ledger-follow { @apply mt-3 grid gap-2; }
+  .ledger-follow label { @apply text-[13px] font-semibold text-[var(--muted)]; }
+  .ledger-muted { @apply m-0 mt-2 text-[13px] text-[var(--muted)]; }
+  .ledger-status { @apply m-0 min-h-5 text-[13px] text-[var(--muted)]; }
+  .ledger-empty, .ledger-from, .ledger-committee { @apply mt-3 mb-0; }
+  .ledger-sources, .ledger-sources-list { @apply mt-3 text-[13px] text-[var(--muted)]; }
+  .ledger-sources-list { @apply list-none pl-0; }
+  .ledger-funding { @apply mt-2 list-none pl-0 text-[13px]; }
+  .ledger-funding li { @apply border-t border-[var(--line)] py-2; }
+  .ledger-controls { @apply mt-3 grid gap-3; }
+  .settings-card .segmented-control.ledger-networks { @apply grid-cols-2; }
+  .ledger-networks form { @apply flex min-w-0; }
+  .ledger-network-choice { @apply flex min-h-11 w-full cursor-pointer items-center justify-center rounded-[9px] border-0 bg-transparent text-[13px] font-semibold text-[var(--muted)] hover:bg-[var(--panel)] hover:text-[var(--text)]; font-family: inherit; }
+  .ledger-network-choice[aria-current="true"] { @apply bg-[var(--panel)] text-[var(--accent)]; }
+  .ledger-provider { @apply grid gap-2; }
+  .ledger-provider label { @apply text-[13px] font-semibold text-[var(--muted)]; }
+  .ledger-provider select { @apply min-h-11 rounded-lg border border-[var(--line)] bg-[var(--panel)] px-3 text-[var(--text)]; }
+  .ledger-provider .button { @apply min-h-11 w-full; }
+  .ledger-facts { @apply m-0 mt-3 grid grid-cols-[minmax(0,11rem)_minmax(0,1fr)] gap-x-4 text-[13px]; }
+  .ledger-facts > div { @apply col-span-full grid grid-cols-subgrid border-t border-[var(--line)] py-2; }
+  .ledger-facts dt { @apply font-semibold text-[var(--muted)]; }
+  .ledger-facts dd { @apply m-0 min-w-0; overflow-wrap: anywhere; }
+  .ledger-facts .id-chip { @apply max-w-full align-bottom; overflow-wrap: anywhere; }
+  .ledger-signer { @apply mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px]; }
+  .ledger-signer .id-chip { @apply align-middle; overflow-wrap: anywhere; }
+  .ledger-signer .pill, .ledger-quorum .pill, .ledger-walk .pill { @apply inline-flex items-center gap-1.5; }
+  .ledger-signer .pill svg, .ledger-quorum .pill svg, .ledger-walk .pill svg { @apply shrink-0; }
+  .ledger-quorum { @apply mt-3 flex flex-wrap items-center gap-2 text-[13px]; }
+  .ledger-claim-list, .ledger-monitor-list, .ledger-monitor-payments { @apply m-0 mt-3 grid list-none gap-3 p-0; }
+  .ledger-claim-item { @apply m-0 p-0; }
+  .ledger-claim { @apply rounded-[10px] border border-[var(--line)] p-3.5 transition-colors; }
+  .ledger-claim:hover { border-color: color-mix(in srgb, var(--accent) 30%, var(--line)); }
+  .ledger-claim h3 { @apply m-0 text-[15px] font-semibold; }
+  .ledger-monitors { @apply mt-3 border-t border-[var(--line)] pt-2; }
+  .ledger-monitors > summary { @apply flex min-h-11 cursor-pointer list-none items-center gap-2 text-[13px] font-semibold; }
+  .ledger-monitors > summary::-webkit-details-marker { display: none; }
+  .ledger-monitors > summary::before { content: "›"; @apply inline-block text-[18px] leading-none text-[var(--muted)]; }
+  .ledger-monitors[open] > summary::before { transform: rotate(90deg); }
+  .ledger-monitor { @apply border-t border-[var(--line)] py-2 text-[13px]; }
+  .ledger-monitor p { @apply m-0; }
+  .ledger-monitor-id { @apply flex flex-wrap items-center gap-2; }
+  .ledger-monitor .ledger-signer { @apply mt-1; }
+  .ledger-monitors h4 { @apply mt-3 mb-0 text-[13px] text-[var(--muted)]; }
+  .ledger-pages { @apply mt-3 flex flex-wrap gap-2; }
+  .ledger-pages .button, .ledger-scan-note .button { @apply min-h-11 w-full sm:w-auto; }
+  .ledger-scan-note { @apply mb-3; }
+  .ledger-schedule { @apply mt-3 border-t border-[var(--line)] pt-3; }
+  .ledger-schedule h3, .ledger-statement h3 { @apply m-0 text-[15px] font-semibold; }
+  .ledger-statement { @apply mt-3 border-t border-[var(--line)] pt-3; }
+  .ledger-statement h4 { @apply mt-3 mb-0 text-[13px] text-[var(--muted)]; }
+  .ledger-table-wrap { @apply mt-3 hidden; }
+  .ledger-payouts { @apply w-full border-collapse text-left text-[13px]; }
+  .ledger-payouts caption { @apply pb-2 text-left font-semibold; }
+  .ledger-payouts th, .ledger-payouts td { @apply border-t border-[var(--line)] px-2 py-2 align-top; overflow-wrap: anywhere; }
+  .ledger-payouts th { @apply font-semibold text-[var(--muted)]; }
+  .ledger-payout-cards { @apply mt-3 grid gap-2; }
+  .ledger-payout-card { @apply m-0 grid gap-1 rounded-[10px] border border-[var(--line)] p-3 text-[13px]; }
+  .ledger-payout-card > div { @apply grid grid-cols-[minmax(0,8rem)_minmax(0,1fr)] gap-2; }
+  .ledger-payout-card dt { @apply text-[var(--muted)]; }
+  .ledger-payout-card dd { @apply m-0; overflow-wrap: anywhere; }
+  .ledger-vault-check .button { @apply min-h-11 w-full sm:w-auto; }
+  .ledger-walk { @apply relative m-0 mt-4 list-none p-0 pl-0; }
+  .ledger-walk::before { content: ""; @apply absolute top-3 bottom-3 left-[11px] w-0.5 bg-[var(--line)]; }
+  .ledger-step { @apply relative m-0 pb-5 pl-10; }
+  .ledger-step-title { @apply m-0 flex min-h-6 flex-wrap items-center gap-2 text-[15px] font-semibold; }
+  .ledger-step-mark { @apply absolute left-0 top-0 flex h-6 w-6 items-center justify-center rounded-full; }
+  .ledger-step-state { @apply text-[13px] font-medium text-[var(--muted)]; }
+  .ledger-mark-ok { background: var(--ok-soft); color: var(--ok); }
+  .ledger-mark-bad { background: var(--bad-soft); color: var(--bad); }
+  .ledger-mark-none { background: var(--control); color: var(--muted); }
+  .ledger-step-body { @apply mt-2 grid gap-2 text-[14px]; }
+  .ledger-step-body p { @apply m-0; }
+  .ledger-fee-total { @apply text-[15px] font-semibold; }
+  .ledger-working { @apply font-mono text-[13px]; overflow-wrap: anywhere; }
+  .ledger-step .ledger-claim { @apply mt-1; }
+  .ledger-step .ledger-facts { @apply mt-1; }
+  .ledger-step .pill { @apply w-fit; }
+  .ledger-step .ledger-signer { @apply mt-0; }
+  .ledger-vault-check { @apply mt-1; }
+  #ledger-vault p { @apply m-0; }
+  .ledger-step-body .ledger-monitor-list { @apply mt-1; }
+  .ledger-walk .ledger-monitor { @apply border-t-0; }
+}
+
+@media (max-width: 767px) {
+  .ledger-table-wrap { display: none; }
+  .ledger-payout-cards { display: grid; }
+  .ledger-facts { @apply grid-cols-1 gap-0; }
+  .ledger-facts > div { @apply grid-cols-1 gap-0; }
+  .ledger-walk::before { @apply left-[8px] w-[2px]; }
+  .ledger-step { @apply pl-9; }
+  .ledger-step-mark { @apply left-[-3px]; }
+}
+
+@media (min-width: 768px) {
+  .ledger-table-wrap { display: block; }
+  .ledger-payout-cards { display: none; }
+  .ledger-controls { @apply grid-cols-[minmax(0,1fr)_auto] items-start; }
+  .ledger-controls .ledger-provider { @apply col-span-full; }
+  .ledger-provider { @apply grid-cols-[auto_minmax(0,1fr)_auto] items-center; }
+  .ledger-provider select { @apply w-full; }
+  .ledger-facts > div { display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  #claims { animation: ledger-claims-enter 160ms ease-out both; }
+  .ledger-monitors > summary::before { transition: transform 120ms ease-out; }
+}
+
+@keyframes ledger-claims-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

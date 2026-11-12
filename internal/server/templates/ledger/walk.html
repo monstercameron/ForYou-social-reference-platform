@@ -1,0 +1,111 @@
+{{define "ledger-walk-page"}}
+{{template "layout-open" .Layout}}
+  <div class="page-content ledger-content">
+    {{if .Missing}}<a class="detail-back" href="/">{{template "layout-icon-detail-back"}}<span>Back to Home</span></a>
+    {{else}}<a class="detail-back" href="/posts/{{.ID}}">{{template "layout-icon-detail-back"}}<span>Back to post</span></a>{{end}}
+    <header class="page-heading"><h1>Follow the fee</h1><p>One post's fee, from the receipt to the Foundation, checked by this client.</p></header>
+    {{if .Layout.Dev}}{{template "ledger-dev-notice"}}{{end}}
+    {{if .Missing}}
+    <section class="component-card settings-card" aria-labelledby="walk-missing-title">
+      <h2 id="walk-missing-title" tabindex="-1">No fee to follow</h2>
+      <p>Only network posts have a fee to follow. Demo posts are not paid.</p>
+    </section>
+    {{else if .Gone}}
+    <section class="component-card settings-card" aria-labelledby="walk-gone-title">
+      <h2 id="walk-gone-title" tabindex="-1">Post not found</h2>
+      <p>This post was not returned by your sources.</p>
+      {{if .Sources}}<ul class="ledger-sources-list">{{range .Sources}}<li>{{.}}</li>{{end}}</ul>{{end}}
+      <p class="ledger-muted">This does not mean it was deleted or never existed.</p>
+    </section>
+    {{else if .Invalid}}
+    <div class="notice notice-bad" role="alert"><p>{{.Invalid}}</p></div>
+    {{else if .Found}}
+    <ol class="ledger-walk" aria-label="Where this fee went">
+      <li class="ledger-step" id="{{.Fee.Head.ID}}">
+        {{template "ledger-step-head" .Fee.Head}}
+        <div class="ledger-step-body">
+          <p class="ledger-fee-total">{{.Fee.Summary}}</p>
+          <p class="ledger-working">{{.Fee.Working}}</p>
+          {{if .Fee.Matches}}<p><span class="pill pill-ok">{{template "ledger-icon-check"}}<span>Matches the receipt</span></span></p>{{end}}
+          <p class="ledger-muted">The provider's quote named this amount; this client recomputed it from the post's bytes and the schedule instead of trusting it. Quote <span class="id-chip" title="{{.Fee.QuoteFull}}">{{.Fee.QuoteID}}</span></p>
+          {{template "ledger-signer" .Fee.Signer}}
+          <p class="ledger-muted">This fee is not a provider price. It is owed in full to the Foundation.</p>
+        </div>
+      </li>
+      <li class="ledger-step" id="{{.Receipt.Head.ID}}">
+        {{template "ledger-step-head" .Receipt.Head}}
+        <div class="ledger-step-body">
+          <dl class="ledger-facts">
+            <div><dt>Provider</dt><dd>{{.Receipt.Provider}} <span class="id-chip" title="{{.Receipt.ProviderKey}}">{{.Receipt.ProviderShort}}</span></dd></div>
+            <div><dt>Receipt ID</dt><dd><span class="id-chip" title="{{.Receipt.ReceiptFull}}">{{.Receipt.ReceiptID}}</span></dd></div>
+            <div><dt>Amount</dt><dd>{{.Receipt.Amount}}</dd></div>
+            <div><dt>Network</dt><dd>{{.Receipt.Network}}</dd></div>
+            <div><dt>Authorized</dt><dd>{{.Receipt.Authorized}}</dd></div>
+            <div><dt>Issued</dt><dd>{{.Receipt.Issued}}</dd></div>
+          </dl>
+          {{template "ledger-signer" .Receipt.Signer}}
+          <p class="ledger-muted">A receipt is the provider's signed statement that it took the fee from the author's balance. Settlement shows the fee reached the Foundation.</p>
+        </div>
+      </li>
+      <li class="ledger-step" id="{{.Claim.Head.ID}}">
+        {{template "ledger-step-head" .Claim.Head}}
+        <div class="ledger-step-body">
+          {{if .Claim.HasProof}}
+          <p class="ledger-muted">{{.Claim.ProofFrom}}</p>
+          <article class="ledger-claim">
+            <h3>{{.Claim.Facts.Heading}}</h3>
+            <dl class="ledger-facts">
+              <div><dt>Period</dt><dd><time datetime="{{.Claim.Facts.StartISO}}">{{.Claim.Facts.Period}}</time></dd></div>
+              <div><dt>Receipts</dt><dd>{{.Claim.Facts.Receipts}}</dd></div>
+              <div><dt>Total</dt><dd>{{.Claim.Facts.Total}}</dd></div>
+              <div><dt>Claim ID</dt><dd><span class="id-chip" title="{{.Claim.Facts.ClaimFull}}">{{.Claim.Facts.ClaimID}}</span></dd></div>
+            </dl>
+            {{template "ledger-signer" .Claim.Facts.Signer}}
+            {{if .Claim.Facts.WrongKey}}<p><span class="pill pill-warn">Signed by a different key than this provider's</span></p>{{end}}
+          </article>
+          <p>{{.Claim.Leaf}}</p>
+          {{if .Claim.Chain}}<p>{{.Claim.Chain}}</p>{{end}}
+          {{else}}
+          <p>{{.Claim.Pending}}</p>
+          {{range .Claim.Asked}}<p class="ledger-muted">{{.}}</p>{{end}}
+          {{end}}
+        </div>
+      </li>
+      <li class="ledger-step" id="{{.Witness.Head.ID}}">
+        {{template "ledger-step-head" .Witness.Head}}
+        <div class="ledger-step-body">
+          {{if .Witness.HasProof}}
+          <ul class="ledger-monitor-list">{{range .Witness.Rows}}{{template "ledger-monitor" .}}{{end}}</ul>
+          <p>{{.Witness.Summary}}</p>
+          <p><span class="pill pill-{{.Witness.Class}}">{{.Witness.Settled}}</span></p>
+          <p class="ledger-muted">{{.Witness.Note}}</p>
+          {{else}}
+          <p><span class="pill pill-{{.Witness.Class}}">{{.Witness.Settled}}</span></p>
+          {{end}}
+        </div>
+      </li>
+      <li class="ledger-step" id="{{.Vault.Head.ID}}">
+        {{template "ledger-step-head" .Vault.Head}}
+        <div class="ledger-step-body">
+          <div id="ledger-vault" role="status" aria-live="polite">
+            {{if .Vault.Shown}}{{template "ledger-walk-vault" .Vault.Result}}
+            {{else}}
+            <p tabindex="-1">Checking asks the Foundation whether it holds this post.</p>
+            <form class="ledger-vault-check" action="/ledger/fee" method="get" get="/ledger/fee/vault" target="#ledger-vault(innerHTML)" loading="#ledger-vault(innerHTML)" timeout="8000" onerror="#ledger-vault(innerHTML)" data-focus-after-swap="#ledger-vault > p:first-child">
+              <input type="hidden" name="id" value="{{.Vault.ID}}">
+              <input type="hidden" name="vault" value="1">
+              <button class="button button-secondary" type="submit">Check the Lifetime Vault</button>
+            </form>
+            {{end}}
+          </div>
+        </div>
+      </li>
+    </ol>
+    {{end}}
+  </div>
+{{template "layout-close" .Layout}}
+{{end}}
+
+{{define "ledger-step-head"}}<h2 class="ledger-step-title"><span class="ledger-step-mark ledger-mark-{{.Class}}" aria-hidden="true">{{if eq .Class "ok"}}{{template "ledger-icon-check"}}{{else if eq .Class "bad"}}{{template "ledger-icon-cross"}}{{else}}{{template "ledger-icon-dash"}}{{end}}</span><span class="ledger-step-name">{{.Title}}</span><span class="ledger-step-state">{{.State}}</span></h2>{{end}}
+
+{{define "ledger-walk-vault"}}<p tabindex="-1">{{if .Stored}}Stored in the Lifetime Vault on <time datetime="{{.StoredAt.ISO}}">{{.StoredAt.Text}}</time>.{{else}}{{.Text}}{{end}}</p>{{if .HasSigner}}{{template "ledger-signer" .Signer}}{{end}}{{end}}

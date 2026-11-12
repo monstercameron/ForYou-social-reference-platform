@@ -1,0 +1,203 @@
+{{define "ledger-page"}}
+{{template "layout-open" .Layout}}
+  <div class="page-content ledger-content">
+    <header class="page-heading"><h1>Ledger</h1><p>Fees, settlement and payouts as your sources state them, checked by this client. Nothing here is a network total.</p></header>
+    {{if .Layout.Dev}}{{template "ledger-dev-notice"}}{{end}}
+    <section id="follow" class="component-card settings-card" aria-labelledby="follow-title">
+      <h2 id="follow-title" tabindex="-1">Follow a fee</h2>
+      <p>Paste a post ID to see its fee, receipt, claim, witnesses and vault receipt.</p>
+      <form class="ledger-follow" action="/ledger/fee" method="get">
+        <div class="field">
+          <label for="ledger-follow-id">Post ID</label>
+          <input id="ledger-follow-id" name="id" required maxlength="68" spellcheck="false" autocomplete="off" placeholder="fy1:…" aria-describedby="ledger-follow-help">
+          <p id="ledger-follow-help" class="help-text">Post IDs start with fy1: and are on every post page.</p>
+        </div>
+        <button class="button button-primary" type="submit">Follow the fee</button>
+      </form>
+    </section>
+    {{template "ledger-claims" .Claims}}
+    {{template "ledger-schedules" .}}
+    {{template "ledger-vault-status" .Vault}}
+    {{template "ledger-distribution" .Distribution}}
+  </div>
+{{template "layout-close" .Layout}}
+{{end}}
+
+{{define "ledger-dev-notice"}}<div class="notice notice-warn ledger-notice" role="note"><p>Dev network: the faux chain stands in for Bitcoin and Ethereum. Its transfers have no value and confirm at once. Everything after the transfer (receipts, claims, witnesses, proofs, payouts and vault delivery) is the real flow.</p></div>{{end}}
+
+{{define "ledger-claims"}}<section id="claims" class="component-card settings-card" aria-labelledby="ledger-claims-title">
+  <h2 id="ledger-claims-title" tabindex="-1">Settlement claims</h2>
+  {{if .NoProvider}}
+  <p>No provider is selected, so there are no claims to read.</p>
+  <a class="button button-secondary" href="/network">Choose a provider</a>
+  {{else}}
+  <div class="ledger-controls">
+    <div class="segmented-control ledger-networks" role="group" aria-label="Network">
+      {{range .Networks}}<form action="/ledger" method="get" get="/ledger/claims" target="#claims(outerHTML)" loading="#ledger-claims-status(innerHTML)" timeout="8000" onerror="#ledger-claims-status(innerHTML)" data-focus-after-swap="#ledger-claims-title"><input type="hidden" name="network" value="{{.Value}}"><input type="hidden" name="provider" value="{{$.ProviderIndex}}"><button class="ledger-network-choice" type="submit"{{if .Selected}} aria-current="true"{{end}}>{{.Label}}</button></form>{{end}}
+    </div>
+    {{if .MultiProvider}}
+    <form class="ledger-provider" action="/ledger" method="get" get="/ledger/claims" target="#claims(outerHTML)" loading="#ledger-claims-status(innerHTML)" timeout="8000" onerror="#ledger-claims-status(innerHTML)" data-focus-after-swap="#ledger-claims-title">
+      <input type="hidden" name="network" value="{{.Network}}">
+      <label for="ledger-provider">Provider</label>
+      <select id="ledger-provider" name="provider">{{range .Providers}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select>
+      <button class="button button-secondary" type="submit">Show</button>
+    </form>
+    {{else}}
+    <p class="ledger-from">Claims published by {{.ProviderLabel}}</p>
+    {{end}}
+  </div>
+  <p id="ledger-claims-status" class="ledger-status" role="status" aria-live="polite">{{.Status}}</p>
+  {{if .Failed}}
+  <div class="notice notice-bad" role="alert"><p>{{.Failed}}</p></div>
+  <a class="button button-secondary" href="{{.Retry}}">Try again</a>
+  {{else if .Empty}}
+  <p class="ledger-empty">{{.Empty}}</p>
+  {{else}}
+  {{if .Committee.Warn}}<div class="notice notice-warn"><p>{{.Committee.Warn}}</p></div>{{else}}
+  <p class="ledger-committee">Committee in force: {{.Committee.Count}} monitors under policy <span class="id-chip" title="{{.Committee.Policy}}">{{.Committee.Policy}}</span>. Quorum is more than two-thirds: {{.Committee.Quorum}} of {{.Committee.Count}}.</p>
+  {{if .Committee.Handover}}<p class="ledger-muted">Previous committee ({{.Committee.PreviousCount}} monitors) still counts witnesses dated before {{.Committee.ChangedAt}} until {{.Committee.Until}}.</p>{{end}}
+  {{end}}
+  {{if .Notice}}<div class="notice ledger-scan-note"><p>{{.Notice}}</p>{{if .Newer}}<a class="button button-secondary" href="{{.Newer}}" get="{{.NewerGet}}" target="#claims(outerHTML)" loading="#ledger-claims-status(innerHTML)" timeout="8000" onerror="#ledger-claims-status(innerHTML)" data-focus-after-swap="#ledger-claims-title">Newer claims</a>{{end}}</div>{{end}}
+  <ol class="ledger-claim-list" aria-label="Settlement claims, newest first">
+    {{range .Claims}}{{template "ledger-claim" .}}{{end}}
+  </ol>
+  <nav class="ledger-pages" aria-label="Claim pages">
+    {{if .Older}}<a class="button button-secondary" href="{{.Older}}" get="{{.OlderGet}}" target="#claims(outerHTML)" loading="#ledger-claims-status(innerHTML)" timeout="8000" onerror="#ledger-claims-status(innerHTML)" data-focus-after-swap="#ledger-claims-title">Older claims</a>{{end}}
+    {{if and .Newer (not .Notice)}}<a class="button button-secondary" href="{{.Newer}}" get="{{.NewerGet}}" target="#claims(outerHTML)" loading="#ledger-claims-status(innerHTML)" timeout="8000" onerror="#ledger-claims-status(innerHTML)" data-focus-after-swap="#ledger-claims-title">Newer claims</a>{{end}}
+  </nav>
+  <p class="ledger-sources">{{.Sources}}</p>
+  {{end}}
+  {{end}}
+</section>
+{{end}}
+
+{{define "ledger-claim"}}
+<li class="ledger-claim-item">
+  <article class="ledger-claim" aria-labelledby="claim-{{.Sequence}}">
+    <h3 id="claim-{{.Sequence}}">{{.Heading}}</h3>
+    <dl class="ledger-facts">
+      <div><dt>Period</dt><dd><time datetime="{{.StartISO}}">{{.Period}}</time></dd></div>
+      <div><dt>Receipts</dt><dd>{{.Receipts}}</dd></div>
+      <div><dt>Total</dt><dd>{{.Total}}</dd></div>
+      <div><dt>Running total</dt><dd>{{.Running}}</dd></div>
+      <div><dt>Claim ID</dt><dd><span class="id-chip" title="{{.ClaimFull}}">{{.ClaimID}}</span></dd></div>
+      <div><dt>Retention declaration</dt><dd><span class="id-chip" title="{{.RetentionFull}}">{{.Retention}}</span></dd></div>
+      <div><dt>Previous claim</dt><dd>{{if .Previous}}<span class="id-chip" title="{{.PreviousFull}}">{{.Previous}}</span>{{else}}First claim{{end}}</dd></div>
+    </dl>
+    {{template "ledger-signer" .Signer}}
+    {{if .WrongKey}}<p><span class="pill pill-warn">Signed by a different key than this provider's</span></p>{{end}}
+    {{if .Known}}
+    <div class="ledger-quorum">
+      {{if .Quorum}}<span class="pill pill-ok">{{template "ledger-icon-check"}}<span>Quorum reached</span></span>{{else}}<span class="pill pill-warn">{{template "ledger-icon-dash"}}<span>No quorum on this claim</span></span>{{end}}
+      <span>{{.Counted}} of {{.Members}} committee monitors witnessed</span>
+    </div>
+    {{if not .Quorum}}<p class="ledger-muted">A later claim's witnesses can still settle its receipts through a linked chain; a post's own proof shows that.</p>{{end}}
+    {{end}}
+    <details class="ledger-monitors">
+      <summary>Committee monitors</summary>
+      <ul class="ledger-monitor-list">{{range .Rows}}{{template "ledger-monitor" .}}{{end}}</ul>
+      {{if .PreviousRows}}<h4>Previous committee</h4><ul class="ledger-monitor-list">{{range .PreviousRows}}{{template "ledger-monitor" .}}{{end}}</ul>{{end}}
+      {{if .Outside}}<ul class="ledger-monitor-list">{{range .Outside}}{{template "ledger-monitor" .}}{{end}}</ul>{{end}}
+    </details>
+  </article>
+</li>
+{{end}}
+
+{{define "ledger-monitor"}}<li class="ledger-monitor"><p class="ledger-monitor-id"><strong>{{.Label}}</strong>{{if .Key}} <span class="id-chip" title="{{.Key}}">{{.Short}}</span>{{end}}</p>{{if .Witnessed}}<p>Witnessed <time datetime="{{.When.ISO}}">{{.When.Text}}</time></p>{{template "ledger-signer" .Signer}}{{else}}<p>{{.Text}}</p>{{end}}</li>{{end}}
+
+{{define "ledger-signer"}}<div class="ledger-signer">Signed by {{.By}}{{if .Key}} <span class="id-chip" title="{{.Key}}">{{.Short}}</span>{{end}} {{if eq .State "verified"}}<span class="pill pill-ok">{{template "ledger-icon-check"}}<span>Verified by this client</span></span>{{else if eq .State "failed"}}<span class="pill pill-bad">{{template "ledger-icon-cross"}}<span>Not verified: {{.Reason}}</span></span>{{else}}<span class="pill pill-muted">{{template "ledger-icon-dash"}}<span>Not checked: {{.Reason}}</span></span>{{end}}</div>{{end}}
+
+{{define "ledger-schedules"}}
+<section id="schedules" class="component-card settings-card" aria-labelledby="schedules-title">
+  <h2 id="schedules-title" tabindex="-1">Fee schedules in force</h2>
+  {{if .ScheduleNote}}<p class="ledger-muted">{{.ScheduleNote}}</p>{{end}}
+  {{range .Schedules}}
+  {{if .Missing}}<p>{{.Missing}}</p>{{else}}
+  <article class="ledger-schedule">
+    <dl class="ledger-facts">
+      <div><dt>Network</dt><dd>{{.Network}}</dd></div>
+      <div><dt>Per started KiB</dt><dd>{{.PerKiB}}</dd></div>
+      <div><dt>Base fee</dt><dd>{{.Base}}</dd></div>
+      <div><dt>A post up to 1 KiB costs</dt><dd>{{.OneKiB}}</dd></div>
+      <div><dt>Revision</dt><dd>{{.Revision}}</dd></div>
+      <div><dt>Effective</dt><dd>{{.Effective}}</dd></div>
+      <div><dt>Expires</dt><dd>{{.Expires}}</dd></div>
+      <div><dt>Schedule ID</dt><dd><span class="id-chip" title="{{.IDFull}}">{{.ID}}</span></dd></div>
+    </dl>
+    {{template "ledger-signer" .Signer}}
+    <p class="ledger-muted">{{.Checked}}</p>
+  </article>
+  {{end}}
+  {{end}}
+  <p>The specification sets this fee. Providers collect it in full for the Foundation and keep none of it.</p>
+  <a class="button button-secondary" href="/network">All revisions on the Network page</a>
+</section>
+{{end}}
+
+{{define "ledger-vault-status"}}
+<section id="vault" class="component-card settings-card" aria-labelledby="vault-title">
+  <h2 id="vault-title" tabindex="-1">Lifetime Vault</h2>
+  {{if .Missing}}<p>No Foundation endpoint is configured in this client.</p>
+  {{else if .Failure}}<div class="notice notice-bad" role="alert"><p>{{.Failure}}</p></div>
+  {{else if .Empty}}<p>The Foundation has not published a vault status yet.</p>
+  {{else}}
+  <p>From {{.Period}}: {{.Records}} records, {{.Bytes}} bytes stored.</p>
+  <ul class="ledger-funding">{{range .Funding}}<li>{{.Label}}</li>{{end}}</ul>
+  {{template "ledger-signer" .Signer}}
+  <p class="ledger-muted">{{.Note}}</p>
+  {{end}}
+</section>
+{{end}}
+
+{{define "ledger-distribution"}}
+<section id="distribution" class="component-card settings-card" aria-labelledby="distribution-title">
+  <h2 id="distribution-title" tabindex="-1">Distribution</h2>
+  {{if .Missing}}<p>No Foundation endpoint is configured in this client.</p>
+  {{else if .Failure}}<div class="notice notice-bad" role="alert"><p>{{.Failure}}</p></div>
+  {{else if .Empty}}<p>The Foundation has not published a distribution statement yet. Statements follow each calendar quarter within 30 days.</p>
+  {{else}}
+  {{range .Statements}}
+  <article class="ledger-statement">
+    <h3>{{.Heading}}</h3>
+    <dl class="ledger-facts">
+      <div><dt>Received</dt><dd>{{.Received}}</dd></div>
+      <div><dt>Distributed</dt><dd>{{.Distributed}}</dd></div>
+      <div><dt>Policy</dt><dd><span class="id-chip">{{.Policy}}</span></dd></div>
+    </dl>
+    {{template "ledger-signer" .Signer}}
+    <div class="ledger-table-wrap">
+      <table class="ledger-payouts">
+        <caption>Provider payouts</caption>
+        <thead><tr><th scope="col">Provider</th><th scope="col">Settled fees</th><th scope="col">Quality</th><th scope="col">Retention</th><th scope="col">Amount</th><th scope="col">Still owed</th><th scope="col">Payout</th></tr></thead>
+        <tbody>{{range .Entries}}<tr><td>{{if .Known}}{{.Provider}}{{else}}<span class="id-chip" title="{{.Key}}">{{.Short}}</span>{{end}}</td><td>{{.Settled}}</td><td>{{.Quality}}</td><td>{{.Retention}}</td><td>{{.Amount}}</td><td>{{.Owed}}</td><td>{{.Payout}}{{if .Transfer}} <span class="id-chip">{{.Transfer}}</span>{{end}}</td></tr>{{end}}</tbody>
+      </table>
+    </div>
+    <div class="ledger-payout-cards">
+      {{range .Entries}}
+      <dl class="ledger-payout-card">
+        <div><dt>Provider</dt><dd>{{if .Known}}{{.Provider}}{{else}}<span class="id-chip" title="{{.Key}}">{{.Short}}</span>{{end}}</dd></div>
+        <div><dt>Settled fees</dt><dd>{{.Settled}}</dd></div>
+        <div><dt>Quality</dt><dd>{{.Quality}}</dd></div>
+        <div><dt>Retention</dt><dd>{{.Retention}}</dd></div>
+        <div><dt>Amount</dt><dd>{{.Amount}}</dd></div>
+        <div><dt>Still owed</dt><dd>{{.Owed}}</dd></div>
+        <div><dt>Payout</dt><dd>{{.Payout}}{{if .Transfer}} <span class="id-chip">{{.Transfer}}</span>{{end}}</dd></div>
+      </dl>
+      {{end}}
+    </div>
+    {{if .Monitors}}
+    <h4>Monitor payments</h4>
+    <ul class="ledger-monitor-payments">
+      {{range .Monitors}}<li>{{if .Known}}{{.Monitor}}{{else}}<span class="id-chip" title="{{.Key}}">{{.Short}}</span>{{end}} · {{.Amount}} · {{if .Paid}}Paid{{else}}Not paid{{end}}</li>{{end}}
+    </ul>
+    {{end}}
+  </article>
+  {{end}}
+  <p class="ledger-muted">A distribution payment is the Foundation's payment to a provider. It is not a refund to authors.</p>
+  {{end}}
+</section>
+{{end}}
+
+{{define "ledger-icon-check"}}<svg width="14" height="14" viewBox="0 0 16 16" stroke="currentColor" stroke-width="2" fill="none" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"/></svg>{{end}}
+{{define "ledger-icon-cross"}}<svg width="14" height="14" viewBox="0 0 16 16" stroke="currentColor" stroke-width="2" fill="none" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg>{{end}}
+{{define "ledger-icon-dash"}}<svg width="14" height="14" viewBox="0 0 16 16" stroke="currentColor" stroke-width="2" fill="none" aria-hidden="true"><path d="M4 8h8"/></svg>{{end}}
