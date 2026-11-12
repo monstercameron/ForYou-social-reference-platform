@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -246,6 +247,25 @@ func TestPager(t *testing.T) {
 		_, err = pager.Next(context.Background())
 		if Classify(err) != SignalProtocol {
 			t.Fatalf("Classify(error)=%s; want protocol", Classify(err))
+		}
+	})
+	t.Run("snapshot expiring while the response is in flight is lost", func(t *testing.T) {
+		var clock atomic.Int64
+		clock.Store(time.Date(2026, 11, 11, 0, 0, 0, 0, time.UTC).Unix())
+		body := `{"expires_at":"2026-11-11T00:15:00Z","generated_at":"2026-11-11T00:00:00Z","messages":[],"next_cursor":null}`
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			clock.Store(time.Date(2026, 11, 11, 0, 15, 1, 0, time.UTC).Unix())
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(body))
+		}))
+		defer server.Close()
+		client := rdTestClient(t, server.URL, Options{AllowLoopbackHTTP: true, Now: func() time.Time { return time.Unix(clock.Load(), 0).UTC() }})
+		pager, err := NewPager(client, MessagesRoute(), ListQuery{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := pager.Next(context.Background()); !errors.Is(err, ErrSnapshotLost) {
+			t.Fatalf("Next() error=%v; want ErrSnapshotLost", err)
 		}
 	})
 	t.Run("rejects page above requested limit", func(t *testing.T) {

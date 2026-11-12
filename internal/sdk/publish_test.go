@@ -14,6 +14,7 @@ import (
 
 	"foryou.local/foryou/internal/apierr"
 	"foryou.local/foryou/internal/canon"
+	"foryou.local/foryou/internal/delegation"
 	"foryou.local/foryou/internal/devnet"
 	"foryou.local/foryou/internal/fee"
 	"foryou.local/foryou/internal/keys"
@@ -36,6 +37,8 @@ type pbFakeProvider struct {
 	rejectWith    apierr.Status
 	hangAdmission bool
 	hangMessage   bool
+	available     string
+	auth          *delegation.ServiceAuth
 	mu            sync.Mutex
 	quotes        map[string]wire.FeeQuote
 	receipts      map[string]wire.SubmissionReceipt
@@ -60,10 +63,15 @@ func pbSetup(t *testing.T, now time.Time, timeout time.Duration) (*Publisher, ed
 	if err != nil {
 		t.Fatal(err)
 	}
-	fake := &pbFakeProvider{t: t, now: now, provider: provider, root: root, quotes: map[string]wire.FeeQuote{}, receipts: map[string]wire.SubmissionReceipt{}, debits: map[string]int{}}
+	clock := func() time.Time { return now }
+	auth, err := delegation.NewServiceAuth(delegation.ServiceAuthConfig{ServiceID: keys.DIDOf(provider), Store: delegation.NewMemoryChallengeStore(), Now: clock, Limits: delegation.Limits{MaxOutstanding: 64, MaxPerSource: 64}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	fake := &pbFakeProvider{t: t, now: now, provider: provider, root: root, available: "10000000", auth: auth, quotes: map[string]wire.FeeQuote{}, receipts: map[string]wire.SubmissionReceipt{}, debits: map[string]int{}}
 	fake.server = httptest.NewServer(http.HandlerFunc(fake.serveHTTP))
 	t.Cleanup(fake.server.Close)
-	client, err := New(fake.server.URL, Options{ServiceID: keys.DIDOf(provider), AllowLoopbackHTTP: true, Timeout: timeout})
+	client, err := New(fake.server.URL, Options{ServiceID: keys.DIDOf(provider), AllowLoopbackHTTP: true, Timeout: timeout, Now: clock})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,17 +85,60 @@ func pbSetup(t *testing.T, now time.Time, timeout time.Duration) (*Publisher, ed
 func (f *pbFakeProvider) serveHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	body := pbReadBody(f.t, r)
-	switch r.URL.Path {
-	case "/v1/fee-quotes":
+	switch {
+	case r.URL.Path == "/v1/fee-quotes":
 		f.serveQuote(w, body)
-	case "/v1/admissions":
+	case r.URL.Path == "/v1/admissions":
 		f.serveAdmission(w, r, body)
-	case "/v1/messages":
+	case r.URL.Path == "/v1/messages":
 		f.serveMessage(w, r, body)
+	case r.URL.Path == "/v1/service-challenges":
+		f.serveChallenge(w, body)
+	case strings.HasPrefix(r.URL.Path, "/v1/balances/"):
+		f.serveBalance(w, r)
 	default:
 		f.t.Errorf("unexpected path %s", r.URL.Path)
 		w.WriteHeader(http.StatusNotFound)
 	}
+}
+
+func (f *pbFakeProvider) serveChallenge(w http.ResponseWriter, body []byte) {
+	request, err := delegation.ParseChallengeRequest(body)
+	if err != nil {
+		f.t.Errorf("decode challenge request: %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	challenge, err := f.auth.Issue("test", request)
+	if err != nil {
+		f.t.Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	pbWriteJSON(f.t, w, http.StatusOK, challenge)
+}
+
+func (f *pbFakeProvider) serveBalance(w http.ResponseWriter, r *http.Request) {
+	author, err := f.auth.Verify(delegation.NewAuthRequest(r.Method, r.URL.EscapedPath(), r.URL.RawQuery, r.Header.Get, delegation.BodyNone, nil))
+	if err != nil {
+		f.t.Errorf("balance request did not authenticate: %v", err)
+		apierr.Write(w, apierr.PublicReadError{Status: apierr.Unauthenticated})
+		return
+	}
+	f.mu.Lock()
+	available := f.available
+	f.mu.Unlock()
+	status := wire.BalanceStatus{ProviderID: keys.DIDOf(f.provider), AuthorID: author, Network: strings.TrimPrefix(r.URL.Path, "/v1/balances/"), Denomination: "millisatoshi", Available: available, Frozen: "0", Reserved: "0", Revision: 1, UpdatedAt: wire.FormatTime(f.now)}
+	encoded, err := canon.EncodeWithout(status, "provider_signature")
+	if err == nil {
+		status.ProviderSignature, err = keys.Sign(f.provider, "balance-status", encoded)
+	}
+	if err != nil {
+		f.t.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	pbWriteJSON(f.t, w, http.StatusOK, status)
 }
 
 func (f *pbFakeProvider) serveQuote(w http.ResponseWriter, body []byte) {
@@ -505,6 +556,30 @@ func TestAdmitRefusesBeforeSending(t *testing.T) {
 		q := pbQuote(t, publisher, author, "quoted intent")
 		q.Prepared.Intent.Payload.Text = "changed"
 		pbCheckAdmitRefused(t, publisher, fake, author, q, pbApproval(q, now), ErrQuoteMismatch)
+	})
+}
+
+func TestAdmitChecksConfirmedBalance(t *testing.T) {
+	now := time.Date(2026, 11, 11, 12, 0, 0, 0, time.UTC)
+	t.Run("balance below the quoted fee refuses before authorizing", func(t *testing.T) {
+		publisher, author, fake := pbSetup(t, now, time.Second)
+		q := pbQuote(t, publisher, author, "underfunded")
+		fake.available = "135"
+		pbCheckAdmitRefused(t, publisher, fake, author, q, pbApproval(q, now), ErrInsufficientBalance)
+		if entry, ok, err := publisher.journal.Get(q.Prepared.MessageID); err != nil || !ok || entry.State != "quoted" {
+			t.Fatalf("journal = %+v, %v, %v; want quoted", entry, ok, err)
+		}
+	})
+	t.Run("balance equal to the quoted fee proceeds", func(t *testing.T) {
+		publisher, author, fake := pbSetup(t, now, time.Second)
+		q := pbQuote(t, publisher, author, "funded")
+		fake.available = "136"
+		if _, err := publisher.Admit(t.Context(), author, q, pbApproval(q, now)); err != nil {
+			t.Fatal(err)
+		}
+		if n := len(fake.admissionBodies()); n != 1 {
+			t.Fatalf("admission requests = %d; want 1", n)
+		}
 	})
 }
 

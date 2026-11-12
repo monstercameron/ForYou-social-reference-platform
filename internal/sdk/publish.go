@@ -31,6 +31,8 @@ var (
 	ErrQuoteMismatch = errors.New("sdk: quote mismatch")
 	// ErrNotApproved identifies an approval that does not cover the exact quoted content and fee.
 	ErrNotApproved = errors.New("sdk: exact quote was not approved")
+	// ErrInsufficientBalance identifies a confirmed balance below the quoted fee; nothing is authorized.
+	ErrInsufficientBalance = errors.New("sdk: confirmed balance does not cover the quoted fee")
 	// ErrStale identifies a preparation or quote that should be recreated.
 	ErrStale = errors.New("sdk: preparation is stale; prepare and quote again")
 	// ErrOutcomeUnknown identifies an ambiguous result that requires replaying stored bytes.
@@ -281,6 +283,21 @@ func (p *Publisher) Admit(ctx context.Context, key ed25519.PrivateKey, q Quoted,
 	}
 	if p.now().Sub(q.Prepared.Timestamp) > 240*time.Second {
 		return Admitted{}, ErrStale
+	}
+	balance, err := p.client.Balance(ctx, key, q.Quote.Network)
+	if err != nil {
+		return Admitted{}, err
+	}
+	available, err := fee.ParseAmount(balance.Available)
+	if err != nil {
+		return Admitted{}, err
+	}
+	amount, err := fee.ParseAmount(q.Quote.AmountBaseUnits)
+	if err != nil {
+		return Admitted{}, err
+	}
+	if available.Cmp(amount) < 0 {
+		return Admitted{}, ErrInsufficientBalance
 	}
 	authorization, err := fee.SignAdmission(fee.AdmissionAuthorization(p.client.ServiceID(), q.Quote.AuthorID, q.Prepared.MessageID, q.Quote.QuoteID), key)
 	if err != nil {

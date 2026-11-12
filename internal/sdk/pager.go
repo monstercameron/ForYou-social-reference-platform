@@ -70,7 +70,6 @@ func (p *Pager) Next(ctx context.Context) (Page, error) {
 		return Page{}, err
 	}
 	var decoded wire.DiscoveryPage
-	requestAt := p.client.now()
 	raw, err := p.client.getJSON(ctx, p.route.path(), query, rdPageLimit, &decoded)
 	if err != nil {
 		if rdStatus(err, "invalid_cursor") {
@@ -82,6 +81,7 @@ func (p *Pager) Next(ctx context.Context) (Page, error) {
 		}
 		return Page{}, err
 	}
+	responseAt := p.client.now()
 	p.pages++
 	if len(decoded.Messages) > parsedQuery.Limit {
 		return Page{}, p.rdFail("page exceeds requested message limit")
@@ -101,7 +101,7 @@ func (p *Pager) Next(ctx context.Context) (Page, error) {
 	if duration < 15*time.Minute || duration > 60*time.Minute {
 		return Page{}, p.rdFail("snapshot lifetime outside allowed range")
 	}
-	if !requestAt.Before(expires) {
+	if !responseAt.Before(expires) {
 		p.failed = true
 		return Page{}, ErrSnapshotLost
 	}
