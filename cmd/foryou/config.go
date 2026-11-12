@@ -32,8 +32,6 @@ type roleConfig struct {
 	Peers map[string]string
 	// DataDir is this role's persistent data directory.
 	DataDir string
-	// DatabaseURL configures the optional PostgreSQL readiness check.
-	DatabaseURL string
 	// Now supplies the service clock; nil means time.Now.
 	Now func() time.Time
 	// LoopInterval overrides the service background loop interval when nonzero.
@@ -86,6 +84,6 @@ func loadRoleConfig(role string, getenv func(string) string) (roleConfig, transp
 	if baseURL == "" {
 		baseURL = peers[role]
 	}
-	config := roleConfig{Role: role, Dev: dev, Addr: addr, URL: baseURL, Peers: peers, DataDir: filepath.Join(base, role), DatabaseURL: getenv("FORYOU_" + strings.ToUpper(role) + "_DATABASE_URL")}
+	config := roleConfig{Role: role, Dev: dev, Addr: addr, URL: baseURL, Peers: peers, DataDir: filepath.Join(base, role)}
 	return config, transport.Config{Addr: addr, CertFile: cert, KeyFile: key, Dev: dev}, nil
 }

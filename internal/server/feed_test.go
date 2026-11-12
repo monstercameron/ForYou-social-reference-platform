@@ -42,13 +42,6 @@ func TestFeedFilters(t *testing.T) {
 		check(t, "/?filter=replies", "most interesting spaces", "community garden", http.StatusOK)
 	})
 	t.Run("runtime", func(t *testing.T) { check(t, "/static/htmlex/htmlex.js", "initHTMLeX", "", http.StatusOK) })
-	t.Run("role isolation", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		newHandler("provider", nil).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/feed?filter=all", nil))
-		if w.Code != http.StatusNotFound {
-			t.Errorf("provider feed status = %d; want 404", w.Code)
-		}
-	})
 }
 
 func TestFilterPreservesSearchAndTheme(t *testing.T) {

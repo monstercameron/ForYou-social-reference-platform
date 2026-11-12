@@ -17,7 +17,7 @@ func TestCompression(t *testing.T) {
 		r := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 		r.Header.Set("Accept-Encoding", accept)
 		w := httptest.NewRecorder()
-		newHandler("provider", nil).ServeHTTP(w, r)
+		testClientHandler(t).ServeHTTP(w, r)
 		if got := w.Header().Get("Content-Encoding"); got != want {
 			t.Fatalf("Content-Encoding = %q; want %q", got, want)
 		}
@@ -51,7 +51,7 @@ func TestCompression(t *testing.T) {
 		r.Header.Add("Accept-Encoding", "gzip;q=0")
 		r.Header.Add("Accept-Encoding", "br")
 		w := httptest.NewRecorder()
-		newHandler("provider", nil).ServeHTTP(w, r)
+		testClientHandler(t).ServeHTTP(w, r)
 		if got := w.Header().Get("Content-Encoding"); got != "br" {
 			t.Errorf("Content-Encoding = %q; want br", got)
 		}
@@ -60,7 +60,7 @@ func TestCompression(t *testing.T) {
 		r := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 		r.Header.Set("Accept-Encoding", "gzip;q=0, br;q=0, identity;q=0")
 		w := httptest.NewRecorder()
-		newHandler("provider", nil).ServeHTTP(w, r)
+		testClientHandler(t).ServeHTTP(w, r)
 		if w.Code != http.StatusNotAcceptable {
 			t.Errorf("status = %d; want 406", w.Code)
 		}

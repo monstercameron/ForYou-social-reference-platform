@@ -2,7 +2,6 @@ package server
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -44,7 +43,6 @@ type App struct {
 	templates     *template.Template
 	profiles      *profileStore
 	store         *demoStore
-	readiness     func(context.Context) error
 	clients       map[string]*sdk.Client
 	clientMu      sync.Mutex
 	trustMu       sync.RWMutex
