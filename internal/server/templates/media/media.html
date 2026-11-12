@@ -1,0 +1,35 @@
+{{define "media-slots"}}<div class="media-grid media-grid-{{if gt .Count 2}}many{{else}}{{.Count}}{{end}}" role="group" aria-label="Media">{{range .Slots}}{{template "media-slot" .}}{{end}}</div>{{if .ViewerURL}}<p class="media-viewer-open"><a class="button button-secondary" href="{{.ViewerURL}}">Open viewer</a></p>{{end}}{{end}}
+
+{{define "media-slot"}}<figure id="{{.FigureID}}" class="media-slot media-slot-{{.State}}" data-media-state="{{.State}}">
+{{- if .Loaded}}{{if eq .State "image"}}<img class="media-image" src="{{.Src}}" alt="{{.Alt}}" loading="lazy" decoding="async"{{if .Width}} width="{{.Width}}" height="{{.Height}}"{{end}}>{{else}}<video class="media-video" src="{{.Src}}" controls preload="none" aria-label="{{.Alt}}"></video>{{end}}
+<p class="media-state"><span class="pill {{.Pill}}">{{.Text}}</span></p>
+{{- if .Stop}}<form class="media-stop" action="/media/stop" method="post" post="/media/stop" target="#{{.FigureID}}(outerHTML)" timeout="30000" loading="Stopping…"><input type="hidden" name="post" value="{{.PostID}}"><input type="hidden" name="slot" value="{{.SlotID}}"><input type="hidden" name="origin" value="{{.Origin}}"><button class="button button-secondary media-button" type="submit" aria-label="Stop loading from {{.Host}}">Stop loading from {{.Host}}</button></form>{{end}}
+{{- else}}
+<p class="media-state"><span class="pill {{.Pill}}">{{.Text}}</span></p>
+{{- if or .Lazy (eq .State "not-loaded") (eq .State "unavailable") (eq .State "redirect")}}{{template "media-load-form" .}}{{end}}
+{{- end}}
+<figcaption class="media-caption"><span class="media-label">{{.Label}}</span>{{if .Host}} <span class="media-host">{{.Host}}</span>{{end}} <span class="media-size">{{.Declared}}</span><span class="media-alt">{{.Alt}}</span>{{if gt .Count 1}} <span class="media-counter">{{.Index}} / {{.Count}}</span>{{end}}</figcaption>
+</figure>{{end}}
+
+{{define "media-load-form"}}<form class="media-load" action="/media/load" method="post" post="/media/load" target="#{{.FigureID}}(outerHTML)" timeout="30000" loading="Loading and checking…"{{if .Lazy}} auto="lazy"{{end}}>
+<input type="hidden" name="post" value="{{.PostID}}"><input type="hidden" name="slot" value="{{.SlotID}}">
+{{- if .Lazy}}<input type="hidden" name="auto" value="1">{{end}}
+{{- if .Approve}}<input type="hidden" name="approve" value="{{.Approve}}">{{end}}
+<button class="button button-primary media-button" type="submit">{{.Button}}</button>
+{{- if not .Lazy}}<label class="media-always"><input type="checkbox" name="always" value="1"> Always load media from {{if .Approve}}{{.Approve}}{{else}}{{.Host}}{{end}}</label>{{end}}
+</form>{{end}}
+
+{{define "media-viewer-page"}}{{template "layout-open" .Layout}}<div class="detail-column viewer-column"><a class="detail-back media-close" href="/posts/{{.Post.ID}}">{{template "layout-icon-detail-back"}}<span>Close</span></a>{{template "media-viewer-stage" .}}</div>{{template "layout-close" .Layout}}{{end}}
+
+{{define "media-viewer-stage"}}<section id="media-viewer" class="detail-card media-viewer" aria-labelledby="media-viewer-title" data-focus-after-swap="#media-viewer-title">
+<h1 id="media-viewer-title" tabindex="-1">Media from this post</h1>
+{{template "card-post-signature" .Post}}
+<p class="post-text media-viewer-text">{{.Post.Text}}</p>
+<div class="media-viewer-stage">{{template "media-slot" .Current}}</div>
+<nav class="media-viewer-controls" aria-label="Media navigation">
+{{- if .Prev}}<form action="/viewer/{{.Post.ID}}" method="get" get="/viewer/{{.Post.ID}}" target="#media-viewer(outerHTML)" timeout="5000"><input type="hidden" name="slot" value="{{.Prev}}"><button class="button button-secondary media-button" type="submit">Previous</button></form>{{end}}
+<p class="media-viewer-count" aria-live="polite">{{.Current.Index}} / {{.Current.Count}}</p>
+{{- if .Next}}<form action="/viewer/{{.Post.ID}}" method="get" get="/viewer/{{.Post.ID}}" target="#media-viewer(outerHTML)" timeout="5000"><input type="hidden" name="slot" value="{{.Next}}"><button class="button button-secondary media-button" type="submit">Next</button></form>{{end}}
+</nav>
+<ol class="media-thumbs">{{range .Grid.Slots}}<li><a href="/viewer/{{$.Post.ID}}?slot={{.SlotID}}"{{if eq .SlotID $.Current.SlotID}} aria-current="true"{{end}}><span class="media-thumb-state">{{.Label}} {{.Index}}</span></a></li>{{end}}</ol>
+</section>{{end}}

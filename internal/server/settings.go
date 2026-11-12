@@ -103,6 +103,7 @@ func (a *App) settingsMediaRemove(w http.ResponseWriter, r *http.Request) {
 		if !slices.Contains(settings.MediaOrigins, origin) {
 			return ""
 		}
+		medStateFor(a).fetch.cancelOrigin(origin)
 		settings.MediaOrigins = slices.DeleteFunc(settings.MediaOrigins, func(allowed string) bool { return allowed == origin })
 		return "Stopped loading media from " + origin + "."
 	})
@@ -114,6 +115,9 @@ func (a *App) settingsMediaClear(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a.settingsMediaSave(w, r, func(settings *ProfileSettings) string {
+		for _, origin := range settings.MediaOrigins {
+			medStateFor(a).fetch.cancelOrigin(origin)
+		}
 		settings.MediaOrigins = nil
 		return "Stopped loading media from every origin."
 	})

@@ -207,7 +207,7 @@ func (s *networkRecordSource) locate(ctx context.Context, r *http.Request, id st
 				rec = s.settleFresh(ctx, rd.verifier, sources, rec, entry.Proof)
 				_ = s.store.settle(rec, rd.now)
 			}
-			return nrFound{view: postFromRecord(rd.verifier.Admit(rec), rd.now), message: entry.message, endpoint: nrReadEndpoint(sources, entry.Source.Endpoint), ok: true}, Coverage{Sources: []SourceStatus{local}}
+			return nrFound{view: rd.post(rd.verifier.Admit(rec)), message: entry.message, endpoint: nrReadEndpoint(sources, entry.Source.Endpoint), ok: true}, Coverage{Sources: []SourceStatus{local}}
 		}
 		s.store.remove(id)
 	}
@@ -316,6 +316,7 @@ func (s *networkRecordSource) keep(rd recordReader, rec sdk.Record) post {
 	stored, err := s.store.put(rec, rd.now, false)
 	if err != nil {
 		s.app.logger().Printf("client record store: %v", err)
+		return rd.post(rec)
 	}
 	if err != nil || !stored {
 		return postFromRecord(rec, rd.now)
@@ -324,7 +325,7 @@ func (s *networkRecordSource) keep(rd recordReader, rec sdk.Record) post {
 		rec.Source = entry.source()
 		rec = rd.verifier.Settle(rec, entry.Proof, nil)
 	}
-	return postFromRecord(rd.verifier.Admit(rec), rd.now)
+	return rd.post(rd.verifier.Admit(rec))
 }
 
 // show verifies one fetched record with any proof already held, keeps it when
@@ -350,7 +351,7 @@ func (s *networkRecordSource) heldView(rd recordReader, entry nrEntry) (post, bo
 		s.store.remove(entry.message.MessageID)
 		return post{}, false
 	}
-	return postFromRecord(rd.verifier.Admit(rd.verifier.Settle(rec, entry.Proof, nil)), rd.now), true
+	return rd.post(rd.verifier.Admit(rd.verifier.Settle(rec, entry.Proof, nil))), true
 }
 
 // nrSelectedHeld matches held records this reader may see: ones published here

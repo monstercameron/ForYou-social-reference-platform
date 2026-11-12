@@ -28,8 +28,10 @@ type post struct {
 	Format, Timestamp string
 	// DemoData marks a demo post shown because the configured provider had none.
 	DemoData bool
-	// Media lists a network post's media slots as inert lines; nothing is fetched.
+	// Media is the reader's rendering of Slots; building a post fetches nothing.
 	Media template.HTML
+	// Slots are a network post's declared media slots, in declaration order.
+	Slots []wire.MediaReference
 	// Settlement and Class are the local verification state of a network post;
 	// both are empty for demo posts. RecheckBy dates a pending settlement.
 	Settlement, Class, RecheckBy string

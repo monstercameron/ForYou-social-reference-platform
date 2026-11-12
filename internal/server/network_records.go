@@ -6,10 +6,8 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"html"
 	"html/template"
 	"net/http"
-	"net/url"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -83,11 +81,28 @@ type recordReader struct {
 	verifier *sdk.Verifier
 	root     *sdk.TrustRoot
 	now      time.Time
+	app      *App
+	profile  string
+	settings ProfileSettings
 }
 
 func (s *networkRecordSource) reader(r *http.Request) recordReader {
 	root, _ := s.app.trustRoot()
-	return recordReader{verifier: s.app.verifier(requestProfile(r)), root: root, now: s.app.now()}
+	profile := requestProfile(r)
+	rd := recordReader{verifier: s.app.verifier(profile), root: root, now: s.app.now(), app: s.app, profile: profile}
+	if profile != "" {
+		rd.settings, _ = s.app.settings(profile)
+	}
+	return rd
+}
+
+// post maps a verified record onto the shared card, with its media slots shown as this reader sees them.
+func (rd recordReader) post(record sdk.Record) post {
+	p := postFromRecord(record, rd.now)
+	if rd.app != nil {
+		p.Media = renderPostMedia(rd.app, rd.profile, rd.settings, p, rd.now)
+	}
+	return p
 }
 
 // unverifiable shows a record that failed only for want of a trust root:
@@ -98,7 +113,7 @@ func (rd recordReader) unverifiable(record sdk.Record, message wire.TransportMes
 	if rd.root != nil || record.Class != sdk.ClassInvalid || record.Failure == nil || record.Failure.Step != 5 {
 		return post{}, false
 	}
-	p := postFromRecord(sdk.Record{Message: message}, rd.now)
+	p := rd.post(sdk.Record{Message: message})
 	p.Unverifiable = "The trust root is unavailable, so the fee schedule cannot be checked: " + record.Failure.Detail
 	return p, true
 }
@@ -400,37 +415,29 @@ func (s *networkRecordSource) AddReply(ctx context.Context, r *http.Request, tok
 	return kept.draft, true, nil
 }
 
-// postFromRecord maps a record onto the shared post card. Media slots become
-// inert lines: nothing is fetched while rendering.
+// postFromRecord maps a record onto the shared post card. Its media slots are
+// kept as declared; rendering them for a reader is up to recordReader.post.
 func postFromRecord(record sdk.Record, now time.Time) post {
 	m := record.Message
 	kind := "text"
-	var media strings.Builder
+	var slots []wire.MediaReference
 	if m.Payload.MediaSlots != nil {
-		for _, slot := range *m.Payload.MediaSlots {
+		slots = *m.Payload.MediaSlots
+		for _, slot := range slots {
 			if kind == "text" && slot.Kind == "image" {
 				kind = "images"
 			}
 			if slot.Kind == "video" {
 				kind = "video"
 			}
-			host := "unknown host"
-			if parsed, err := url.Parse(slot.URL); err == nil && parsed.Hostname() != "" {
-				host = parsed.Hostname()
-			}
-			alt := "no description"
-			if slot.AltText != nil && *slot.AltText != "" {
-				alt = *slot.AltText
-			}
-			fmt.Fprintf(&media, `<p class="post-media-inert"><span>%s</span><span>%s</span><span>%s</span><span>Not loaded</span></p>`, html.EscapeString(slot.Kind), html.EscapeString(host), html.EscapeString(alt))
 		}
 	}
 	when, _ := wire.ParseTime(m.Timestamp)
 	issuedAt, _ := wire.ParseTime(m.SubmissionReceipt.IssuedAt)
 	p := post{
-		ID: m.MessageID, Text: m.Payload.Text, Format: m.Payload.ContentFormat, Payload: m.Payload, Kind: kind,
+		ID: m.MessageID, Text: m.Payload.Text, Format: m.Payload.ContentFormat, Payload: m.Payload, Kind: kind, Slots: slots,
 		IsReply: m.Payload.ReplyTo != "", ReplyTo: m.Payload.ReplyTo, Supersedes: m.Payload.Supersedes, AuthorID: m.AuthorID, Receipt: shortReceipt(m.SubmissionReceipt.ReceiptID),
-		Time: relativeTime(when, now), Timestamp: m.Timestamp, Color: authorColor(m.AuthorID), Media: template.HTML(media.String()),
+		Time: relativeTime(when, now), Timestamp: m.Timestamp, Color: authorColor(m.AuthorID),
 		IssuedAt: issuedAt, RootSigned: message.RootSigned(m),
 		Settlement: string(record.Settlement), Class: string(record.Class), Verified: &record,
 	}
