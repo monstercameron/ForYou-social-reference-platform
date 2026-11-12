@@ -86,6 +86,7 @@ func (a *App) renderStatus(w http.ResponseWriter, r *http.Request, name string, 
 func (a *App) renderOutput(w http.ResponseWriter, name string, data any, status int, cache string) {
 	var output bytes.Buffer
 	if err := a.templates.ExecuteTemplate(&output, name, data); err != nil {
+		a.logger().Printf("client: render %s: %v", name, err)
 		http.Error(w, "unable to render page", http.StatusInternalServerError)
 		return
 	}

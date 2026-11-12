@@ -494,8 +494,8 @@ func TestWalletAmountText(t *testing.T) {
 		}
 	})
 	t.Run("deposit ID becomes a selector-safe element ID", func(t *testing.T) {
-		if got := walDOMKey("fydi2:76a0"); got != "fydi2-76a0" {
-			t.Errorf("walDOMKey = %q", got)
+		if got := domKey("fydi2:76a0"); got != "fydi2-76a0" {
+			t.Errorf("domKey = %q", got)
 		}
 	})
 	t.Run("custody cap refusal names the limit", func(t *testing.T) {

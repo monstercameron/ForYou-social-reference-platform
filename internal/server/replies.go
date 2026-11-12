@@ -74,7 +74,7 @@ func (r reply) format() string {
 
 // BranchID names the element that holds a reply's answers.
 func (r reply) BranchID() string {
-	return "branch-" + r.PostID + "-" + strings.ReplaceAll(r.Path, ".", "-")
+	return "branch-" + domKey(r.PostID) + "-" + strings.ReplaceAll(r.Path, ".", "-")
 }
 
 // Draft starts an answer to this reply.

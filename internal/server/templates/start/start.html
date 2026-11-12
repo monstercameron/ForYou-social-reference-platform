@@ -6,7 +6,7 @@
 
 {{define "start-feed-panel"}}{{if .Hidden}}{{template "start-collapsed" .}}{{else}}<section id="start-feed" class="start-feed" aria-labelledby="start-feed-title"><details class="start-feed-details"><summary><h2 id="start-feed-title" class="start-title" tabindex="-1">Getting started</h2>{{template "start-ready" .Progress}}<span class="start-chevron" aria-hidden="true"><svg viewBox="0 0 20 20" width="20" height="20" focusable="false"><path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>{{template "start-progress" .Progress}}</summary><div class="start-feed-body">{{template "start-intro"}}{{template "start-steps" .}}{{template "start-footer" .}}</div></details></section>{{end}}{{end}}
 
-{{define "start-collapsed"}}<div id="{{.ID}}" class="start-collapsed"><form action="/start/show" method="post" post="/start/show/fragment" target="#{{.ID}}(outerHTML)" timeout="5000" data-focus-after-swap="#{{.TitleID}}"><input type="hidden" name="place" value="{{.Place}}"><button id="{{.ShowID}}" class="start-show" type="submit">Show getting started</button></form><p class="start-sr" role="status">Getting started is hidden. Show it again here or on the Getting started page.</p></div>{{end}}
+{{define "start-collapsed"}}<div id="{{key .ID}}" class="start-collapsed"><form action="/start/show" method="post" post="/start/show/fragment" target="#{{key .ID}}(outerHTML)" timeout="5000" data-focus-after-swap="#{{.TitleID}}"><input type="hidden" name="place" value="{{.Place}}"><button id="{{.ShowID}}" class="start-show" type="submit">Show getting started</button></form><p class="start-sr" role="status">Getting started is hidden. Show it again here or on the Getting started page.</p></div>{{end}}
 
 {{define "start-intro"}}<p class="start-intro">Here every post pays a tiny fee, set by the specification and passed to the ForYou Foundation, so spam costs money. Your key is your identity: there is no account and no password reset.</p>{{end}}
 
@@ -16,7 +16,7 @@
 
 {{define "start-steps"}}<ol class="start-steps">{{range .Steps}}<li class="start-step start-step-{{.State}}">{{template "start-mark" .State}}<a class="start-link" href="{{.Href}}">{{.Title}}</a>{{template "start-state" .State}}</li>{{end}}</ol>{{end}}
 
-{{define "start-footer"}}<div class="start-footer"><a class="start-full" href="/start">Open the full guide</a><form action="/start/hide" method="post" post="/start/hide/fragment" target="#{{.ID}}(outerHTML)" timeout="5000" data-focus-after-swap="#{{.ShowID}}"><input type="hidden" name="place" value="{{.Place}}"><button class="start-hide" type="submit">Hide</button></form></div>{{end}}
+{{define "start-footer"}}<div class="start-footer"><a class="start-full" href="/start">Open the full guide</a><form action="/start/hide" method="post" post="/start/hide/fragment" target="#{{key .ID}}(outerHTML)" timeout="5000" data-focus-after-swap="#{{.ShowID}}"><input type="hidden" name="place" value="{{.Place}}"><button class="start-hide" type="submit">Hide</button></form></div>{{end}}
 
 {{define "start-state"}}{{if eq . "done"}}<span class="pill pill-ok">Done</span>{{else if eq . "todo"}}<span class="pill pill-warn">To do</span>{{else}}<span class="pill pill-muted">Not checked here</span>{{end}}{{end}}
 

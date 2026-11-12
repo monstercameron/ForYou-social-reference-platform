@@ -61,10 +61,10 @@ func TestBookmarksControl(t *testing.T) {
 			t.Errorf("status %d, body %q", w.Code, body)
 		}
 	})
-	t.Run("control fragment targets its slot by attribute selector", func(t *testing.T) {
+	t.Run("control fragment targets its slot by ID", func(t *testing.T) {
 		body := postForm(h, "/saved/toggle/fragment", url.Values{"id": {"science"}, "want": {"remove"}}).Body.String()
-		if !strings.Contains(body, "target=\"[id='bookmarks-slot-science'](innerHTML)\"") || !strings.Contains(body, "data-focus-after-swap=\"[id='bookmarks-slot-science'] button\"") {
-			t.Errorf("control fragment does not target its slot by attribute selector: %q", body)
+		if !strings.Contains(body, `target="#bookmarks-slot-science(innerHTML)"`) || !strings.Contains(body, `data-focus-after-swap="#bookmarks-slot-science button"`) {
+			t.Errorf("control fragment does not target its slot: %q", body)
 		}
 	})
 	t.Run("a reply can be saved", func(t *testing.T) {

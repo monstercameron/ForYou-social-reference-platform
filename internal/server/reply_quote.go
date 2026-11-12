@@ -80,7 +80,7 @@ type replyDraft struct {
 
 // DraftID names the element that holds the draft of one reply.
 func (d replyDraft) DraftID() string {
-	return "draft-" + d.PostID + "-" + strings.ReplaceAll(d.Path, ".", "-")
+	return "draft-" + domKey(d.PostID) + "-" + strings.ReplaceAll(d.Path, ".", "-")
 }
 
 type replyConfirmPage struct {

@@ -157,21 +157,11 @@ type walObserveResponse struct {
 	Balances *walView
 }
 
-// walDOMKey turns a deposit ID into an element ID that is also a valid CSS selector: deposit IDs carry a colon.
-func walDOMKey(depositID string) string {
-	return strings.Map(func(r rune) rune {
-		if r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '-' || r == '_' {
-			return r
-		}
-		return '-'
-	}, depositID)
-}
-
 // Key is the element ID suffix of the invoice card.
-func (v walInvoice) Key() string { return walDOMKey(v.DepositID) }
+func (v walInvoice) Key() string { return domKey(v.DepositID) }
 
 // Key is the element ID suffix of the transfer status card.
-func (v walObserve) Key() string { return walDOMKey(v.DepositID) }
+func (v walObserve) Key() string { return domKey(v.DepositID) }
 
 func walFragment(r *http.Request) bool { return strings.HasSuffix(r.URL.Path, walFragmentPath) }
 
@@ -830,7 +820,7 @@ func (a *App) walPayHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	id := r.PathValue("id")
 	if !a.config.Dev || a.faux == nil {
-		a.walFail(w, r, profile, http.StatusConflict, "wallet-pay-alert-"+walDOMKey(id), walOptions{}, "Paying with the faux chain is available only in dev mode.")
+		a.walFail(w, r, profile, http.StatusConflict, "wallet-pay-alert-"+domKey(id), walOptions{}, "Paying with the faux chain is available only in dev mode.")
 		return
 	}
 	view, err := a.walRecordTransfer(r.Context(), profile, id, a.now(), func(inv wire.DepositInvoice) (wire.DepositTransfer, error) {
@@ -894,7 +884,7 @@ func (a *App) walTransferHandler(w http.ResponseWriter, r *http.Request) {
 // walRespondObserve answers a pay or transfer with the invoice card it targets, so the paid state replaces the pay control.
 func (a *App) walRespondObserve(w http.ResponseWriter, r *http.Request, profile, id string, view walObserve) {
 	if !walFragment(r) {
-		http.Redirect(w, r, "/wallet#wallet-invoice-"+walDOMKey(id), http.StatusSeeOther)
+		http.Redirect(w, r, "/wallet#wallet-invoice-"+domKey(id), http.StatusSeeOther)
 		return
 	}
 	credited := view.State == "credited"
@@ -923,7 +913,7 @@ func (a *App) walRespondError(w http.ResponseWriter, r *http.Request, profile, i
 	}
 	opts := walOptions{Errors: walErrors{Invoice: map[string]string{id: message}}}
 	if walFragment(r) {
-		a.walRefuse(w, r, status, "wallet-pay-alert-"+walDOMKey(id), message)
+		a.walRefuse(w, r, status, "wallet-pay-alert-"+domKey(id), message)
 		return
 	}
 	a.renderStatus(w, r, "wallet-page", a.walView(r, profile, opts), status)
@@ -947,7 +937,7 @@ func (a *App) walObserveHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !walFragment(r) {
-		http.Redirect(w, r, "/wallet#wallet-invoice-"+walDOMKey(id), http.StatusSeeOther)
+		http.Redirect(w, r, "/wallet#wallet-invoice-"+domKey(id), http.StatusSeeOther)
 		return
 	}
 	response := walObserveResponse{Observe: view}

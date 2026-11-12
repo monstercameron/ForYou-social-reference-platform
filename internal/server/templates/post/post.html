@@ -5,7 +5,7 @@
   {{if .Missing}}{{template "post-missing" .}}{{else}}
   {{template "card-detail-post-card" .Post}}{{if .Post.AuthorID}}{{template "following-post-control" .Post}}{{end}}
   {{template "post-actions" .}}
-  <section class="detail-thread" aria-label="Replies"><div id="thread-error" class="thread-error" role="status" aria-live="polite"></div><div id="thread-{{.ID}}" class="thread-region">{{template "thread-open" .Thread}}</div></section>
+  <section class="detail-thread" aria-label="Replies"><div id="thread-error" class="thread-error" role="status" aria-live="polite"></div><div id="thread-{{key .ID}}" class="thread-region">{{template "thread-open" .Thread}}</div></section>
   <nav class="post-sections" aria-label="On this page">
     <a href="#verification">Verification</a>
     <a href="#receipt">Receipt</a>

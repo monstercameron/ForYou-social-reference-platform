@@ -337,12 +337,13 @@ func TestSeededRecordShareAndEmbed(t *testing.T) {
 			t.Errorf("uppercase message ID: status %d; want 404", w.Code)
 		}
 	})
-	t.Run("share controls target the panel by attribute selector", func(t *testing.T) {
+	t.Run("share controls address the panel by a colon-free key", func(t *testing.T) {
 		w := httptest.NewRecorder()
 		h.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/share/fragment?id="+id, nil))
 		body := w.Body.String()
-		if w.Code != http.StatusOK || !strings.Contains(body, `target='[id="share-`+id+`"](innerHTML)'`) || strings.Contains(body, `#share-`+id) {
-			t.Errorf("share controls for a message ID with a colon: status %d; want attribute selectors only", w.Code)
+		key := strings.ReplaceAll(id, ":", "-")
+		if w.Code != http.StatusOK || !strings.Contains(body, `target="#share-`+key+`(innerHTML)"`) || strings.Contains(body, `share-`+id) {
+			t.Errorf("share controls for a message ID with a colon: status %d; want the key %s in every target and no raw ID in an element ID", w.Code, key)
 		}
 	})
 }

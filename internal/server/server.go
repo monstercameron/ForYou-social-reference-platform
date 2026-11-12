@@ -82,7 +82,7 @@ func NewClient(cfg Config) (*Client, error) {
 		}
 		clients[endpoint.URL+"\x00"+endpoint.ServiceID] = client
 	}
-	parsed, err := template.New("root").ParseFS(templates, "templates/*/*.html")
+	parsed, err := template.New("root").Funcs(template.FuncMap{"key": domKey}).ParseFS(templates, "templates/*/*.html")
 	if err != nil {
 		return nil, fmt.Errorf("parse client templates: %w", err)
 	}
