@@ -58,7 +58,7 @@
   .about-panel > div { @apply flex items-start gap-2.5 text-[var(--muted)]; }
   .about-panel > div + div { @apply mt-2.5; }
   .about-panel p { @apply m-0 text-[13px] leading-[1.5]; }
-  .appearance-panel h2 { @apply mb-2.5 text-sm; }
+  .appearance-panel h2 { @apply mb-3; }
   .compose-editor .notice { @apply mt-5 mb-0 mx-0 items-start gap-2.5 rounded-[10px] p-3 text-sm leading-[1.5]; }
   .compose-editor .notice > span { @apply text-base; }
   .embed-action { @apply inline; }
@@ -74,6 +74,10 @@
   .embed-credit { @apply mt-2.5 inline-block text-[11px]; }
   .back-link { @apply mb-[22px] inline-block text-xs font-bold; }
   .end-feed, .empty-results { @apply p-[30px] text-center text-xs text-[var(--muted)]; }
+  .empty-results h1 { @apply text-[var(--text)]; }
+  .empty-results .button { @apply m-1 no-underline; }
+  .empty-results .button-primary { color: var(--on-accent); }
+  .empty-results .button-secondary { color: var(--text); }
   .end-feed p { @apply text-[11px]; }
   .end-feed span { @apply text-[var(--accent)]; }
   .thread-action button, .embed-action button { transition:color .18s,background-color .18s; }

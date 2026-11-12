@@ -177,6 +177,10 @@ func (s *networkRecordSource) Get(ctx context.Context, r *http.Request, id strin
 		if ok {
 			return p, demoCoverage, true, err
 		}
+		if ad, isAd := demoAdPost(id); isAd {
+			ad.ReplyCount = 0
+			return ad, demoCoverage, true, nil
+		}
 		return post{}, Coverage{Note: "Not a message ID, so no source was asked"}, false, err
 	}
 	ctx, cancel := context.WithTimeout(ctx, nrPageTimeout)

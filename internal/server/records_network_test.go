@@ -217,6 +217,22 @@ func TestNetworkRecordGet(t *testing.T) {
 	})
 }
 
+func TestNetworkRecordGetDemoAd(t *testing.T) {
+	clock := nrTestNow
+	client := nrTestClient(t, t.TempDir(), &clock, []Endpoint{{URL: "http://127.0.0.1:1", ServiceID: keys.DIDOf(devnet.ProviderKey(0)), Label: "Provider"}}, Endpoint{})
+	t.Run("a demo ad ID resolves", func(t *testing.T) {
+		p, coverage, found, err := client.app.records().Get(t.Context(), nrTestRequest(), "ad-telescope")
+		if err != nil || !found || p.Topic != "Sponsored" || p.Time != "" || p.DemoData || p.ReplyCount != 0 || coverage.Sources[0].Label != "Demo data" {
+			t.Fatalf("Get = topic %q time %q demo %v replies %d source %q, found %v, error %v; want Sponsored ad with no demo marker, no replies, labelled Demo data", p.Topic, p.Time, p.DemoData, p.ReplyCount, coverage.Sources[0].Label, found, err)
+		}
+	})
+	t.Run("a non-ad ID that is not a message ID is not found", func(t *testing.T) {
+		if _, _, found, _ := client.app.records().Get(t.Context(), nrTestRequest(), "maya"); found {
+			t.Fatal("Get found maya; want not found")
+		}
+	})
+}
+
 func TestNetworkRecordSync(t *testing.T) {
 	raw, m := nrTestRecord(t, "A record from the change stream.", nrTestNow.Add(-time.Hour), "")
 	providerID := keys.DIDOf(devnet.ProviderKey(0))

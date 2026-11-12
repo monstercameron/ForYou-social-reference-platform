@@ -20,7 +20,7 @@ var demoAds = buildDemoAds()
 
 func buildDemoAds() []demoAd {
 	ad := func(id, color, text string, interests ...string) demoAd {
-		return demoAd{post: post{ID: id, Kind: "text", Color: color, Time: "Ad", Topic: "Sponsored", Text: text}, interests: interests}
+		return demoAd{post: post{ID: id, Kind: "text", Color: color, Topic: "Sponsored", Text: text}, interests: interests}
 	}
 	ads := []demoAd{
 		ad("ad-coffee", "peach", "Meet your new morning ritual. Try a locally roasted coffee subscription with free delivery on your first order.", "Learning", "recipe", "journal"),
@@ -100,6 +100,16 @@ var adsOutsideFeed = func() []post {
 	}
 	return outside
 }()
+
+// demoAdPost returns the demo ad with this ID, so an ad link resolves on every record source.
+func demoAdPost(id string) (post, bool) {
+	for _, ad := range demoAds {
+		if ad.post.ID == id {
+			return ad.post, true
+		}
+	}
+	return post{}, false
+}
 
 func likedSet(r *http.Request) map[string]bool {
 	liked := make(map[string]bool)
