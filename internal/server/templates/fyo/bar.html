@@ -1,0 +1,8 @@
+{{define "fyo-bar"}}{{if .Show}}<div id="fyo-bar" class="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 pb-4 max-[540px]:px-3">
+  <span id="fyo-label" class="text-[13px] font-semibold text-[var(--muted)]">Sort</span>
+  <div class="feed-filters" role="group" aria-labelledby="fyo-label">
+    <form action="/feed/order" method="post" post="/feed/order/fragment" target="#feed-section(outerHTML)" timeout="5000" onerror="#fyo-note(innerHTML)" data-focus-after-swap="#fyo-bar button[aria-pressed='true']"><input type="hidden" name="order" value="newest"><input type="hidden" name="filter" value="{{.Filter}}"><input type="hidden" name="q" value="{{.Query}}"><input type="hidden" name="theme" value="{{.Theme}}"><button type="submit" aria-pressed="{{if eq .Choice "newest"}}true{{else}}false{{end}}" class="aria-pressed:bg-[var(--accent)] aria-pressed:text-[var(--on-accent)] aria-pressed:hover:bg-[var(--accent)]">Newest</button></form>
+    <form action="/feed/order" method="post" post="/feed/order/fragment" target="#feed-section(outerHTML)" timeout="5000" onerror="#fyo-note(innerHTML)" data-focus-after-swap="#fyo-bar button[aria-pressed='true']"><input type="hidden" name="order" value="foryou"><input type="hidden" name="filter" value="{{.Filter}}"><input type="hidden" name="q" value="{{.Query}}"><input type="hidden" name="theme" value="{{.Theme}}"><button type="submit" aria-pressed="{{if eq .Choice "foryou"}}true{{else}}false{{end}}" class="aria-pressed:bg-[var(--accent)] aria-pressed:text-[var(--on-accent)] aria-pressed:hover:bg-[var(--accent)]">For you</button></form>
+  </div>
+  <p id="fyo-note" class="m-0 basis-full max-w-[64ch] text-[13px] text-[var(--muted)] empty:hidden" role="status" aria-live="polite">{{.Note}}</p>
+</div>{{end}}{{end}}

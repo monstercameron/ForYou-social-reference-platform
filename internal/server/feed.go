@@ -25,6 +25,7 @@ type feedPage struct {
 	NextLimit int
 	Loaded    int
 	Anchor    string
+	Order     fyoView
 }
 
 // feedFilter is the reader's choice of posts: a kind of post, or their own
@@ -166,6 +167,7 @@ func (a *App) readFeedRequest(r *http.Request, more bool) (feedPage, bool) {
 		count = limit
 	}
 	page.Loaded = count
+	page.Order = a.fyoOrder(r, page.Posts)
 	return page, true
 }
 
