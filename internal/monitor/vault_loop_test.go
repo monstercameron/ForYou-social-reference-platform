@@ -23,6 +23,7 @@ import (
 	"foryou.local/foryou/internal/message"
 	"foryou.local/foryou/internal/retention"
 	"foryou.local/foryou/internal/settlement"
+	"foryou.local/foryou/internal/store"
 	"foryou.local/foryou/internal/wire"
 )
 
@@ -35,6 +36,8 @@ type vaultTestWorld struct {
 	chain       *testChain
 	message     []byte
 	receipt     wire.SubmissionReceipt
+	issuedAt    time.Time
+	now         time.Time
 	declaration wire.RetentionDeclaration
 	claim       wire.SettlementClaim
 	leaves      []wire.SettlementLeaf
@@ -134,6 +137,59 @@ func TestVaultDelivery(t *testing.T) {
 			t.Errorf("delivery attempts = %d; want the refused one and one retry", len(w.deliveries))
 		}
 	})
+	t.Run("message that settles 40 days after issuance is delivered on a later pass", func(t *testing.T) {
+		w := vaultNewWorld(t)
+		w.shownWitnesses = 3
+		w.runOnce(t)
+		w.now = w.issuedAt.Add(40 * 24 * time.Hour)
+		w.runOnce(t)
+		w.mu.Lock()
+		w.shownWitnesses = 4
+		w.mu.Unlock()
+		w.now = w.now.Add(time.Hour)
+		w.runOnce(t)
+		w.mu.Lock()
+		defer w.mu.Unlock()
+		if len(w.deliveries) != 1 {
+			t.Fatalf("deliveries = %d; want 1 once the fourth witness appears 40 days after issuance", len(w.deliveries))
+		}
+	})
+	t.Run("retry waits for its backoff", func(t *testing.T) {
+		w := vaultNewWorld(t)
+		w.shownWitnesses = 3
+		w.runOnce(t)
+		w.runOnce(t)
+		w.mu.Lock()
+		w.shownWitnesses = 4
+		w.mu.Unlock()
+		w.runOnce(t)
+		w.mu.Lock()
+		if len(w.deliveries) != 0 {
+			t.Errorf("deliveries before the backoff ends = %d; want 0", len(w.deliveries))
+		}
+		w.mu.Unlock()
+		w.now = w.now.Add(time.Hour)
+		w.runOnce(t)
+		w.mu.Lock()
+		defer w.mu.Unlock()
+		if len(w.deliveries) != 1 {
+			t.Fatalf("deliveries after the one-hour backoff = %d; want 1", len(w.deliveries))
+		}
+	})
+	t.Run("pending records that never settle do not starve new changes", func(t *testing.T) {
+		previous := vaultRecordsPerPass
+		vaultRecordsPerPass = 2
+		t.Cleanup(func() { vaultRecordsPerPass = previous })
+		w := vaultNewWorld(t)
+		w.seedPending(t, 100, vaultTestNeverSettles(t, vaultTestNow.Add(-30*time.Hour)))
+		w.seedPending(t, 101, vaultTestNeverSettles(t, vaultTestNow.Add(-31*time.Hour)))
+		w.runOnce(t)
+		w.mu.Lock()
+		defer w.mu.Unlock()
+		if len(w.deliveries) != 1 {
+			t.Fatalf("deliveries = %d; want 1 for the new settled change in the same pass as two due retries", len(w.deliveries))
+		}
+	})
 	t.Run("provider identity mismatch does not deliver or advance the cursor", func(t *testing.T) {
 		w := vaultNewWorld(t)
 		w.changesProviderID = keys.DIDOf(devnet.ProviderKey(1))
@@ -154,8 +210,8 @@ func vaultNewWorld(t *testing.T) *vaultTestWorld {
 	t.Helper()
 	providerKey := devnet.ProviderKey(0)
 	providerID := keys.DIDOf(providerKey)
-	w := &vaultTestWorld{shownWitnesses: 4}
 	issuedAt := vaultTestNow.Add(-2 * time.Hour)
+	w := &vaultTestWorld{shownWitnesses: 4, issuedAt: issuedAt, now: vaultTestNow}
 	w.message, w.receipt = vaultTestMessage(t, providerKey, issuedAt)
 	payout := wire.PayoutRecipients{BitcoinMainnet: devnet.Recipient(devnet.ProviderLabelPrefix+"0", faux.BitcoinMainnet)}
 	var err error
@@ -252,7 +308,7 @@ func vaultNewWorld(t *testing.T) *vaultTestWorld {
 
 	w.chain = &testChain{}
 	w.service, err = New(Config{
-		Genesis: devnet.Genesis(), DataDir: t.TempDir(), Now: func() time.Time { return vaultTestNow },
+		Genesis: devnet.Genesis(), DataDir: t.TempDir(), Now: func() time.Time { return w.now },
 		Peers: map[string]string{"foundation": vault.URL, "provider0": provider.URL}, Faux: w.chain,
 	})
 	if err != nil {
@@ -267,6 +323,22 @@ func (w *vaultTestWorld) runOnce(t *testing.T) {
 	if err := w.service.RunOnce(context.Background()); err != nil {
 		t.Fatalf("RunOnce: %v", err)
 	}
+}
+
+func (w *vaultTestWorld) seedPending(t *testing.T, sequence int64, message []byte) {
+	t.Helper()
+	provider := w.service.ProviderList()[0]
+	record := vaultPendingRecord{ProviderURL: provider.URL, ProviderID: provider.ID, Sequence: sequence, Attempts: 1, NextAttempt: w.now, Message: message}
+	if err := w.service.DB().Update(func(tx store.Tx) error { return vaultPending.Put(tx, vaultPendingKey(record), record) }); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// vaultTestNeverSettles returns a message whose issued_at lies outside every claim period, so no proof can ever exist.
+func vaultTestNeverSettles(t *testing.T, issuedAt time.Time) []byte {
+	t.Helper()
+	message, _ := vaultTestMessage(t, devnet.ProviderKey(0), issuedAt)
+	return message
 }
 
 // auditByMembers funds the provider and lets the given hosted members witness the claim, so the

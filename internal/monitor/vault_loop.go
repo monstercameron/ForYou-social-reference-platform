@@ -24,14 +24,15 @@ const (
 )
 
 var (
-	// vaultRecordsPerPass bounds the change records, retries included, handled per provider in one pass.
+	// vaultRecordsPerPass bounds the records handled per provider in one pass. Retries use at most half of it.
 	vaultRecordsPerPass = 500
-	// vaultHorizon is how long after a receipt's issued_at an undelivered message is retried.
-	vaultHorizon = 30 * 24 * time.Hour
 
 	vaultCursors = store.Collection[vaultCursor]{Name: "monitor.vault.cursor"}
 	vaultPending = store.Collection[vaultPendingRecord]{Name: "monitor.vault.pending"}
 )
+
+// vaultMaxBackoff caps the wait between retries of a pending record.
+const vaultMaxBackoff = 24 * time.Hour
 
 type vaultCursor struct {
 	After uint64 `json:"after"`
@@ -42,6 +43,8 @@ type vaultPendingRecord struct {
 	ProviderURL string          `json:"provider_url"`
 	ProviderID  string          `json:"provider_id"`
 	Sequence    int64           `json:"sequence"`
+	Attempts    int             `json:"attempts"`
+	NextAttempt time.Time       `json:"next_attempt"`
 	Message     json.RawMessage `json:"message"`
 }
 
@@ -99,16 +102,26 @@ func vaultFollowProvider(s *Service, ctx context.Context, configured Provider, v
 	}
 	providerURL, providerID := configured.URL, configured.ID
 	budget := vaultRecordsPerPass
+	retryBudget := vaultRecordsPerPass / 2
 	retries, err := vaultListPending(s, providerURL, providerID)
 	if err != nil {
 		return err
 	}
 	for _, record := range retries {
-		if budget <= 0 {
-			return nil
+		if retryBudget <= 0 {
+			break
 		}
+		if record.NextAttempt.After(s.Now()) {
+			continue
+		}
+		retryBudget--
 		budget--
 		if vaultAttempt(s, ctx, provider, vault, record, proofContext) {
+			record.Attempts++
+			record.NextAttempt = s.Now().Add(vaultBackoff(record.Attempts))
+			if err := s.DB().Update(func(tx store.Tx) error { return vaultPending.Put(tx, vaultPendingKey(record), record) }); err != nil {
+				return err
+			}
 			continue
 		}
 		if err := s.DB().Update(func(tx store.Tx) error { return vaultPending.Delete(tx, vaultPendingKey(record)) }); err != nil {
@@ -136,7 +149,7 @@ func vaultFollowProvider(s *Service, ctx context.Context, configured Provider, v
 		var kept []vaultPendingRecord
 		for i, item := range result.Page.Items {
 			budget--
-			record := vaultPendingRecord{ProviderURL: providerURL, ProviderID: providerID, Sequence: item.Sequence, Message: exact[i]}
+			record := vaultPendingRecord{ProviderURL: providerURL, ProviderID: providerID, Sequence: item.Sequence, Attempts: 1, NextAttempt: s.Now(), Message: exact[i]}
 			if vaultAttempt(s, ctx, provider, vault, record, proofContext) {
 				kept = append(kept, record)
 			}
@@ -160,6 +173,7 @@ func vaultFollowProvider(s *Service, ctx context.Context, configured Provider, v
 }
 
 // vaultAttempt makes sure the vault holds the record and reports whether it must be retried on a later pass.
+// Only a final refusal ends the retries, so a message that settles late is still delivered.
 func vaultAttempt(s *Service, ctx context.Context, provider, vault *sdk.Client, record vaultPendingRecord, proofContext settlement.ProofContext) bool {
 	var message wire.PostMessage
 	if err := wire.Decode(record.Message, "PostMessage", &message); err != nil {
@@ -172,11 +186,7 @@ func vaultAttempt(s *Service, ctx context.Context, provider, vault *sdk.Client, 
 	}
 	log.Printf("monitor: vault delivery of %s: %v", message.MessageID, err)
 	var final vaultFinalError
-	if errors.As(err, &final) {
-		return false
-	}
-	issuedAt, parseErr := wire.ParseTime(message.SubmissionReceipt.IssuedAt)
-	return parseErr == nil && s.Now().Before(issuedAt.Add(vaultHorizon))
+	return !errors.As(err, &final)
 }
 
 // vaultFinalError marks a refusal that a later pass would not change.
@@ -372,6 +382,15 @@ func vaultExactMessages(raw []byte, count int) ([]json.RawMessage, error) {
 }
 
 func vaultCursorKey(providerURL, providerID string) string { return providerURL + "\x00" + providerID }
+
+// vaultBackoff is the wait after the failed attempt number attempts: one hour, doubling up to vaultMaxBackoff.
+func vaultBackoff(attempts int) time.Duration {
+	wait := time.Hour
+	for i := 2; i < attempts && wait < vaultMaxBackoff; i++ {
+		wait *= 2
+	}
+	return min(wait, vaultMaxBackoff)
+}
 
 func vaultPendingKey(record vaultPendingRecord) string {
 	return vaultCursorKey(record.ProviderURL, record.ProviderID) + "\x00" + strconv.FormatInt(record.Sequence, 10)

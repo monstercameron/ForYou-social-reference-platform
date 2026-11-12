@@ -326,18 +326,74 @@ func TestFoundationWatchClosureTiming(t *testing.T) {
 	})
 }
 
+func TestFoundationWatchKeepsWorkFromLaterCertificate(t *testing.T) {
+	now := time.Date(2027, 1, 1, 0, 0, 0, 0, time.UTC)
+	fixture := newWatchTestFixture(t, now)
+	laterKey, err := keys.NewKeyFromSeed([]byte(strings.Repeat("w", 32)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	laterRecipient := devnet.Recipient("foundation/later", faux.BitcoinMainnet)
+	later := watchTestCertificate(t, laterKey, wire.FoundationRecipients{BitcoinMainnet: laterRecipient, EthereumMainnet: devnet.Recipient("foundation/later", faux.EthereumMainnet)})
+	fixture.certificates.Certificates = append(fixture.certificates.Certificates, later)
+	fullRoot, err := governance.TreeRoot([]string{fixture.entries[0].ObjectHash, fixture.entries[1].ObjectHash, fixture.entries[2].ObjectHash})
+	if err != nil {
+		t.Fatal(err)
+	}
+	laterHead, err := governance.SignHead(laterKey, keys.DIDOf(laterKey), fullRoot, 3, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fixture.heads = append(fixture.heads, laterHead)
+	fixture.certificatesDown = true
+	server := httptest.NewServer(fixture.handler)
+	defer server.Close()
+	ledger, err := faux.Open(faux.Config{Now: func() time.Time { return now }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	commitment, err := settlement.DepositCommitment(keys.DIDOf(devnet.ProviderKey(0)), faux.BitcoinMainnet)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = ledger.Submit(context.Background(), faux.SubmitRequest{Network: faux.BitcoinMainnet, From: laterRecipient, Recipient: laterRecipient, AmountChainUnits: "10000", Data: hex.EncodeToString(commitment[:])})
+	if err != nil {
+		t.Fatal(err)
+	}
+	svc, err := New(Config{Genesis: devnet.Genesis(), DataDir: t.TempDir(), Now: func() time.Time { return now }, Peers: map[string]string{"foundation": server.URL, "provider": "http://127.0.0.1:8445"}, Faux: ledger})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer svc.Close()
+	if err := svc.RunOnce(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	fixture.certificatesDown = false
+	if err := svc.RunOnce(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if got := watchTestHeadCount(t, svc); got != 3 {
+		t.Fatalf("held head count = %d; want 3 including the head of the later certificate key", got)
+	}
+	evidence := svc.FoundationEvidence()
+	if len(evidence) != 1 || evidence[0].Kind != "recipient_funded_deposit" {
+		t.Fatalf("evidence count/kind = %d/%q; want one recipient_funded_deposit to the later recipient", len(evidence), watchTestEvidenceKind(evidence))
+	}
+}
+
 type watchTestFixture struct {
-	entries        []wire.FoundationLogEntry
-	objects        map[string][]byte
-	heads          []wire.FoundationLogHead
-	certificates   wire.FoundationCertificatesPage
-	logRequests    int
-	logAfter       []string
-	objectRequests int
-	conflicting    bool
-	badObject      bool
-	hideHeads      bool
-	handler        http.Handler
+	entries          []wire.FoundationLogEntry
+	objects          map[string][]byte
+	heads            []wire.FoundationLogHead
+	certificates     wire.FoundationCertificatesPage
+	certificatesDown bool
+	logRequests      int
+	logAfter         []string
+	objectRequests   int
+	conflicting      bool
+	badObject        bool
+	hideHeads        bool
+	handler          http.Handler
 }
 
 func newWatchTestFixture(t *testing.T, now time.Time) *watchTestFixture {
@@ -401,6 +457,10 @@ func newWatchTestFixture(t *testing.T, now time.Time) *watchTestFixture {
 			}
 			_ = json.NewEncoder(w).Encode(page)
 		case r.URL.Path == "/v1/foundation/certificates":
+			if fixture.certificatesDown {
+				http.Error(w, "unavailable", http.StatusServiceUnavailable)
+				return
+			}
 			_ = json.NewEncoder(w).Encode(fixture.certificates)
 		case strings.HasPrefix(r.URL.Path, "/v1/foundation/log/objects/"):
 			fixture.objectRequests++
@@ -429,6 +489,29 @@ func watchTestReceipt(t *testing.T, messageID string, now time.Time) wire.VaultR
 		t.Fatal(err)
 	}
 	return receipt
+}
+
+func watchTestCertificate(t *testing.T, key keys.PrivateKey, recipients wire.FoundationRecipients) wire.FoundationKeyCertificate {
+	t.Helper()
+	certificate := wire.FoundationKeyCertificate{FoundationID: keys.DIDOf(key), Recipients: recipients, IssuedAt: "2026-11-01T00:00:00Z", ValidFrom: "2026-12-15T00:00:00Z", ValidUntil: "2027-12-15T00:00:00Z"}
+	var err error
+	certificate.CertificateID, err = governance.CertificateID(certificate)
+	if err != nil {
+		t.Fatal(err)
+	}
+	unsigned, err := canon.EncodeWithout(certificate, "release_signatures")
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed, err := canon.Parse(unsigned, canon.Limits{MaxDepth: 32})
+	if err != nil {
+		t.Fatal(err)
+	}
+	certificate.ReleaseSignatures, err = governance.SignRelease("foundation-key-certificate", parsed, devnet.ReleaseKeys())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return certificate
 }
 
 func watchTestClosure(t *testing.T, fixture *watchTestFixture, now time.Time) wire.FoundationKeyClosure {

@@ -130,21 +130,21 @@ func watchFoundation(s *Service, parent context.Context) error {
 	if err := watchMirrorLog(s, ctx, client, &state, certificates); err != nil {
 		return err
 	}
+	// Head and transfer cursors move past what was read, so they wait for current certificates
+	// instead of skipping keys that only the genesis fallback cannot certify.
+	if certErr != nil {
+		return watchCheckConsistency(s)
+	}
 	if err := watchFetchHeads(s, ctx, client, &state, certificates); err != nil {
 		return err
 	}
-	if certErr == nil {
-		if err := watchFetchClosures(s, &state, certPage, trust); err != nil {
-			return err
-		}
+	if err := watchFetchClosures(s, &state, certPage, trust); err != nil {
+		return err
 	}
 	if err := watchCheckConsistency(s); err != nil {
 		return err
 	}
-	if err := watchTransfers(s, parent, &state, certificates); err != nil {
-		return err
-	}
-	return nil
+	return watchTransfers(s, parent, &state, certificates)
 }
 
 func watchLoadState(s *Service) (watchState, error) {
