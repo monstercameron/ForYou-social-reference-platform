@@ -28,6 +28,13 @@ func fdRegisterFunding(s *Service, mux *http.ServeMux) {
 	s.Every("funding-withdrawals", time.Minute, func(ctx context.Context, _ time.Time) error {
 		return fdSendPendingWithdrawals(ctx, s, "", "")
 	})
+	interval := time.Minute
+	if s.cfg.Dev {
+		interval = 10 * time.Second
+	}
+	s.Every("funding-reorganizations", interval, func(ctx context.Context, _ time.Time) error {
+		return s.Ledger.Reconcile(ctx, s.Chain)
+	})
 }
 
 func fdHandleDeposit(s *Service) http.HandlerFunc {

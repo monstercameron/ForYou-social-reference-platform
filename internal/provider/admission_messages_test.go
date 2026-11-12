@@ -76,10 +76,7 @@ func newFinalizeFixture(t *testing.T, text string) *finalizeFixture {
 	if err != nil {
 		t.Fatal(err)
 	}
-	chain, err := faux.Open(faux.Config{Now: clock})
-	if err != nil {
-		t.Fatal(err)
-	}
+	chain := s.Chain
 	providerKey := s.Key()
 	sealer := funding.Signer{Key: providerKey}
 	cap := new(big.Int).Exp(big.NewInt(10), big.NewInt(15), nil)

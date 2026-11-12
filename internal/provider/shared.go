@@ -56,7 +56,7 @@ func (s *Service) initializeShared() error {
 			return err
 		}
 	}
-	s.Ledger, err = funding.Open(funding.Config{ProviderID: s.ProviderID(), Journal: s.fundingJournal, Now: s.Now, Rand: s.cfg.Random, RecipientLabel: s.cfg.RecipientLabel})
+	s.Ledger, err = funding.Open(funding.Config{ProviderID: s.ProviderID(), Journal: s.fundingJournal, Now: s.Now, Rand: s.cfg.Random, RecipientLabel: s.cfg.RecipientLabel, ReversalDelay: s.cfg.ReversalDelay})
 	if err != nil {
 		return err
 	}

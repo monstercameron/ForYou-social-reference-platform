@@ -105,6 +105,10 @@ type Config struct {
 	WithdrawalLabel string
 	// RecipientLabel identifies provider faux deposit destinations.
 	RecipientLabel string
+	// ReversalDelay is how long a deposit frozen by a chain reorganization waits for
+	// its transfer to be final again before it is reversed. Zero means 24 hours, or
+	// two minutes in dev mode so the whole path can be watched.
+	ReversalDelay time.Duration
 	// ContentStore overrides the content store, primarily for failure injection.
 	ContentStore store.Store
 	// ControlStore overrides the independent control store.
@@ -146,6 +150,15 @@ func (c *Config) validate() error {
 	}
 	if c.ClaimPeriod <= 0 || c.ClaimPeriod > 24*time.Hour {
 		return invalidField("ClaimPeriod", "must be between 1 second and 24 hours")
+	}
+	if c.ReversalDelay == 0 {
+		c.ReversalDelay = 24 * time.Hour
+		if c.Dev {
+			c.ReversalDelay = 2 * time.Minute
+		}
+	}
+	if c.ReversalDelay < 0 {
+		return invalidField("ReversalDelay", "must not be negative")
 	}
 	if c.Retention.Seconds == 0 {
 		c.Retention.Seconds = 31536000
