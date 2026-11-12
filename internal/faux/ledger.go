@@ -126,6 +126,7 @@ type block struct {
 type journalRecord struct {
 	Kind     string         `json:"kind"`
 	Network  string         `json:"network,omitempty"`
+	ID       string         `json:"id,omitempty"`
 	Transfer *Transfer      `json:"transfer,omitempty"`
 	Request  *SubmitRequest `json:"request,omitempty"`
 	Blocks   []block        `json:"blocks"`
@@ -133,7 +134,7 @@ type journalRecord struct {
 
 type refRecord struct {
 	request  SubmitRequest
-	transfer Transfer
+	position int
 }
 
 // Ledger is a concurrent, journaled faux chain.
@@ -146,6 +147,7 @@ type Ledger struct {
 	transfers   []Transfer
 	refs        map[string]refRecord
 	ids         map[string]int
+	orphaned    map[int]bool
 	unavailable bool
 }
 
@@ -157,7 +159,7 @@ func Open(cfg Config) (*Ledger, error) {
 	if cfg.MaxTransfers <= 0 {
 		cfg.MaxTransfers = 1_000_000
 	}
-	l := &Ledger{now: cfg.Now, path: cfg.JournalPath, max: cfg.MaxTransfers, blocks: map[string][]block{BitcoinMainnet: {}, EthereumMainnet: {}}, refs: make(map[string]refRecord), ids: make(map[string]int)}
+	l := &Ledger{now: cfg.Now, path: cfg.JournalPath, max: cfg.MaxTransfers, blocks: map[string][]block{BitcoinMainnet: {}, EthereumMainnet: {}}, refs: make(map[string]refRecord), ids: make(map[string]int), orphaned: make(map[int]bool)}
 	if cfg.JournalPath == "" {
 		return l, nil
 	}
@@ -267,7 +269,7 @@ func (l *Ledger) submit(ctx context.Context, req SubmitRequest) (Transfer, bool,
 			if prior.request != req {
 				return Transfer{}, false, ErrConflict
 			}
-			return l.withConfirmations(prior.transfer), true, nil
+			return l.view(prior.position), true, nil
 		}
 	}
 	if len(l.transfers) >= l.max {
@@ -348,6 +350,16 @@ func (l *Ledger) replay(record journalRecord) error {
 		if !supported(record.Network) || len(record.Blocks) == 0 || len(record.Blocks) > 100 || record.Transfer != nil || record.Request != nil {
 			return errors.New("invalid mine record")
 		}
+	case "orphan":
+		position, ok := l.ids[record.Network+"\n"+record.ID]
+		if !ok || l.orphaned[position] || len(record.Blocks) != 0 || record.Transfer != nil || record.Request != nil {
+			return errors.New("invalid orphan record")
+		}
+	case "reinclude":
+		position, ok := l.ids[record.Network+"\n"+record.ID]
+		if !ok || !l.orphaned[position] || len(record.Blocks) != int(depth(record.Network)) || record.Transfer != nil || record.Request != nil {
+			return errors.New("invalid reinclude record")
+		}
 	default:
 		return errors.New("unknown record kind")
 	}
@@ -425,15 +437,108 @@ func validateBlocks(chain, added []block) error {
 
 func (l *Ledger) apply(record journalRecord) {
 	l.blocks[record.Network] = append(l.blocks[record.Network], record.Blocks...)
-	if record.Kind == "submit" {
+	switch record.Kind {
+	case "submit":
 		t := *record.Transfer
 		position := len(l.transfers)
 		l.transfers = append(l.transfers, t)
 		l.ids[record.Network+"\n"+transferID(t)] = position
 		if record.Request.ClientRef != "" {
-			l.refs[record.Request.ClientRef] = refRecord{request: *record.Request, transfer: t}
+			l.refs[record.Request.ClientRef] = refRecord{request: *record.Request, position: position}
 		}
+	case "orphan":
+		l.orphaned[l.ids[record.Network+"\n"+record.ID]] = true
+	case "reinclude":
+		position := l.ids[record.Network+"\n"+record.ID]
+		delete(l.orphaned, position)
+		l.transfers[position].BlockHeight, l.transfers[position].BlockTime = record.Blocks[0].Height, record.Blocks[0].Time
 	}
+}
+
+// view returns the transfer at position as the chain shows it now. An orphaned
+// transfer is in no block.
+func (l *Ledger) view(position int) Transfer {
+	t := l.transfers[position]
+	if l.orphaned[position] {
+		t.BlockHeight, t.BlockTime = 0, ""
+		if t.OutputIndex != nil {
+			index := *t.OutputIndex
+			t.OutputIndex = &index
+		}
+		return t
+	}
+	return l.withConfirmations(t)
+}
+
+// Orphan simulates a chain reorganization that drops one transfer: the chain no
+// longer shows it until Reinclude mines it again.
+func (l *Ledger) Orphan(ctx context.Context, network, id string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if _, err := l.position(network, id); err != nil {
+		return err
+	}
+	if l.unavailable {
+		return ErrUnavailable
+	}
+	record := journalRecord{Kind: "orphan", Network: network, ID: id, Blocks: []block{}}
+	if err := l.persist(record); err != nil {
+		l.unavailable = true
+		return fmt.Errorf("%w: journal write", ErrUnavailable)
+	}
+	l.apply(record)
+	return nil
+}
+
+// Reinclude mines an orphaned transfer into a new final block. Its block height
+// and block time are those of the new block.
+func (l *Ledger) Reinclude(ctx context.Context, network, id string) (Transfer, error) {
+	if err := ctx.Err(); err != nil {
+		return Transfer{}, err
+	}
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if !supported(network) {
+		return Transfer{}, fmt.Errorf("%w: network", ErrInvalid)
+	}
+	if !hashPattern.MatchString(id) {
+		return Transfer{}, fmt.Errorf("%w: transfer ID", ErrInvalid)
+	}
+	position, ok := l.ids[network+"\n"+id]
+	if !ok {
+		return Transfer{}, ErrNotFound
+	}
+	if !l.orphaned[position] {
+		return Transfer{}, ErrConflict
+	}
+	if l.unavailable {
+		return Transfer{}, ErrUnavailable
+	}
+	record := journalRecord{Kind: "reinclude", Network: network, ID: id, Blocks: l.newBlocks(network, int(depth(network)))}
+	if err := l.persist(record); err != nil {
+		l.unavailable = true
+		return Transfer{}, fmt.Errorf("%w: journal write", ErrUnavailable)
+	}
+	l.apply(record)
+	return l.view(position), nil
+}
+
+// position finds a transfer the chain currently shows.
+func (l *Ledger) position(network, id string) (int, error) {
+	if !supported(network) {
+		return 0, fmt.Errorf("%w: network", ErrInvalid)
+	}
+	if !hashPattern.MatchString(id) {
+		return 0, fmt.Errorf("%w: transfer ID", ErrInvalid)
+	}
+	position, ok := l.ids[network+"\n"+id]
+	if !ok || l.orphaned[position] {
+		return 0, ErrNotFound
+	}
+	return position, nil
 }
 
 // transactionID is the faux transaction ID: SHA-256 over a domain prefix and the
@@ -495,15 +600,9 @@ func (l *Ledger) Transfer(ctx context.Context, network, id string) (Transfer, er
 	}
 	l.mu.RLock()
 	defer l.mu.RUnlock()
-	if !supported(network) {
-		return Transfer{}, fmt.Errorf("%w: network", ErrInvalid)
-	}
-	if !hashPattern.MatchString(id) {
-		return Transfer{}, fmt.Errorf("%w: transfer ID", ErrInvalid)
-	}
-	position, ok := l.ids[network+"\n"+id]
-	if !ok {
-		return Transfer{}, ErrNotFound
+	position, err := l.position(network, id)
+	if err != nil {
+		return Transfer{}, err
 	}
 	return l.withConfirmations(l.transfers[position]), nil
 }
@@ -538,7 +637,7 @@ func (l *Ledger) transfersAfter(ctx context.Context, q Query, allowExtra bool) (
 	if start < uint64(len(l.transfers)) {
 		for i := int(start); i < len(l.transfers); i++ {
 			t := l.transfers[i]
-			if t.Network == q.Network && (q.Recipient == "" || t.Recipient == q.Recipient) && (q.Data == "" || t.Data == q.Data) {
+			if !l.orphaned[i] && t.Network == q.Network && (q.Recipient == "" || t.Recipient == q.Recipient) && (q.Data == "" || t.Data == q.Data) {
 				out = append(out, l.withConfirmations(t))
 				if len(out) == limit {
 					break
@@ -622,8 +721,8 @@ func (l *Ledger) Address(ctx context.Context, network, address string) (AddressT
 	}
 	received, sent := new(big.Int), new(big.Int)
 	items := make([]Transfer, 0)
-	for _, t := range l.transfers {
-		if t.Network != network {
+	for i, t := range l.transfers {
+		if t.Network != network || l.orphaned[i] {
 			continue
 		}
 		if t.Recipient == address {

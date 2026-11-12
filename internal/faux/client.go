@@ -123,6 +123,18 @@ func (c *Client) Transfers(ctx context.Context, q Query) ([]Transfer, error) {
 	return value.Transfers, err
 }
 
+// Orphan drops one transfer from the chain through the HTTP API.
+func (c *Client) Orphan(ctx context.Context, network, id string) error {
+	return c.request(ctx, http.MethodPost, "/faux/v1/transfers/"+url.PathEscape(network)+"/"+url.PathEscape(id)+"/orphan", nil, nil)
+}
+
+// Reinclude mines an orphaned transfer again through the HTTP API.
+func (c *Client) Reinclude(ctx context.Context, network, id string) (Transfer, error) {
+	var value Transfer
+	err := c.request(ctx, http.MethodPost, "/faux/v1/transfers/"+url.PathEscape(network)+"/"+url.PathEscape(id)+"/reinclude", nil, &value)
+	return value, err
+}
+
 // Mine appends empty blocks through the HTTP API.
 func (c *Client) Mine(ctx context.Context, network string, count int) (Tip, error) {
 	var value Tip

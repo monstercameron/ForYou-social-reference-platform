@@ -69,6 +69,21 @@ func NewHandler(l *Ledger) http.Handler {
 		}
 		writeJSON(w, http.StatusOK, transfer)
 	})
+	mux.HandleFunc("POST /faux/v1/transfers/{network}/{id}/orphan", func(w http.ResponseWriter, r *http.Request) {
+		if err := l.Orphan(r.Context(), r.PathValue("network"), r.PathValue("id")); err != nil {
+			writeError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]string{"status": "orphaned"})
+	})
+	mux.HandleFunc("POST /faux/v1/transfers/{network}/{id}/reinclude", func(w http.ResponseWriter, r *http.Request) {
+		transfer, err := l.Reinclude(r.Context(), r.PathValue("network"), r.PathValue("id"))
+		if err != nil {
+			writeError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, transfer)
+	})
 	mux.HandleFunc("POST /faux/v1/blocks", func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
 			Network string `json:"network"`
