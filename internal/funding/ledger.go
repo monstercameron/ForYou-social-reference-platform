@@ -80,6 +80,12 @@ type Config struct {
 	InvoiceLifetime time.Duration
 	// MaxOpenInvoices bounds outstanding invoices across all accounts; zero means 10,000.
 	MaxOpenInvoices int
+	// ReorgWatch is how long after a credit its transfer is re-checked against the
+	// chain; zero means 24 hours.
+	ReorgWatch time.Duration
+	// ReversalDelay is how long a frozen credit waits for its transfer to be final
+	// again before it is reversed; zero means 24 hours.
+	ReversalDelay time.Duration
 }
 
 // Balance is the provider-local balance of one author on one network, in accounting units.
@@ -111,6 +117,8 @@ type Ledger struct {
 	credits        map[string]wire.DepositCredit
 	creditIDs      map[string]bool
 	creditSequence int64
+	holds          map[string]*creditHold
+	watched        []string
 	claims         []Claim
 	claimIndex     map[string]int
 
@@ -165,7 +173,14 @@ const (
 	kindProviderFailure  = "provider_failure"
 	kindWithdrawal       = "withdrawal"
 	kindWithdrawalStatus = "withdrawal_status"
+	kindPendingDropped   = "pending_dropped"
+	kindCreditFreeze     = "credit_freeze"
+	kindCreditRelease    = "credit_release"
+	kindCreditReversal   = "credit_reversal"
+	kindCreditRestore    = "credit_restore"
 )
+
+const defaultReorgDelay = 24 * time.Hour
 
 // Open creates a ledger and replays its journal. A journal that cannot be read or
 // replayed leaves the ledger failed: reads keep working and mutations return ErrUnavailable.
@@ -188,6 +203,15 @@ func Open(cfg Config) (*Ledger, error) {
 	if cfg.MaxOpenInvoices < 0 {
 		return nil, fmt.Errorf("%w: negative invoice limit", ErrInvalidRequest)
 	}
+	if cfg.ReorgWatch == 0 {
+		cfg.ReorgWatch = defaultReorgDelay
+	}
+	if cfg.ReversalDelay == 0 {
+		cfg.ReversalDelay = defaultReorgDelay
+	}
+	if cfg.ReorgWatch < 0 || cfg.ReversalDelay < 0 {
+		return nil, fmt.Errorf("%w: negative reorganization delay", ErrInvalidRequest)
+	}
 	l := &Ledger{
 		cfg:                cfg,
 		journal:            cfg.Journal,
@@ -198,6 +222,7 @@ func Open(cfg Config) (*Ledger, error) {
 		recipients:         make(map[string]bool),
 		credits:            make(map[string]wire.DepositCredit),
 		creditIDs:          make(map[string]bool),
+		holds:              make(map[string]*creditHold),
 		claimIndex:         make(map[string]int),
 		admissions:         make(map[string]*admissionState),
 		quotes:             make(map[string]bool),
@@ -281,6 +306,16 @@ func (l *Ledger) stage(r record) (func(), error) {
 		apply, err = l.stageWithdrawal(r, at)
 	case kindWithdrawalStatus:
 		apply, err = l.stageWithdrawalStatus(r, at)
+	case kindPendingDropped:
+		apply, err = l.stagePendingDropped(r)
+	case kindCreditFreeze:
+		apply, err = l.stageCreditFreeze(r, at)
+	case kindCreditRelease:
+		apply, err = l.stageCreditRelease(r, at)
+	case kindCreditReversal:
+		apply, err = l.stageCreditReversal(r, at)
+	case kindCreditRestore:
+		apply, err = l.stageCreditRestore(r, at)
 	default:
 		err = fmt.Errorf("funding: unknown record kind %q", r.Kind)
 	}

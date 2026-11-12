@@ -12,8 +12,11 @@ import (
 type HistoryKind string
 
 const (
-	// HistoryDepositCredit adds a confirmed deposit, or a funding claim settled in the author's favor.
+	// HistoryDepositCredit adds a confirmed deposit, a funding claim settled in the author's
+	// favor, or a reversed credit whose transfer came back.
 	HistoryDepositCredit HistoryKind = "deposit_credit"
+	// HistoryDepositReversal subtracts the unspent part of a credit that a chain reorganization removed.
+	HistoryDepositReversal HistoryKind = "deposit_reversal"
 	// HistoryDebit subtracts the fee of one admission.
 	HistoryDebit HistoryKind = "debit"
 	// HistoryFeeRestore adds back the fee of an admission the provider failed to finalize.

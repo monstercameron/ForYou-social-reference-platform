@@ -76,6 +76,7 @@ type invoiceState struct {
 // pendingObservation is the one observed but not yet final transfer retained per invoice.
 type pendingObservation struct {
 	transferID string
+	transfer   wire.DepositTransfer
 	amount     *big.Int
 }
 
@@ -262,12 +263,16 @@ func (l *Ledger) Observe(ctx context.Context, p wire.DepositProof, chain faux.Ch
 		return wire.DepositCredit{}, Pending, err
 	}
 	if credit, out, done, err := l.fenced(id, p.DepositID); done {
+		if out == Existing && l.held(id) {
+			// The retry still recovers the original credit when the chain cannot be read.
+			_ = l.recheck(ctx, chain, id)
+		}
 		return credit, out, err
 	}
 	t, err := chain.Transfer(ctx, p.Transfer.Network, lookupID(p.Transfer))
 	switch {
 	case errors.Is(err, faux.ErrNotFound):
-		return wire.DepositCredit{}, Pending, nil
+		return wire.DepositCredit{}, Pending, l.dropPending(p.DepositID, id)
 	case errors.Is(err, faux.ErrInvalid):
 		return wire.DepositCredit{}, Pending, ErrInvalidHint
 	case err != nil:
@@ -444,8 +449,9 @@ func (l *Ledger) stagePending(r record) (func(), error) {
 	if st.pending != nil {
 		return nil, errors.New("funding: invoice already has a pending observation")
 	}
+	transfer := cloneTransfer(*r.Transfer)
 	return func() {
-		st.pending = &pendingObservation{transferID: id, amount: amount}
+		st.pending = &pendingObservation{transferID: id, transfer: transfer, amount: amount}
 		l.outstanding[r.DepositID] = true
 	}, nil
 }
@@ -505,6 +511,7 @@ func (l *Ledger) stageCredit(r record, at time.Time) (func(), error) {
 	}
 	return func() {
 		l.credits[id] = c
+		l.watched = append(l.watched, id)
 		l.creditIDs[c.CreditID] = true
 		l.creditSequence = c.CreditSequence
 		st.credited = true
