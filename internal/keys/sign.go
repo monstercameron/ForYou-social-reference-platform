@@ -59,7 +59,9 @@ func Sign(priv PrivateKey, label string, canonical []byte) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return EncodeB64URL(ed25519.Sign(priv, input)), nil
+	signature := ed25519.Sign(priv, input)
+	rememberOwnSignature(priv, input, signature)
+	return EncodeB64URL(signature), nil
 }
 
 // DigestID returns a typed content ID from the domain-separated canonical bytes.

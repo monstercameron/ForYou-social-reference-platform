@@ -264,3 +264,69 @@ func readSecurityVector(t *testing.T) securityVectorFile {
 	}
 	return vector
 }
+
+func TestVerifyStrictRemembersOnlyWhatPassed(t *testing.T) {
+	key, err := NewKeyFromSeed(bytes.Repeat([]byte{7}, 32))
+	if err != nil {
+		t.Fatal(err)
+	}
+	other, err := NewKeyFromSeed(bytes.Repeat([]byte{8}, 32))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pub, otherPub := key.Public().(ed25519.PublicKey), other.Public().(ed25519.PublicKey)
+	message := []byte("remembered message")
+	signature := ed25519.Sign(ed25519.PrivateKey(key), message)
+	t.Run("a valid signature verifies again", func(t *testing.T) {
+		if first, second := VerifyStrict(pub, message, signature), VerifyStrict(pub, message, signature); first != nil || second != nil {
+			t.Errorf("first %v, second %v; want both nil", first, second)
+		}
+	})
+	t.Run("the same signature over another message still fails", func(t *testing.T) {
+		if err := VerifyStrict(pub, []byte("another message"), signature); !errors.Is(err, ErrBadSignature) {
+			t.Errorf("error = %v; want ErrBadSignature", err)
+		}
+	})
+	t.Run("the same message and signature under another key still fail", func(t *testing.T) {
+		if err := VerifyStrict(otherPub, message, signature); !errors.Is(err, ErrBadSignature) {
+			t.Errorf("error = %v; want ErrBadSignature", err)
+		}
+	})
+	t.Run("a failed verification is not remembered", func(t *testing.T) {
+		forged := append([]byte(nil), signature...)
+		forged[40] ^= 1
+		if first, second := VerifyStrict(pub, message, forged), VerifyStrict(pub, message, forged); first == nil || second == nil {
+			t.Errorf("first %v, second %v; want both to fail", first, second)
+		}
+	})
+}
+
+func TestSignRemembersOnlyHonestKeys(t *testing.T) {
+	key, err := NewKeyFromSeed(bytes.Repeat([]byte{21}, 32))
+	if err != nil {
+		t.Fatal(err)
+	}
+	other, err := NewKeyFromSeed(bytes.Repeat([]byte{22}, 32))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Run("a signature made here verifies under the signer's DID", func(t *testing.T) {
+		signature, err := Sign(key, "test-label", []byte(`{"a":1}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := Verify(DIDOf(key), "test-label", []byte(`{"a":1}`), signature); err != nil {
+			t.Errorf("Verify of a fresh signature = %v; want nil", err)
+		}
+	})
+	t.Run("a key whose public half is another key's is not trusted by signing", func(t *testing.T) {
+		grafted := append(append(PrivateKey(nil), key.Seed()...), other.Public().(ed25519.PublicKey)...)
+		signature, err := Sign(grafted, "test-label", []byte(`{"a":2}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := Verify(DIDOf(other), "test-label", []byte(`{"a":2}`), signature); !errors.Is(err, ErrBadSignature) {
+			t.Errorf("Verify under the grafted public key = %v; want ErrBadSignature", err)
+		}
+	})
+}
