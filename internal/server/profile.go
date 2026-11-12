@@ -35,6 +35,7 @@ type ProfileSettings struct {
 	MediaOrigins     []string             `json:"media_origins,omitempty"`
 	Acknowledgements map[string]time.Time `json:"acknowledgements,omitempty"`
 	PublishNetwork   string               `json:"publish_network,omitempty"`
+	PrimaryProvider  string               `json:"primary_provider,omitempty"`
 }
 
 // ProviderChoice stores one locally selected provider.

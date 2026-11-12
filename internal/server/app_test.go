@@ -66,9 +66,6 @@ func TestClientNavigationAndLandingPages(t *testing.T) {
 			t.Error("non-dev client showed dev custody text")
 		}
 	})
-	t.Run("network landing renders active navigation", func(t *testing.T) {
-		checkLanding(t, "/network", "Network")
-	})
 }
 
 func TestStateChangingRouteGuards(t *testing.T) {
@@ -126,14 +123,4 @@ func TestFailRendersForFetchAndNavigation(t *testing.T) {
 			t.Errorf("document failure = %d %q; want a shell error page", w.Code, w.Body.String())
 		}
 	})
-}
-
-func checkLanding(t *testing.T, path, title string) {
-	t.Helper()
-	client := newTestClient(t, false)
-	w := httptest.NewRecorder()
-	client.Handler().ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
-	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "<h1>"+title+"</h1>") || !strings.Contains(w.Body.String(), "This page is not available yet.") || !strings.Contains(w.Body.String(), `href="`+path+`" aria-current="page"`) {
-		t.Errorf("%s landing = %d %q", path, w.Code, w.Body.String())
-	}
 }

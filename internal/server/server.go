@@ -109,7 +109,6 @@ func NewClient(cfg Config) (*Client, error) {
 	for _, register := range routeGroups {
 		register(app, mux)
 	}
-	registerLandingPages(app, mux)
 	assets, err := fs.Sub(templates, "static")
 	if err != nil {
 		return nil, err

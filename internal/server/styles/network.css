@@ -1,1 +1,49 @@
-@layer components {}
+@layer components {
+  .network-content { @apply flex flex-col gap-4; }
+  .network-section { @apply flex min-w-0 flex-col gap-3; }
+  .network-section p { @apply [overflow-wrap:anywhere]; }
+  .network-section > h2 { @apply text-lg font-bold; }
+  .network-section > h2:focus-visible { @apply outline-2 outline-offset-2 outline-[var(--accent)]; }
+  .network-notice { @apply m-0 text-[13px] text-[var(--muted)]; }
+  .network-notice:empty { @apply hidden; }
+  .network-disclosure, .network-note { @apply m-0 rounded-lg bg-[var(--rail)] p-3 text-[13px] text-[var(--muted)] [overflow-wrap:anywhere]; }
+  .network-disclosure p + p { @apply mt-2; }
+  .network-providers, .network-monitors, .network-chips, .network-restore ul, .network-trust ul { @apply m-0 flex flex-col gap-3 p-0 list-none; }
+  .network-chips { @apply flex-row flex-wrap; }
+  .network-provider, .network-monitor { @apply flex min-w-0 flex-col gap-2.5 rounded-xl border border-[var(--line)] bg-[var(--panel)] p-4; }
+  .network-provider h3, .network-monitor h4, .network-add h3, .network-restore h3 { @apply text-[15px] font-bold [overflow-wrap:anywhere]; }
+  .network-facts, .network-manifest, .network-stack { @apply m-0 grid gap-2; }
+  .network-facts > div, .network-manifest > div, .network-stack > div { @apply grid min-w-0 gap-0.5; }
+  .network-facts dt, .network-manifest dt, .network-stack dt { @apply text-xs font-semibold text-[var(--muted)]; }
+  .network-facts dd, .network-manifest dd, .network-stack dd { @apply m-0 min-w-0 text-[13px] [overflow-wrap:anywhere]; }
+  .network-pills, .network-actions { @apply flex flex-wrap items-center gap-2; }
+  .network-actions form, .network-reset, .network-restore form { @apply m-0; }
+  .network-actions .button, .network-restore .button, .network-reset .button { @apply min-h-11; }
+  .network-switch-form button[aria-pressed="true"] { @apply bg-[var(--accent-soft)]; }
+  .network-checkbox { @apply flex min-h-11 items-start gap-2 text-sm; }
+  .network-add { @apply flex flex-col gap-3 border-t border-[var(--line)] pt-4; }
+  .network-add input[type="url"], .network-add input[type="text"] { @apply h-11 w-full rounded-lg border border-[var(--line)] bg-[var(--control)] px-3 text-[var(--text)]; }
+  .network-add input:focus-visible, .network-checkbox input:focus-visible { @apply outline-2 outline-offset-2 outline-[var(--accent)]; }
+  .network-add .field { @apply flex flex-col gap-1; }
+  .network-add .field-help { @apply m-0 text-xs text-[var(--muted)]; }
+  .network-reset { @apply flex flex-col gap-2; }
+  .network-chips li { @apply max-w-full; }
+  .network-cert { @apply border-t border-[var(--line)] py-2.5 text-[13px] [overflow-wrap:anywhere]; }
+  .network-cert p { @apply m-0; }
+  .network-table-wrap { @apply overflow-x-auto; }
+  .network-table { @apply w-full border-collapse text-[13px]; }
+  .network-table caption { @apply pb-1.5 text-left text-[var(--muted)]; }
+  .network-table th, .network-table td { @apply whitespace-nowrap border-t border-[var(--line)] px-1.5 py-2 text-left align-top; }
+  .network-detail:empty { @apply hidden; }
+  .network-detail-body { @apply flex flex-col gap-2.5 border-t border-[var(--line)] pt-2.5 text-[13px] [overflow-wrap:anywhere]; }
+  .network-detail-body h4 { @apply text-sm font-bold; }
+  .network-detail-body p { @apply m-0; }
+}
+/* The fee table needs about 540px; narrower sections show the stacked list instead of scrolling sideways. */
+#network-trust { container-type: inline-size; }
+@container (max-width: 559px) {
+  .network-table-wrap { display: none; }
+}
+@container (min-width: 560px) {
+  .network-stack { display: none; }
+}

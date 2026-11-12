@@ -92,7 +92,7 @@ func (a *App) selection(profile string) Selection {
 			providers = append(providers, choice)
 		}
 	}
-	return Selection{Providers: providers, Mirrors: append([]Endpoint(nil), a.config.Mirrors...), Vault: a.config.Foundation.URL != ""}
+	return Selection{Providers: netPrimaryFirst(providers, settings.PrimaryProvider), Mirrors: append([]Endpoint(nil), a.config.Mirrors...), Vault: a.config.Foundation.URL != ""}
 }
 
 func (a *App) publishingProvider(profile string) (ProviderChoice, bool) {

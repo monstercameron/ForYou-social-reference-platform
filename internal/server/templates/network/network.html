@@ -1,0 +1,159 @@
+{{define "network-page"}}
+{{template "layout-open" .Layout}}
+  <div class="page-content network-content">
+    <header class="page-heading"><h1>Network</h1><p>Where this client reads and publishes. Every choice here is yours and stays on this server.</p></header>
+    {{template "network-providers" .Providers}}
+    {{template "network-monitors" .}}
+    {{template "network-trust" .Trust}}
+  </div>
+{{template "layout-close" .Layout}}
+{{end}}
+
+{{define "network-providers"}}
+<section id="network-providers" class="component-card network-section" aria-labelledby="network-providers-title">
+  <h2 id="network-providers-title" tabindex="-1" data-focus-after-swap="#network-providers-title">Providers</h2>
+  <p class="network-notice" role="{{if .Notice.Error}}alert{{else}}status{{end}}" aria-live="polite">{{.Notice.Text}}</p>
+  {{if .HasDefaults}}<div class="network-disclosure">
+    <p>Default list by {{.Defaults.Controller}}, funded by {{.Defaults.Funding}}, version {{.Defaults.Version}}. Criteria: {{.Defaults.Criteria}}. Monitors: {{.Defaults.Monitors}}. Known conflicts: {{.Defaults.Conflicts}}.</p>
+    <p>Two endpoints or keys do not prove independent operators.</p>
+  </div>{{end}}
+  {{if .Single}}<p class="network-note">One source only. You can add another independent provider.</p>{{end}}
+  <ul class="network-providers">
+    {{range .Providers}}<li id="{{.Anchor}}" class="network-provider">
+      <h3>{{.Label}}</h3>
+      <dl class="network-facts">
+        <div><dt>Endpoint</dt><dd><code class="id-chip">{{.Endpoint}}</code></dd></div>
+        <div><dt>Operator key</dt><dd><code class="id-chip">{{.OperatorKey}}</code></dd></div>
+        <div><dt>Source</dt><dd>{{if .Default}}Default list{{else}}Added by you{{end}}</dd></div>
+      </dl>
+      <div class="network-pills">
+        {{if .Publishing}}<span class="pill-ok">Publishing provider</span>{{end}}
+        {{if and .Manual (not .Verified)}}<span class="pill-warn">Manifest not verified</span>{{end}}
+      </div>
+      <div class="network-actions">
+        <form class="network-switch-form" action="/network/providers/trust" method="post" post="/network/providers/trust" target="#network-providers(outerHTML)" timeout="5000">
+          <input type="hidden" name="endpoint" value="{{.Endpoint}}">
+          <input type="hidden" name="trusted" value="{{if .Trusted}}0{{else}}1{{end}}">
+          <button class="button button-secondary" type="submit" aria-pressed="{{if .Trusted}}true{{else}}false{{end}}">{{if .Trusted}}Trusted{{else}}Not trusted{{end}}</button>
+        </form>
+        {{if .CanPublish}}<form action="/network/providers/primary" method="post" post="/network/providers/primary" target="#network-providers(outerHTML)" timeout="5000">
+          <input type="hidden" name="endpoint" value="{{.Endpoint}}">
+          <button class="button button-secondary" type="submit">Use for publishing</button>
+        </form>{{end}}
+        <form action="/network/provider" method="get" get="/network/provider" target="#{{.Anchor}}-detail(innerHTML)" timeout="5000">
+          <input type="hidden" name="endpoint" value="{{.Endpoint}}">
+          <button class="button button-secondary" type="submit">Details</button>
+        </form>
+        <form action="/network/providers/remove" method="post" post="/network/providers/remove" target="#network-providers(outerHTML)" timeout="5000">
+          <input type="hidden" name="endpoint" value="{{.Endpoint}}">
+          <button class="button button-secondary" type="submit">Remove</button>
+        </form>
+      </div>
+      <div id="{{.Anchor}}-detail" class="network-detail">{{if and $.Open (eq $.Open .Anchor)}}{{template "network-provider-detail" $.Detail}}{{end}}</div>
+    </li>{{else}}<li class="network-empty">No provider is selected. Add one below or restore the defaults.</li>{{end}}
+  </ul>
+  {{if .Removed}}<div class="network-restore">
+    <h3>Removed defaults</h3>
+    <ul>{{range .Removed}}<li>{{.Label}} <code class="id-chip">{{.Endpoint}}</code></li>{{end}}</ul>
+    <form action="/network/defaults/restore" method="post" post="/network/defaults/restore" target="#network-providers(outerHTML)" timeout="5000">
+      <button class="button button-secondary" type="submit">Restore defaults</button>
+    </form>
+  </div>{{end}}
+  {{template "network-add"}}
+</section>
+{{end}}
+
+{{define "network-add"}}
+<form class="network-add" action="/network/providers" method="post" post="/network/providers" target="#network-providers(outerHTML)" timeout="10000">
+  <h3>Add a provider</h3>
+  <div class="field">
+    <label for="network-endpoint">HTTPS endpoint</label>
+    <input id="network-endpoint" name="endpoint" type="url" required inputmode="url" autocomplete="off" aria-describedby="network-endpoint-help">
+    <p id="network-endpoint-help" class="field-help">The operator's https:// address. Plain http:// works only for loopback addresses in dev mode.</p>
+  </div>
+  <div class="field">
+    <label for="network-operator-key">Operator key (did:key)</label>
+    <input id="network-operator-key" name="operator_key" type="text" required autocomplete="off" spellcheck="false" aria-describedby="network-key-help">
+    <p id="network-key-help" class="field-help">Copy the key the operator publishes. The provider is added untrusted; you turn trust on yourself.</p>
+  </div>
+  <div class="field">
+    <label class="network-checkbox"><input type="checkbox" name="unverified" value="1"> <span>Add without a verified manifest, if the manifest cannot be fetched</span></label>
+  </div>
+  <button class="button button-primary" type="submit">Add provider</button>
+</form>
+{{end}}
+
+{{define "network-provider-detail"}}
+<div class="network-detail-body">
+  {{if .Notice.Text}}<p class="network-notice" role="{{if .Notice.Error}}alert{{else}}status{{end}}">{{.Notice.Text}}</p>{{end}}
+  {{if .Message}}<p class="network-notice" role="status">{{.Message}}</p>{{end}}
+  {{if .PinText}}<p><span class="pill-{{.PinTone}}">{{.PinText}}</span></p>{{end}}
+  {{if .Fields}}<dl class="network-manifest">{{range .Fields}}<div><dt>{{.Name}}</dt><dd>{{.Value}}</dd></div>{{end}}</dl>{{end}}
+  {{if .CanReset}}<form class="network-reset" action="/network/manifest/reset" method="post" post="/network/manifest/reset" target="#{{.Anchor}}-detail(innerHTML)" timeout="5000">
+    <input type="hidden" name="endpoint" value="{{.Endpoint}}">
+    <label class="network-checkbox"><input type="checkbox" name="confirm" value="1"> <span>I reviewed the operator key and policy</span></label>
+    <button class="button button-secondary" type="submit">Reset trust in this manifest</button>
+  </form>{{end}}
+  <h4>Retention</h4>
+  {{range .Retention}}<p>{{.}}</p>{{else}}<p>No verified retention declaration.</p>{{end}}
+  {{if .Lifetime}}<p>The Lifetime Vault keeps settled records with no scheduled expiry.</p>{{end}}
+</div>
+{{end}}
+
+{{define "network-monitors"}}
+<section id="network-committee" class="component-card network-section" aria-labelledby="network-committee-title">
+  <h2 id="network-committee-title">Committee and monitors</h2>
+  {{with .Committee}}{{if .Known}}
+    <p>Current committee ({{.Count}} monitors): decisions need more than two-thirds, so {{.Quorum}} of {{.Count}}.</p>
+    <p>Policy {{.PolicyID}}, effective {{.EffectiveAt}}.</p>
+    <ul class="network-chips">{{range .Current}}<li><code class="id-chip">{{.}}</code></li>{{end}}</ul>
+    {{if .Previous}}<p>Previous committee during the handover:</p><ul class="network-chips">{{range .Previous}}<li><code class="id-chip">{{.}}</code></li>{{end}}</ul>{{end}}
+  {{else}}<p>The committee is unknown until the trust root is verified.</p>{{end}}{{end}}
+  <h3>Monitors</h3>
+  {{if .Monitors}}<ul class="network-monitors">
+    {{range $m := .Monitors}}<li class="network-monitor">
+      <h4>{{.Label}}</h4>
+      <code class="id-chip">{{.Endpoint}}</code>
+      <form action="/network/monitor" method="get" get="/network/monitor" target="#{{.Anchor}}-result(innerHTML)" timeout="10000">
+        <input type="hidden" name="endpoint" value="{{.Endpoint}}">
+        <button class="button button-secondary" type="submit">Check</button>
+      </form>
+      <div id="{{.Anchor}}-result" class="network-monitor-result" role="status" aria-live="polite">{{with $.Checked}}{{if eq .Endpoint $m.Endpoint}}{{template "network-monitor-result" .}}{{end}}{{end}}</div>
+    </li>{{end}}
+  </ul>{{else}}<p>No monitor is configured.</p>{{end}}
+</section>
+{{end}}
+
+{{define "network-monitor-result"}}{{range .Lines}}<p>{{.}}</p>{{else}}<p>No equivocation proofs.</p>{{end}}{{end}}
+
+{{define "network-trust"}}
+<section id="network-trust" class="component-card network-section" aria-labelledby="network-trust-title">
+  <h2 id="network-trust-title">Trust root</h2>
+  <p><span class="pill-{{.Tone}}">{{.Status}}</span></p>
+  {{if .Endpoint}}<p>Source: <code class="id-chip">{{.Endpoint}}</code></p>{{end}}
+  {{if .Known}}
+    <p>Verified against the release key set pinned in this client's configuration.</p>
+    <p>Release keys: {{.Threshold}} of {{len .ReleaseKeys}} required.</p>
+    <ul class="network-chips">{{range .ReleaseKeys}}<li><code class="id-chip">{{.}}</code></li>{{end}}</ul>
+    <h3>Foundation certificates</h3>
+    {{range .Foundations}}<div class="network-cert">
+      <p><code class="id-chip">{{.ID}}</code> valid {{.ValidFrom}} to {{.ValidUntil}}</p>
+      <p>Bitcoin mainnet recipient: {{.Bitcoin}}</p>
+      <p>Ethereum mainnet recipient: {{.Ethereum}}</p>
+    </div>{{else}}<p>No Foundation certificate is verified.</p>{{end}}
+    <p>Closed Foundation keys: {{.Closures}}.</p>
+    <h3>Fee schedules</h3>
+    <p>The fee is set by the specification through these schedules. Providers collect it for the Foundation and keep none of it.</p>
+    <div class="network-table-wrap">
+      <table class="network-table">
+        <caption>Fee schedules in force and approved</caption>
+        <thead><tr><th scope="col">Network</th><th scope="col">Revision</th><th scope="col">Base fee</th><th scope="col">Per KiB fee</th><th scope="col">Effective</th><th scope="col">Expires</th></tr></thead>
+        <tbody>{{range .Schedules}}<tr><td>{{.Network}}</td><td>{{.Revision}}</td><td>{{.BaseFee}} {{.Denomination}}</td><td>{{.PerKiBFee}} {{.Denomination}}</td><td>{{.EffectiveAt}}</td><td>{{.ExpiresAt}}</td></tr>{{else}}<tr><td colspan="6">No fee schedule is approved.</td></tr>{{end}}</tbody>
+      </table>
+    </div>
+    <dl class="network-stack">{{range .Schedules}}<div><dt>{{.Network}} revision {{.Revision}}</dt><dd>{{.BaseFee}} {{.Denomination}} base, {{.PerKiBFee}} {{.Denomination}} per KiB, effective {{.EffectiveAt}}, expires {{.ExpiresAt}}</dd></div>{{end}}</dl>
+    <h3>Rejected objects</h3>
+    {{if .Rejected}}<ul>{{range .Rejected}}<li>{{.Kind}} <code class="id-chip">{{.ID}}</code>: {{.Reason}}</li>{{end}}</ul>{{else}}<p>None.</p>{{end}}
+  {{else}}<p>The trust root has not been verified, so schedules and certificates are not shown.</p>{{end}}
+</section>
+{{end}}
