@@ -278,7 +278,7 @@ func (a *App) filtersHandler(w http.ResponseWriter, r *http.Request) {
 
 func rateReplies(replies []reply, shown []int) {
 	for i := range replies {
-		replies[i].Rating = rate(content.FormatMarkdown, replies[i].Text, shown)
+		replies[i].Rating = rate(replies[i].format(), replies[i].Text, shown)
 		rateReplies(replies[i].Children, shown)
 	}
 }

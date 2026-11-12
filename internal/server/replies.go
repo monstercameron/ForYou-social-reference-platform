@@ -1,6 +1,8 @@
 package server
 
 import (
+	"errors"
+	"foryou.local/foryou/internal/content"
 	"html/template"
 	"net/http"
 	"net/url"
@@ -32,6 +34,10 @@ type reply struct {
 	pictures []int
 	// Rating is the rubric rating of the reply as this reader sees it.
 	Rating rating
+	// ID is the reply's message ID when it came from the network.
+	ID string
+	// Format is the reply's content_format; empty means Markdown, as demo replies are.
+	Format string
 	// PostID and Path address a reply inside its thread; Path is the index at each level, joined by dots.
 	PostID, Path string
 	// Mine marks a reply written in this session; Open means the reply can still be answered.
@@ -41,6 +47,14 @@ type reply struct {
 	Descendants int
 	Unfolded    bool
 	Children    []reply
+}
+
+// format is the content format the reply's text is read in.
+func (r reply) format() string {
+	if r.Format == "" {
+		return content.FormatMarkdown
+	}
+	return r.Format
 }
 
 // BranchID names the element that holds a reply's answers.
@@ -117,41 +131,13 @@ func replyChain(replies []reply, path string) []*reply {
 	return chain
 }
 
-// threadReplies returns a post's fixture replies with the replies added in this
-// session attached where they were written.
+// threadReplies returns a post's replies from the record source, rated for this reader.
 func (a *App) threadReplies(r *http.Request, postID string) []reply {
-	replies := a.storedReplies(postID)
+	replies, err := a.records().Thread(r.Context(), r, postID)
+	if err != nil {
+		return nil
+	}
 	rateReplies(replies, readerFilters(r))
-	return replies
-}
-
-// storedReplies returns a post's fixture replies with the replies written in
-// this session attached where they were written.
-func (a *App) storedReplies(postID string) []reply {
-	replies := prepareReplies(demoReplies(postID), postID, "", replyDepthLimit)
-	store := a.store
-	if store == nil {
-		return replies
-	}
-	for _, added := range store.repliesTo(postID) {
-		siblings := &replies
-		depth := 1
-		if added.parent != "" {
-			chain := replyChain(replies, added.parent)
-			if chain == nil {
-				continue
-			}
-			for _, ancestor := range chain {
-				ancestor.Descendants++
-			}
-			siblings = &chain[len(chain)-1].Children
-			depth = len(chain) + 1
-		}
-		path := childPath(added.parent, len(*siblings))
-		written := reply{Color: "violet", Time: "Just now", Text: added.text, Receipt: mockReceipt(postID + "/" + path + "/" + added.text), PostID: postID, Path: path, Mine: true, Open: depth < replyDepthLimit}
-		written.render()
-		*siblings = append(*siblings, written)
-	}
 	return replies
 }
 
@@ -262,18 +248,17 @@ func (a *App) replyHandler(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	store := a.store
-	if store == nil {
-		http.Error(w, "Demo storage is full or unavailable.", http.StatusServiceUnavailable)
-		return
-	}
-	d, quoted := store.takeQuote(form.Get("quote"), a.config.Now())
+	d, quoted, err := a.records().AddReply(r.Context(), r, form.Get("quote"), a.config.Now())
 	if !quoted || d.PostID != form.Get("id") {
 		http.Error(w, "This quote has expired or was already used. Review the cost again.", http.StatusConflict)
 		return
 	}
-	if store.addReply(d.PostID, d.Path, d.Text) != nil {
+	if errors.Is(err, errDemoStoreFull) {
 		http.Error(w, "Demo storage is full or unavailable.", http.StatusServiceUnavailable)
+		return
+	}
+	if err != nil {
+		http.Error(w, "The provider did not accept this reply: "+err.Error(), http.StatusBadGateway)
 		return
 	}
 	w.Header().Set("Cache-Control", "no-store")

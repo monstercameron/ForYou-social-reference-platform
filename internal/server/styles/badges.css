@@ -1,1 +1,4 @@
-@layer components {}
+@layer components {
+  .post-badges { @apply mt-1 flex flex-wrap gap-1.5; }
+  .post-media-inert { @apply my-2 flex flex-wrap gap-x-2 rounded-lg border border-[var(--line)] bg-[var(--control)] px-3 py-2 text-xs text-[var(--muted)]; }
+}

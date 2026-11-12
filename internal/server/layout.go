@@ -10,10 +10,16 @@ import "net/http"
 type Layout struct {
 	Title, Section, Theme string
 	Dev                   bool
-	Identity              string
-	Network               []NetworkLine
-	Query, Filter         string
-	Rightbar              bool
+	// Identity is the reader's short author key; Custody says who holds it.
+	Identity, Custody string
+	// Network describes the configured services; Source says where posts come from.
+	Network           []NetworkLine
+	NetworkConfigured bool
+	Source            string
+	// DefaultList discloses who controls the default provider list and how it was chosen.
+	DefaultList   string
+	Query, Filter string
+	Rightbar      bool
 	// Ads are the ads most relevant to this reader, for the right bar.
 	Ads []post
 }

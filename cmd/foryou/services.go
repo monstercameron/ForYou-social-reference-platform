@@ -215,9 +215,19 @@ func buildClient(config roleConfig) (service, error) {
 	if err := requireDev(config); err != nil {
 		return nil, err
 	}
+	monitors := make([]server.Endpoint, 0, 5)
+	for n := 0; n < 5; n++ {
+		monitors = append(monitors, server.Endpoint{URL: monitorMemberURL(config.Peers["monitor"], n), ServiceID: keys.DIDOf(devnet.MonitorKey(n)), Label: fmt.Sprintf("Monitor %d", n+1)})
+	}
+	genesis := devnet.Genesis()
 	return server.NewClient(server.Config{
 		Dev: true, DataDir: config.DataDir, PublicOrigin: config.URL,
 		Now: config.Now, LoopInterval: config.LoopInterval,
+		Providers:  []server.Endpoint{{URL: config.Peers["provider"], ServiceID: keys.DIDOf(devnet.ProviderKey(0)), Label: "Dev provider"}},
+		Mirrors:    []server.Endpoint{{URL: config.Peers["replica"], ServiceID: keys.DIDOf(devnet.ReplicaKey()), Label: "Dev replica"}},
+		Foundation: server.Endpoint{URL: config.Peers["foundation"], ServiceID: keys.DIDOf(devnet.FoundationKey()), Label: "ForYou Foundation"},
+		Monitors:   monitors, Faux: config.Peers["faux"], Pin: sdk.Pin{ReleaseKeyIDs: genesis.ReleaseKeyIDs, Threshold: int(genesis.ReleaseThreshold)}, HTTPClient: serviceHTTPClient,
+		DefaultList: server.ListDisclosure{Controller: "ForYou development network", Funding: "local development network", Version: "devnet", Criteria: "development network roles", Monitors: "development committee", Conflicts: "development identities are public"},
 	})
 }
 

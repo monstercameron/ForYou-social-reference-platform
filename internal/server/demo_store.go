@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
-	"foryou.local/foryou/internal/content"
 	"net/http"
 	"slices"
 	"strings"
@@ -121,28 +120,13 @@ func (s *demoStore) replyCount(postID string) int {
 func (a *App) forReader(r *http.Request, posts []post) {
 	feedback, followed, store, shown := feedbackSelections(r), followSet(r), a.store, readerFilters(r)
 	for i := range posts {
-		posts[i].Rating = rate(content.FormatPlain, posts[i].Text, shown)
+		posts[i].Rating = rate(posts[i].format(), posts[i].Text, shown)
 		posts[i].Feedback = feedback[posts[i].ID]
 		posts[i].Following = followed[posts[i].AuthorID]
 		if store != nil {
 			posts[i].ReplyCount += store.replyCount(posts[i].ID)
 		}
 	}
-}
-
-func (a *App) requestPost(r *http.Request, id string) (post, bool) {
-	p, ok := postByID(id)
-	if s := a.store; s != nil {
-		if added, found := s.get(id); found {
-			p, ok = added, true
-		}
-	}
-	if !ok {
-		return post{}, false
-	}
-	one := []post{p}
-	a.forReader(r, one)
-	return one[0], true
 }
 
 func (a *App) publishDemo(w http.ResponseWriter, r *http.Request) {
@@ -164,9 +148,13 @@ func (a *App) publishDemo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid draft. Reload the composer and try again.", http.StatusBadRequest)
 		return
 	}
-	p, err := a.store.add(text, token)
+	p, err := a.records().PublishPost(r.Context(), text, token)
 	if errors.Is(err, errDraftConflict) {
 		http.Error(w, "This draft was already submitted with different text.", http.StatusConflict)
+		return
+	}
+	if errors.Is(err, errNetworkPublish) {
+		http.Error(w, err.Error(), http.StatusServiceUnavailable)
 		return
 	}
 	if err != nil {

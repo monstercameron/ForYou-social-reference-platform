@@ -3,6 +3,7 @@ package server
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -160,17 +161,16 @@ func (a *App) replyQuoteHandler(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	cost, err := costOf(d.Text)
-	store := a.store
-	if err != nil || store == nil {
-		http.Error(w, "No fee quote is available.", http.StatusServiceUnavailable)
-		return
-	}
-	d.Cost = cost
-	if d.Quote, err = store.quoteReply(d, a.config.Now()); err != nil {
+	quotedDraft, err := a.records().QuoteReply(r.Context(), w, r, d, a.config.Now())
+	if errors.Is(err, errDemoStoreFull) {
 		http.Error(w, "Demo storage is full or unavailable.", http.StatusServiceUnavailable)
 		return
 	}
+	if err != nil {
+		http.Error(w, "No fee quote is available: "+err.Error(), http.StatusServiceUnavailable)
+		return
+	}
+	d = quotedDraft
 	if r.URL.Path == "/reply/quote/fragment" {
 		a.fragment(w, r, "thread-reply-confirm", d)
 		return

@@ -63,14 +63,10 @@ func (a *App) readGallery(r *http.Request) (galleryPage, bool) {
 	if err != nil || !found {
 		return galleryPage{}, false
 	}
-	images, caption := demoImages[p.ID], p.Text
 	replyPath := query.Get("reply")
-	if replyPath != "" {
-		chain := replyChain(a.threadReplies(r, p.ID), replyPath)
-		if chain == nil {
-			return galleryPage{}, false
-		}
-		images, caption = chain[len(chain)-1].pictures, ""
+	images, caption, hasPictures, err := a.records().Pictures(r.Context(), r, p.ID, replyPath)
+	if err != nil || !hasPictures {
+		return galleryPage{}, false
 	}
 	page, ok := slideOf(p.ID, replyPath, images, slide)
 	page.Caption = caption

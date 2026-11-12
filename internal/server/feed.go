@@ -137,11 +137,11 @@ func (a *App) readFeedRequest(r *http.Request, more bool) (feedPage, bool) {
 		}
 		offset = limit - 5
 	}
-	var added []post
-	if store := a.store; store != nil {
-		added = store.list()
+	available, err := a.records().Posts(r.Context(), r)
+	if err != nil {
+		return feedPage{}, false
 	}
-	lists := [][]post{added, staticDemoPosts}
+	lists := [][]post{available}
 	chosen := feedFilter{name: filter}
 	switch filter {
 	case "following":
