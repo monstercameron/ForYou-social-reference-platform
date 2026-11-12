@@ -264,11 +264,12 @@ func isLoopbackHost(host string) bool {
 
 // Handler returns the public handler: controls are applied before any route serves a read.
 func (s *Service) Handler() http.Handler {
+	routed := apierr.Routed(s.mux)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if s.answerControlled(w, r) {
 			return
 		}
-		s.mux.ServeHTTP(w, r)
+		routed.ServeHTTP(w, r)
 	})
 }
 

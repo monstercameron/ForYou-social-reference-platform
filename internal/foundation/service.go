@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"foryou.local/foryou/internal/apierr"
 	"foryou.local/foryou/internal/canon"
 	"foryou.local/foryou/internal/distribution"
 	"foryou.local/foryou/internal/faux"
@@ -206,7 +207,7 @@ func (s *Service) Handler() http.Handler {
 	for _, register := range routeGroups {
 		register(s, mux)
 	}
-	return mux
+	return apierr.Routed(mux)
 }
 
 // Run starts every registered background loop and waits for ctx cancellation.

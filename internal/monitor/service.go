@@ -221,7 +221,7 @@ func (s *Service) Handler() http.Handler {
 		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	})
 	mux.HandleFunc("/monitors/", s.dispatchMember)
-	return mux
+	return apierr.Routed(mux)
 }
 
 func (s *Service) dispatchMember(w http.ResponseWriter, r *http.Request) {
@@ -244,7 +244,7 @@ func (s *Service) dispatchMember(w http.ResponseWriter, r *http.Request) {
 	clone := r.Clone(context.WithValue(r.Context(), memberContextKey{}, member))
 	clone.URL.Path = "/" + parts[1]
 	clone.URL.RawPath = ""
-	s.memberMux.ServeHTTP(w, clone)
+	apierr.Routed(s.memberMux).ServeHTTP(w, clone)
 }
 
 type memberContextKey struct{}

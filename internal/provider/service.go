@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"foryou.local/foryou/internal/apierr"
 	"foryou.local/foryou/internal/canon"
 	"foryou.local/foryou/internal/delegation"
 	"foryou.local/foryou/internal/discovery"
@@ -134,7 +135,7 @@ func New(cfg Config) (*Service, error) {
 		group(s, mux)
 	}
 	s.registering = false
-	s.handler = mux
+	s.handler = apierr.Routed(mux)
 	return s, nil
 }
 func (s *Service) loadRecords() error {
