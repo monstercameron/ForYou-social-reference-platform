@@ -1,0 +1,84 @@
+{{define "mydata-page"}}{{template "layout-open" .Layout}}
+  <div class="page-content settings-content mydata-content">
+    <header class="page-heading"><h1>Your data</h1><p>What this client keeps about you, where it lives, and how to take it with you or erase it.</p></header>
+    <section id="mydata-where" class="component-card settings-card" aria-labelledby="mydata-where-title">
+      <h2 id="mydata-where-title">Where it lives</h2>
+      <p>Cookies live in this browser. The browser sends them to this client server with every request, and the server reads them to build your pages. Files live on this client server, in a folder named after your profile ID. None of this is sent to providers, to the network or to advertisers. It is not an account and it does not sync between browsers.</p>
+      <div class="mydata-where-lists">
+        <div>
+          <h3>In this browser</h3>
+          <ul class="mydata-list"><li>Appearance</li><li>Content filters</li><li>Likes and dislikes</li><li>Follows</li></ul>
+        </div>
+        <div>
+          <h3>On this server</h3>
+          <ul class="mydata-list"><li><code>settings.json</code> in your profile folder</li><li>Your identity entries and publishing journal</li></ul>
+        </div>
+      </div>
+    </section>
+    {{template "mydata-kinds" .Kinds}}
+    <section id="mydata-identity" class="component-card settings-card" aria-labelledby="mydata-identity-title">
+      <h2 id="mydata-identity-title">Identity</h2>
+      {{if .Identity.HasProfile}}<p>Profile ID: <code>{{.Identity.Prefix}}…</code>, kept in the <code>foryou_profile</code> cookie. It names your folder on this server.</p>{{else}}<p>This browser has no profile ID yet.</p>{{end}}
+      {{if .Identity.HasKey}}<p>Public key: <code>{{.Identity.Short}}</code><span class="mydata-sr"> {{.Identity.DID}}</span></p>{{else}}<p>No identity key on this server for this profile.</p>{{end}}
+      <p>Your private key is never shown, downloaded or erased on this page. Back it up or manage it on Identity.</p>
+      <a class="button button-secondary button-link" href="/identity">Identity and keys</a>
+      {{if .Identity.HasJournal}}<p class="mydata-journal">Publishing journal: {{.Identity.JournalText}}. They are kept until each publication's outcome is known and are not erased here.</p>{{end}}
+    </section>
+    <section id="mydata-download" class="component-card settings-card" aria-labelledby="mydata-download-title">
+      <h2 id="mydata-download-title">Download</h2>
+      <p>One JSON file with everything in What is saved, plus your profile ID and public key. It holds no private key. It is not an owner export of your posts and not a key backup.</p>
+      <a class="button button-primary button-link" href="/mydata/export" download>Download my data</a>
+    </section>
+    {{template "mydata-import-card" .}}
+    <section id="mydata-erase-all" class="component-card settings-card" aria-labelledby="mydata-erase-all-title">
+      <h2 id="mydata-erase-all-title">Erase everything</h2>
+      <div class="notice-bad mydata-danger-note">
+        <p>Erases every cookie and the settings file listed above for this browser. Your identity key and publishing journal stay.</p>
+      </div>
+      <form class="mydata-erase-all" action="/mydata/erase" method="post" post="/mydata/erase/fragment" target="#mydata-kinds(outerHTML)" timeout="5000" onerror="#mydata-status(innerHTML)" data-focus-after-swap="#mydata-kinds-title">
+        <label class="mydata-confirm"><input type="checkbox" name="confirm" value="yes" required> <span>I understand this cannot be undone</span></label>
+        <input type="hidden" name="kind" value="everything">
+        <button class="button button-secondary mydata-danger" type="submit">Erase everything</button>
+      </form>
+    </section>
+  </div>
+{{template "layout-close" .Layout}}
+{{end}}
+
+{{define "mydata-import-card"}}<section id="mydata-import" class="component-card settings-card{{if .ImportError}} mydata-has-error{{end}}" aria-labelledby="mydata-import-title">
+  <h2 id="mydata-import-title">Import</h2>
+  <p>Bring a file downloaded from Your data on another browser or server. You see what will change before anything is saved, and you choose which parts to apply. Each part you apply replaces what is saved here.</p>
+  <form class="mydata-import-form" action="/mydata/import" method="post" enctype="multipart/form-data">
+    <label for="mydata-file">Data file (JSON, up to 64 KiB)</label>
+    <input id="mydata-file" class="mydata-file" type="file" name="file" accept="application/json,.json" required aria-describedby="mydata-import-error"{{if .ImportError}} autofocus{{end}}>
+    <button class="button button-secondary" type="submit">Check file</button>
+  </form>
+  <p id="mydata-import-error" class="mydata-error" role="alert">{{.ImportError}}</p>
+</section>{{end}}
+
+{{define "mydata-kinds"}}<section id="mydata-kinds" class="component-card settings-card" aria-labelledby="mydata-kinds-title">
+  <h2 id="mydata-kinds-title" tabindex="-1">What is saved</h2>
+  <p id="mydata-status" class="mydata-status" role="status" aria-live="polite">{{.Status}}</p>
+  <p class="mydata-hint">Erasing cannot be undone. Download your data first if you want a copy.</p>
+  <div class="mydata-kind-list">
+  {{range .Rows}}<div class="mydata-kind" id="mydata-{{.Key}}">
+    <div class="mydata-kind-body">
+      <h3>{{.Title}}</h3>
+      <p class="mydata-kind-where"><span class="pill pill-muted">{{.Where}}</span> <code>{{.Code}}</code>{{.Suffix}}</p>
+      {{if .Notice}}<p class="notice-bad mydata-notice">{{.Notice}}</p>{{end}}
+      {{if .Summary}}<p class="mydata-summary">{{.Summary}}</p>{{end}}
+      {{range .Lines}}<p class="mydata-line">{{.}}</p>{{end}}
+      {{if .Items}}{{if .Details}}<details class="mydata-details"><summary>{{.Details}}</summary>{{template "mydata-items" .}}</details>{{else}}{{template "mydata-items" .}}{{end}}{{end}}
+    </div>
+    <div class="mydata-kind-action">{{if .Saved}}<form class="mydata-erase-form" action="/mydata/erase" method="post" post="/mydata/erase/fragment" target="#mydata-kinds(outerHTML)" timeout="5000" onerror="#mydata-status(innerHTML)" data-focus-after-swap="#mydata-kinds-title"><input type="hidden" name="kind" value="{{.Key}}"><button class="button button-secondary mydata-erase" type="submit">{{if .Damaged}}Remove the damaged file{{else}}Erase<span class="mydata-sr"> {{.Title}}</span>{{end}}</button></form>{{else}}<span class="mydata-empty">Nothing saved</span>{{end}}</div>
+  </div>{{end}}
+  </div>
+</section>{{end}}
+
+{{define "mydata-items"}}<ul class="mydata-items">{{range .Items}}<li>{{if .Href}}<a href="{{.Href}}">{{if .Mono}}<code>{{.Text}}</code>{{else}}{{.Text}}{{end}}</a>{{else if .Mono}}<code>{{.Text}}</code>{{else}}{{.Text}}{{end}}{{if .Hidden}}<span class="mydata-sr"> {{.Hidden}}</span>{{end}}{{if .Note}} <span class="mydata-note">{{.Note}}</span>{{end}}</li>{{end}}</ul>{{end}}
+
+{{define "mydata-settings-link"}}<section id="your-data" class="component-card settings-card" aria-labelledby="your-data-title">
+  <h2 id="your-data-title">Your data</h2>
+  <p>See everything this client keeps about you in this browser and on this server, download it as one file, bring it to another browser, or erase it.</p>
+  <a class="button button-secondary button-link" href="/mydata">Open Your data</a>
+</section>{{end}}

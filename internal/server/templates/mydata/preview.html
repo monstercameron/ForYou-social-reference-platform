@@ -1,0 +1,31 @@
+{{define "mydata-preview"}}{{template "layout-open" .Layout}}
+  <div class="page-content settings-content mydata-content">
+    <header class="page-heading"><h1>Your data</h1><p>Check the import</p></header>
+    <section id="mydata-what" class="component-card settings-card" aria-labelledby="mydata-what-title">
+      <h2 id="mydata-what-title">What will change</h2>
+      <p>File exported {{.Exported}} from {{.From}}.</p>
+      {{if .Pending}}
+      <form class="mydata-apply" action="/mydata/import/apply" method="post">
+        <input type="hidden" name="data" value="{{.Data}}">
+        <fieldset class="mydata-choices">
+          <legend>Choose what to apply</legend>
+          {{range .Changes}}<div class="mydata-choice">
+            <label class="mydata-choice-label"><input type="checkbox" name="kind" value="{{.Kind}}"{{if .Changed}} checked{{else}} disabled{{end}}> <span>{{.Label}}</span>{{if not .Changed}} <span class="pill pill-muted">No change</span>{{end}}</label>
+            {{if .Lines}}<ul class="mydata-notes">{{range .Lines}}<li>{{.}}</li>{{end}}</ul>{{end}}
+          </div>{{end}}
+        </fieldset>
+        {{if .Notes}}<ul class="mydata-notes">{{range .Notes}}<li>{{.}}</li>{{end}}</ul>{{end}}
+        <div class="mydata-actions">
+          <button class="button button-primary" type="submit">Apply selected</button>
+          <a class="button button-secondary button-link" href="/mydata">Cancel</a>
+        </div>
+      </form>
+      {{else}}
+      <p class="mydata-unchanged">Nothing in this file differs from what is saved here.</p>
+      {{if .Notes}}<ul class="mydata-notes">{{range .Notes}}<li>{{.}}</li>{{end}}</ul>{{end}}
+      <a class="button button-secondary button-link" href="/mydata">Back to Your data</a>
+      {{end}}
+    </section>
+  </div>
+{{template "layout-close" .Layout}}
+{{end}}

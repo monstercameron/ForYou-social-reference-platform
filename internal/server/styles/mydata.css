@@ -1,0 +1,67 @@
+@layer components {
+  .mydata-where-lists { @apply mt-3 grid gap-5; }
+  .mydata-where-lists h3 { @apply m-0 text-[14px] font-bold; }
+  .mydata-list { @apply mt-2 mb-0 list-none p-0 text-[13px] text-[var(--muted)]; }
+  .mydata-list li { @apply py-0.5; overflow-wrap: anywhere; }
+  .mydata-kind-list { @apply mt-1; }
+  .mydata-kind { @apply grid items-start gap-3 border-t border-[var(--line)] py-3.5; grid-template-columns: minmax(0,1fr) auto; min-width: 0; animation: spawn-fade var(--dur) ease-out both; }
+  .mydata-kind:first-child { @apply border-t-0 pt-1.5; }
+  .mydata-kind-body { @apply min-w-0; }
+  .mydata-kind-body h3 { @apply m-0 text-[15px] font-bold; }
+  .mydata-kind-body p { @apply mt-1 mb-0 text-[14px]; }
+  .mydata-kind-where { @apply text-[13px]; }
+  .mydata-content code { overflow-wrap: anywhere; }
+  .mydata-summary { @apply text-[14px] text-[var(--text)]; }
+  .mydata-line { @apply text-[13px] text-[var(--muted)]; }
+  .mydata-notice { @apply mt-2 rounded-lg px-3 py-2 text-[13px]; }
+  .mydata-items { @apply mt-2 mb-0 list-none p-0 text-[13px]; }
+  .mydata-items li { @apply py-0.5; overflow-wrap: anywhere; }
+  .mydata-items .mydata-note { @apply text-[var(--muted)]; }
+  .mydata-items a { color: var(--accent); text-decoration: underline; }
+  .mydata-sr { @apply sr-only; }
+  .mydata-details { @apply mt-2 text-[13px]; }
+  .mydata-details summary { @apply cursor-pointer py-2 font-medium; min-height: 44px; display: list-item; }
+  .mydata-details .mydata-items { @apply mt-1; }
+  .mydata-kind-action { @apply flex items-start justify-end; }
+  .mydata-erase-form { @apply m-0; }
+  .mydata-erase { @apply whitespace-nowrap; }
+  .mydata-status { @apply m-0 min-h-5 text-[13px] text-[var(--muted)]; }
+  .mydata-hint { @apply mt-2 mb-0 text-[13px] text-[var(--muted)]; }
+  .mydata-empty { @apply text-[13px] text-[var(--muted)]; }
+  .mydata-journal { @apply mt-3 mb-0 text-[13px] text-[var(--muted)]; }
+  .mydata-import-form { @apply mt-3 flex flex-wrap items-end gap-3; }
+  .mydata-import-form label { @apply w-full text-[14px] font-medium; }
+  .mydata-file { @apply min-h-11 min-w-0 max-w-full text-[14px]; }
+  .mydata-file::file-selector-button { @apply mr-3 min-h-11 cursor-pointer rounded-[9px] border border-[var(--line)] bg-[var(--control)] px-4 py-[9px] font-semibold text-[var(--text)]; font: inherit; font-weight: 600; }
+  .mydata-file::file-selector-button:hover { background: var(--accent-soft); }
+  .mydata-has-error .mydata-file { outline: 2px solid var(--bad); outline-offset: 2px; }
+  .mydata-error { @apply mt-3 mb-0 text-[13px]; color: var(--bad); }
+  .mydata-error:empty { display: none; }
+  .mydata-danger-note { @apply mt-3 rounded-lg px-3 py-2; }
+  .mydata-danger-note p { @apply m-0 text-[13px]; }
+  .mydata-erase-all { @apply mt-3 flex flex-wrap items-center gap-3; }
+  .mydata-confirm { @apply flex min-h-11 items-center gap-2 text-[14px]; }
+  .mydata-danger { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 40%, var(--line)); }
+  .mydata-apply .mydata-choices { @apply m-0 mt-3 border-0 p-0; }
+  .mydata-choices legend { @apply mb-2 p-0 text-[14px] font-bold; }
+  .mydata-choice { @apply border-t border-[var(--line)] py-2; }
+  .mydata-choice-label { @apply flex min-h-11 items-center gap-2 text-[14px]; }
+  .mydata-notes { @apply mt-2 mb-0 pl-5 text-[13px] text-[var(--muted)]; overflow-wrap: anywhere; }
+  .mydata-actions { @apply mt-4 flex flex-wrap gap-2; }
+  .mydata-unchanged { @apply mt-3 text-[14px]; }
+  @media (min-width: 640px) {
+    .mydata-where-lists { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 540px) {
+    .mydata-kind { grid-template-columns: minmax(0,1fr); }
+    .mydata-kind-action { justify-content: stretch; }
+    .mydata-erase-form, .mydata-erase { @apply w-full; }
+    .mydata-erase { min-height: 44px; }
+    .mydata-file { @apply w-full; }
+    .mydata-items a { display: inline-flex; align-items: center; min-height: 44px; }
+    .mydata-erase-all .button, .mydata-actions .button, .mydata-import-form .button { @apply w-full; }
+    .mydata-actions { @apply flex-col; }
+    .mydata-erase-all { @apply flex-col items-stretch; }
+    .mydata-confirm { @apply w-full; }
+  }
+}
