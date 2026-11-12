@@ -153,6 +153,29 @@ func TestSettlementPublisherWaitsForPeriodEnd(t *testing.T) {
 	settlementCheckLocated(t, s, receipt, claims[0].ClaimID)
 }
 
+func TestSettlementPublisherStartsFirstClaimAtItsDeclaration(t *testing.T) {
+	now := time.Date(2026, 11, 11, 12, 0, 30, 0, time.UTC)
+	s, _ := settlementTestService(t, &now, "")
+	defer s.Close()
+	settlementFundAuthor(t, s, now)
+	receipt := settlementAdmit(t, s, time.Date(2026, 11, 11, 12, 0, 40, 0, time.UTC), 1)
+	declaration, ok := s.CurrentDeclaration()
+	if !ok || declaration.EffectiveAt != "2026-11-11T12:00:30Z" {
+		t.Fatalf("declaration = %+v; want one in effect from the start at 12:00:30", declaration)
+	}
+
+	now = time.Date(2026, 11, 11, 12, 3, 0, 0, time.UTC)
+	claims := settlementRun(t, s)
+	if len(claims) != 1 {
+		t.Fatalf("claims for a provider started inside a period = %d, want 1", len(claims))
+	}
+	if claims[0].PeriodStart != "2026-11-11T12:00:30Z" || claims[0].PeriodEnd != "2026-11-11T12:01:00Z" || claims[0].DeclarationID != declaration.DeclarationID || claims[0].ReceiptCount != 1 {
+		t.Errorf("claim = %+v; want [12:00:30, 12:01) naming the first declaration with one receipt", claims[0])
+	}
+	settlementCheckStored(t, s, claims[0])
+	settlementCheckLocated(t, s, receipt, claims[0].ClaimID)
+}
+
 func TestSettlementPublisherLinksPeriods(t *testing.T) {
 	now := time.Date(2026, 11, 11, 12, 0, 0, 0, time.UTC)
 	s, _ := settlementTestService(t, &now, "")

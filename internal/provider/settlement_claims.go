@@ -123,6 +123,8 @@ func (s *Service) publishNetworkClaims(ctx context.Context, network string, now 
 		if floor, err = wire.ParseTime(last.PeriodEnd); err != nil {
 			return err
 		}
+	} else if floor, err = s.firstDeclarationAt(); err != nil {
+		return err
 	}
 	open := make(map[uint64]bool)
 	var unclaimed []settlementReceipt
@@ -189,6 +191,17 @@ func (s *Service) publishNetworkClaims(ctx context.Context, network string, now 
 		return publishErr
 	}
 	return planErr
+}
+
+// firstDeclarationAt returns when the provider's first retention declaration took
+// effect. A first claim cannot start earlier: the declaration it names must be in
+// effect at its period start, and a provider rarely starts on a period boundary.
+func (s *Service) firstDeclarationAt() (time.Time, error) {
+	declarations := s.Declarations()
+	if len(declarations) == 0 {
+		return time.Time{}, retention.ErrNoFittingDeclaration
+	}
+	return wire.ParseTime(declarations[len(declarations)-1].EffectiveAt)
 }
 
 // settlementPlan cuts receipts sorted by issued_at into claim periods: aligned to
