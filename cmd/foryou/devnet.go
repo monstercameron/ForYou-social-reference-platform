@@ -159,13 +159,15 @@ func startDevnet(ctx context.Context, opts devnetOptions) (*devnetRuntime, error
 		d.loopCancel = cancel
 		for _, role := range roleOrder {
 			d.runDone[role] = make(chan error, 1)
-			go func(role string) {
-				err := d.services[role].Run(loopCtx)
-				d.runDone[role] <- err
+		}
+		for _, role := range roleOrder {
+			go func(role string, service service, done chan<- error) {
+				err := service.Run(loopCtx)
+				done <- err
 				if err != nil && !errors.Is(err, context.Canceled) {
 					d.fail(role, err)
 				}
-			}(role)
+			}(role, d.services[role], d.runDone[role])
 		}
 	}
 	return d, nil
