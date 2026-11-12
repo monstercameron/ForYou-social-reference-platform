@@ -17,7 +17,7 @@
   .field .error-text { @apply text-xs text-[var(--bad)]; }
   .id-chip { @apply inline-block max-w-full overflow-hidden text-ellipsis whitespace-nowrap font-mono text-xs; }
   .dev-network { @apply grid gap-1 border-t border-[var(--line)] px-3 pt-3 text-xs; }
-  .dev-network small { @apply leading-snug text-[var(--muted)]; }
+  .dev-network small { @apply leading-snug text-[var(--muted)]; text-wrap:balance; }
   .receipt-badge { @apply inline-block rounded-full bg-[var(--control)] px-2 py-[3px] text-[10px] text-[var(--muted)]; }
   .notice { @apply mx-6 mb-3 flex items-start gap-3 rounded-[10px] bg-[var(--accent-soft)] px-[15px] py-[13px] text-xs leading-[1.45] text-[var(--text)] max-[1100px]:mx-[18px]; }
   .notice > span { @apply text-[19px]; }
@@ -50,10 +50,10 @@
   .network-status { @apply mb-2 flex items-center gap-2 rounded-[9px] bg-[var(--accent-soft)] px-2.5 py-[9px] text-[13px] font-semibold text-[var(--accent)]; }
   .network-status svg { @apply h-5 w-5 shrink-0; }
   .network-list { @apply m-0; }
-  .network-list > div { @apply grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-3 border-t border-[var(--line)] py-2.5; }
+  .network-list > div { @apply grid grid-cols-1 items-baseline gap-0.5 border-t border-[var(--line)] py-2.5; }
   .network-list dt { @apply flex items-center gap-2 whitespace-nowrap text-[13px] font-semibold; }
   .network-list dt svg, .about-panel svg { @apply h-5 w-5 shrink-0 text-[var(--muted)]; }
-  .network-list dd { @apply m-0 min-w-0 text-right text-[13px] text-[var(--muted)]; overflow-wrap:anywhere; }
+  .network-list dd { @apply m-0 min-w-0 text-left text-[13px] text-[var(--muted)]; overflow-wrap:anywhere; }
   .about-panel h2 { @apply mb-3; }
   .about-panel > div { @apply flex items-start gap-2.5 text-[var(--muted)]; }
   .about-panel > div + div { @apply mt-2.5; }

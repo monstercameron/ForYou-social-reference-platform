@@ -11,5 +11,6 @@
   .ads-panel > p { margin:0; color:var(--muted); font-size:12px; }
   /* Seven filters do not fit beside the title: they take their own row and scroll on narrow screens. */
   .feed-heading { flex-wrap:wrap; }
+  .feed-heading .feed-filters { flex-basis:100%; }
   @media(max-width:540px) { .ads-note { margin-right:12px; margin-left:12px; } }
 }

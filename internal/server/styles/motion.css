@@ -21,7 +21,7 @@
 
   /* Loaders: HTMLeX writes a .loading element into the status region while a request is in flight. */
   .loading { display:inline-flex; align-items:center; gap:8px; color:var(--muted); font-size:13px; }
-  .loading::before, .load-more[auto] button::before {
+  .loading::before, .posts:has(~ .feed-status .loading) .load-more button::before, .posts:has(~ #explore-status .loading) .load-more button::before {
     content:""; flex:none; width:14px; height:14px; border:2px solid color-mix(in srgb,var(--muted) 35%,transparent);
     border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite;
   }

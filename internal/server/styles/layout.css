@@ -71,7 +71,7 @@
     .mobile-theme-button { @apply w-11 border border-[var(--line)] bg-[var(--panel)]; }
     .mobile-compose { @apply whitespace-nowrap bg-[var(--accent)] px-3 text-[13px] font-bold text-[var(--on-accent)]; }
     .mobile-nav { @apply fixed inset-x-0 bottom-0 z-10 h-[calc(56px+env(safe-area-inset-bottom))] border-t border-[var(--line)] bg-[var(--rail)] px-2 pt-1 pb-[env(safe-area-inset-bottom)]; display:flex; }
-    .mobile-nav a { @apply flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 rounded-[9px] text-[11px] font-semibold text-[var(--muted)]; flex:1 1 0; }
+    .mobile-nav a { @apply flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 rounded-[9px] text-xs font-semibold text-[var(--muted)]; flex:1 1 0; }
     .mobile-nav a[aria-current="page"] { @apply bg-[var(--accent-soft)] text-[var(--accent)]; }
     .page-content { @apply px-3 pt-5 pb-6; }
     .compose-grid { @apply grid-cols-1 gap-3; }

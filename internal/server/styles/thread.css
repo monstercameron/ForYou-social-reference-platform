@@ -10,7 +10,6 @@
   .detail-back { margin-bottom:16px; padding-left:12px; }
   .detail-back svg, .detail-copy svg, .detail-embed-link svg { flex:none; }
   .detail-column .post-icon, .thread-action .post-icon { width:20px; height:20px; flex:none; }
-  .posts > .detail-post-card .detail-post-actions { grid-template-columns:repeat(4,minmax(0,1fr)); }
   .detail-card { padding:16px; border:1px solid var(--line); border-radius:12px; background:var(--panel); color:var(--text); }
   .detail-card > h1 { margin:0 0 12px; color:var(--text); font-size:20px; }
   .detail-card > p { margin:12px 0 0; color:var(--muted); font-size:15px; line-height:1.55; }

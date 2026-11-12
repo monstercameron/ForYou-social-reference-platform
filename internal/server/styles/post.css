@@ -23,15 +23,15 @@
   .posts > .post .post-time { flex:0 0 auto; color:var(--muted); font-size:13px; }
   .posts > .post .post-topic { display:inline-block; margin-top:8px; border-radius:9999px; background:var(--control); padding:3px 9px; color:var(--muted); font-size:13px; }
   .posts > .post .post-text { margin:8px 0 12px; color:var(--text); font-size:15px; line-height:1.55; overflow-wrap:anywhere; white-space:pre-wrap; }
-  .posts > .post .post-bottom { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); align-items:center; gap:0; color:var(--muted); }
+  .posts > .post .post-bottom { display:flex; flex-wrap:wrap; align-items:center; gap:4px; margin-left:-10px; color:var(--muted); }
   .posts > .post .post-bottom > .thread-region { display:contents; }
   .posts > .post .post-bottom .thread-action, .posts > .post .post-bottom .embed-action { display:contents; }
-  .posts > .post .post-action, .posts .post-bottom .thread-toggle { display:flex; min-width:0; min-height:44px; align-items:center; justify-content:center; gap:6px; border:0; border-radius:8px; background:transparent; padding:4px; color:var(--muted); font-size:13px; line-height:1.2; text-align:center; white-space:nowrap; }
+  .posts > .post .post-action, .posts .post-bottom .thread-toggle { display:flex; min-width:44px; min-height:44px; align-items:center; justify-content:flex-start; gap:6px; border:0; border-radius:8px; background:transparent; padding:4px 10px; color:var(--muted); font-size:13px; line-height:1.2; text-align:center; white-space:nowrap; }
   .posts > .post .post-action:hover, .posts .post-bottom .thread-toggle:hover { background:var(--accent-soft); color:var(--text); }
   .posts > .post .post-icon { width:20px; height:20px; flex:0 0 20px; stroke:currentColor; stroke-width:1.75; fill:none; }
   .posts > .post .feedback-button[aria-pressed="true"] { background:var(--accent-soft); color:var(--accent); }
   .posts > .post .post-action:focus-visible, .posts .post-bottom .thread-toggle:focus-visible { outline:3px solid var(--accent); outline-offset:2px; }
-  .posts > .post .feedback-control > .error { grid-column:1/-1; color:var(--muted); font-size:13px; }
+  .posts > .post .feedback-control > .error { flex-basis:100%; order:1; color:var(--muted); font-size:13px; }
   .posts > .post .post-media-frame { position:relative; width:100%; aspect-ratio:16/8.2; margin:12px 0; overflow:hidden; border:1px solid var(--line); border-radius:12px; background:var(--control); }
   .posts > .post .post-media-frame > img, .posts > .post .post-media-frame > video { display:block; width:100%; height:100%; object-fit:cover; }
   .posts > .post .post-media-frame noscript video { display:block; width:100%; height:100%; object-fit:cover; }
@@ -47,7 +47,7 @@
   .posts > .post .post-gallery-frame > div > [role="group"] { position:absolute; inset:0; width:100%; height:100%; border-radius:0 !important; }
   .posts > .post .post-gallery-frame > div > [aria-hidden="true"] { display:none; }
   /* An open thread keeps its control in the action row and unfolds on a row of its own below. */
-  .posts > .post .post-bottom .thread-panel { grid-column:1/-1; order:1; min-width:0; padding-top:12px; }
+  .posts > .post .post-bottom .thread-panel { flex-basis:100%; order:1; min-width:0; padding-top:12px; }
   .posts > .post .thread-toggle:not(button), .posts > .post .thread-toggle:not(button):hover { cursor:default; background:transparent; color:var(--muted); }
   .feed-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:20px 16px 16px; }
   .feed-heading h1 { margin:0; color:var(--text); font-size:24px; font-weight:700; line-height:2rem; letter-spacing:-.025em; }
@@ -96,5 +96,16 @@
   @media (scripting: enabled) {
     .posts > .post .video-poster { display:block; }
     .posts > .post .video-facade form { display:block; }
+  }
+  @media (max-width:540px) {
+    .posts > .post .post-content > :not(.post-top):not(.post-signature):not(.post-badges):not(.post-bottom):not(.post-why) { margin-left:-50px; }
+    .posts > .post .post-bottom { margin-left:-60px; }
+  }
+  @media (max-width:419px) {
+    .posts > .post .post-bottom { margin-left:-50px; }
+  }
+  @media (max-width:360px) {
+    .posts > .post .post-content > :not(.post-top):not(.post-signature):not(.post-badges):not(.post-bottom):not(.post-why) { margin-left:-48px; }
+    .posts > .post .post-bottom { margin-left:-48px; }
   }
 }

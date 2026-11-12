@@ -1,11 +1,11 @@
 @layer components {
   /* The rubric rating of a post: a line of chips that opens into the full table. */
   .post-rating { margin:0 0 8px; font-size:13px; }
-  .post-rating > summary { display:flex; flex-wrap:wrap; align-items:center; gap:6px; min-height:32px; color:var(--muted); cursor:pointer; list-style:none; }
+  .post-rating > summary { display:flex; flex-wrap:wrap; align-items:center; gap:6px; min-height:44px; color:var(--muted); cursor:pointer; list-style:none; }
   .post-rating > summary::-webkit-details-marker { display:none; }
   .post-rating > summary:focus-visible { outline:3px solid var(--accent); outline-offset:2px; border-radius:8px; }
-  .rating-label { font-weight:600; }
-  .rating-label::after { content:"\203A"; display:inline-block; margin-left:4px; transition:transform var(--dur-fast) var(--ease-out); }
+  .rating-label { display:inline-flex; align-items:center; font-weight:600; }
+  .rating-label::after { content:"\203A"; display:inline-block; margin-left:6px; font-size:16px; line-height:1; transition:transform var(--dur-fast) var(--ease-out); }
   .post-rating[open] .rating-label::after { transform:rotate(90deg); }
   .rating-chip { display:inline-block; border:1px solid var(--line); border-radius:9999px; padding:2px 9px; color:var(--muted); font-size:12px; line-height:1.5; white-space:nowrap; }
   .rating-chip.severity-1 { border-color:color-mix(in srgb,#c98a12 55%,var(--line)); color:color-mix(in srgb,#c98a12 80%,var(--text)); }
