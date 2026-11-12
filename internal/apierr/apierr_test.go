@@ -140,6 +140,12 @@ func TestParse(t *testing.T) {
 	t.Run("rejects zero retry delay", func(t *testing.T) {
 		checkRejected(t, []byte(`{"retry_after_seconds":0,"status":"unavailable"}`))
 	})
+	t.Run("rejects explicit zero retry delay on not found", func(t *testing.T) {
+		checkRejected(t, []byte(`{"retry_after_seconds":0,"status":"not_found"}`))
+	})
+	t.Run("rejects explicit zero retry delay on retention expired", func(t *testing.T) {
+		checkRejected(t, []byte(`{"retry_after_seconds":0,"status":"retention_expired"}`))
+	})
 	t.Run("rejects retry delay above maximum", func(t *testing.T) {
 		checkRejected(t, []byte(`{"retry_after_seconds":86401,"status":"unavailable"}`))
 	})

@@ -80,6 +80,9 @@ func Parse(body []byte) (PublicReadError, error) {
 		if err != nil {
 			return PublicReadError{}, fmt.Errorf("retry_after_seconds must be an integer: %w", err)
 		}
+		if seconds < 1 || seconds > 86400 {
+			return PublicReadError{}, errors.New("retry_after_seconds must be between 1 and 86400")
+		}
 		result.RetryAfterSeconds = seconds
 	}
 	if err := result.Validate(); err != nil {
