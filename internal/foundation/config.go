@@ -159,13 +159,13 @@ func cloneConfig(cfg Config) Config {
 	cfg.Genesis.ReleaseSignatures = cloneSignatures(cfg.Genesis.ReleaseSignatures)
 	cfg.Closures = append([]wire.FoundationKeyClosure(nil), cfg.Closures...)
 	for i := range cfg.Closures {
-		cfg.Closures[i].Voided = append([]string(nil), cfg.Closures[i].Voided...)
+		cfg.Closures[i].Voided = cloneStrings(cfg.Closures[i].Voided)
 		cfg.Closures[i].ReleaseSignatures = cloneSignatures(cfg.Closures[i].ReleaseSignatures)
 	}
 	cfg.KeySetUpdates = append([]wire.ReleaseKeySetUpdate(nil), cfg.KeySetUpdates...)
 	for i := range cfg.KeySetUpdates {
 		cfg.KeySetUpdates[i].ReleaseKeyIDs = append([]string(nil), cfg.KeySetUpdates[i].ReleaseKeyIDs...)
-		cfg.KeySetUpdates[i].PriorObjects = append([]string(nil), cfg.KeySetUpdates[i].PriorObjects...)
+		cfg.KeySetUpdates[i].PriorObjects = cloneStrings(cfg.KeySetUpdates[i].PriorObjects)
 		cfg.KeySetUpdates[i].ReleaseSignatures = cloneSignatures(cfg.KeySetUpdates[i].ReleaseSignatures)
 		if cfg.KeySetUpdates[i].PreviousUpdateID != nil {
 			previous := *cfg.KeySetUpdates[i].PreviousUpdateID
@@ -221,4 +221,12 @@ func clonePolicy(policy wire.DistributionPolicy) wire.DistributionPolicy {
 
 func cloneSignatures(values []wire.ReleaseSignature) []wire.ReleaseSignature {
 	return append([]wire.ReleaseSignature(nil), values...)
+}
+
+// cloneStrings keeps an empty non-nil slice empty, because the specification encodes it as an array, never null.
+func cloneStrings(values []string) []string {
+	if values == nil {
+		return nil
+	}
+	return append(make([]string, 0, len(values)), values...)
 }

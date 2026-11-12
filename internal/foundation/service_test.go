@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -77,6 +78,87 @@ func TestNewValidatesFoundationConfig(t *testing.T) {
 			t.Fatalf("New() error = %v, want ErrCommitteeChange", err)
 		}
 	})
+}
+
+func TestNewKeepsEmptyArraysInGovernanceUpdates(t *testing.T) {
+	now := time.Date(2026, 11, 11, 0, 0, 0, 0, time.UTC)
+	t.Run("empty voided closure is accepted and published", func(t *testing.T) {
+		cfg := testConfig(t, &now)
+		cfg.Closures = []wire.FoundationKeyClosure{emptyVoidedClosure(t, now)}
+		service, err := New(cfg)
+		if err != nil {
+			t.Fatalf("New() error = %v", err)
+		}
+		defer service.Close()
+		response := httptest.NewRecorder()
+		service.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/v1/foundation/certificates", nil))
+		if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"voided":[]`) {
+			t.Fatalf("certificates response = %d, want closure with \"voided\":[]", response.Code)
+		}
+	})
+
+	t.Run("empty prior objects key-set update is accepted and published", func(t *testing.T) {
+		cfg := testConfig(t, &now)
+		cfg.KeySetUpdates = []wire.ReleaseKeySetUpdate{emptyPriorObjectsUpdate(t)}
+		service, err := New(cfg)
+		if err != nil {
+			t.Fatalf("New() error = %v", err)
+		}
+		defer service.Close()
+		response := httptest.NewRecorder()
+		service.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/v1/foundation/certificates", nil))
+		if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"prior_objects":[]`) {
+			t.Fatalf("certificates response = %d, want key-set update with \"prior_objects\":[]", response.Code)
+		}
+	})
+}
+
+func emptyVoidedClosure(t *testing.T, now time.Time) wire.FoundationKeyClosure {
+	t.Helper()
+	foundationKey := devnet.FoundationKey()
+	foundationID := keys.DIDOf(foundationKey)
+	head, err := governance.SignHead(foundationKey, foundationID, strings.Repeat("0", 64), 0, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	closure := wire.FoundationKeyClosure{FoundationID: foundationID, ClosedAt: wire.FormatTime(now), Head: head, Voided: []string{}}
+	unsigned, err := canon.EncodeWithout(closure, "release_signatures")
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed, err := canon.Parse(unsigned, canon.Limits{MaxDepth: 32})
+	if err != nil {
+		t.Fatal(err)
+	}
+	closure.ReleaseSignatures, err = governance.SignRelease("foundation-key-closure", parsed, devnet.ReleaseKeys()[:4])
+	if err != nil {
+		t.Fatal(err)
+	}
+	return closure
+}
+
+func emptyPriorObjectsUpdate(t *testing.T) wire.ReleaseKeySetUpdate {
+	t.Helper()
+	genesis := devnet.Genesis()
+	update := wire.ReleaseKeySetUpdate{Sequence: 1, ReleaseKeyIDs: genesis.ReleaseKeyIDs, ReleaseThreshold: genesis.ReleaseThreshold, PriorObjects: []string{}, EffectiveAt: "2026-06-01T00:00:00Z"}
+	var err error
+	update.UpdateID, err = governance.UpdateID(update)
+	if err != nil {
+		t.Fatal(err)
+	}
+	unsigned, err := canon.EncodeWithout(update, "release_signatures")
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed, err := canon.Parse(unsigned, canon.Limits{MaxDepth: 32})
+	if err != nil {
+		t.Fatal(err)
+	}
+	update.ReleaseSignatures, err = governance.SignRelease("release-key-set-update", parsed, devnet.ReleaseKeys()[:4])
+	if err != nil {
+		t.Fatal(err)
+	}
+	return update
 }
 
 func TestHandlerHealthAndRouteGroup(t *testing.T) {
