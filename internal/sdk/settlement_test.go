@@ -320,6 +320,45 @@ func TestAdmitAndNeedsRecheck(t *testing.T) {
 			}
 		})
 	})
+	t.Run("conflicting successions from one old key keep each new key off the delinquent line", func(t *testing.T) {
+		oldKey := vfProviderSeed(32)
+		newKey := vfProviderSeed(192)
+		otherNewKey := ed25519.NewKeyFromSeed([]byte{128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159})
+		effective := time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC)
+		toNew, err := succession.New(oldKey, newKey, effective)
+		if err != nil {
+			t.Fatal(err)
+		}
+		toOther, err := succession.New(oldKey, otherNewKey, effective)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ledger := NewLedger()
+		ledger.vfAdd(settlement.DelinquencyRecord{ProviderLine: keys.DIDOf(oldKey), ReceiptID: "r1"})
+		now := time.Date(2026, 11, 12, 0, 0, 0, 0, time.UTC)
+		v := NewVerifier(VerifierConfig{Ledger: ledger, ProviderSuccessions: []wire.KeySuccession{toNew, toOther}, Now: func() time.Time { return now }})
+		pending := Record{Settlement: settlement.StatePending, Receipt: wire.SubmissionReceipt{ProviderID: keys.DIDOf(newKey)}, RecheckBy: now.Add(30 * 24 * time.Hour)}
+		if v.NeedsRecheck(pending) {
+			t.Fatal("pending receipt from new key y matched the delinquent line of old key x")
+		}
+	})
+	t.Run("one unconflicted succession puts the new key on the delinquent line", func(t *testing.T) {
+		oldKey := vfProviderSeed(32)
+		newKey := vfProviderSeed(192)
+		effective := time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC)
+		toNew, err := succession.New(oldKey, newKey, effective)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ledger := NewLedger()
+		ledger.vfAdd(settlement.DelinquencyRecord{ProviderLine: keys.DIDOf(oldKey), ReceiptID: "r1"})
+		now := time.Date(2026, 11, 12, 0, 0, 0, 0, time.UTC)
+		v := NewVerifier(VerifierConfig{Ledger: ledger, ProviderSuccessions: []wire.KeySuccession{toNew}, Now: func() time.Time { return now }})
+		pending := Record{Settlement: settlement.StatePending, Receipt: wire.SubmissionReceipt{ProviderID: keys.DIDOf(newKey)}, RecheckBy: now.Add(30 * 24 * time.Hour)}
+		if !v.NeedsRecheck(pending) {
+			t.Fatal("pending receipt from new key y did not match the delinquent line of old key x")
+		}
+	})
 }
 
 func vfSorted(values []string) []string {

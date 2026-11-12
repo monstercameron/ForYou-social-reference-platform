@@ -187,3 +187,42 @@ func TestVerifyVersionExampleStopsAtFeeSchedule(t *testing.T) {
 		}
 	})
 }
+
+func TestVerifyProviderLineStopsAtConflictingSuccessions(t *testing.T) {
+	t.Run("one old key succeeding to two new keys leaves each new key off the old line", func(t *testing.T) {
+		successions := []wire.KeySuccession{
+			{SuccessionID: "s1", OldID: "did:x", NewID: "did:y"},
+			{SuccessionID: "s2", OldID: "did:x", NewID: "did:z"},
+		}
+		if line, _ := vfProviderLine("did:y", successions); line != "did:y" {
+			t.Fatalf("line from new key y = %q", line)
+		}
+		if line, _ := vfProviderLine("did:z", successions); line != "did:z" {
+			t.Fatalf("line from new key z = %q", line)
+		}
+		if vfOnLine("did:y", "did:x", successions) {
+			t.Fatal("receipt from new key y is on the old key's line")
+		}
+		if vfOnLine("did:z", "did:x", successions) {
+			t.Fatal("receipt from new key z is on the old key's line")
+		}
+	})
+	t.Run("two old keys succeeding to one new key leave the new key unresolved", func(t *testing.T) {
+		successions := []wire.KeySuccession{
+			{SuccessionID: "s1", OldID: "did:a", NewID: "did:n"},
+			{SuccessionID: "s2", OldID: "did:b", NewID: "did:n"},
+		}
+		if line, _ := vfProviderLine("did:n", successions); line != "did:n" {
+			t.Fatalf("line from new key n = %q", line)
+		}
+		if vfOnLine("did:a", "did:n", successions) {
+			t.Fatal("receipt from old key a is on the new key's line")
+		}
+	})
+	t.Run("one unconflicted succession links the new key to the old key's line", func(t *testing.T) {
+		successions := []wire.KeySuccession{{SuccessionID: "s1", OldID: "did:x", NewID: "did:y"}}
+		if line, _ := vfProviderLine("did:y", successions); line != "did:x" {
+			t.Fatalf("line from new key y = %q", line)
+		}
+	})
+}

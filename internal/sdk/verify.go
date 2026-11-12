@@ -244,18 +244,28 @@ func (v *Verifier) Verify(raw []byte, requestedID string, src Source) Record {
 func vfProviderLine(provider string, successions []wire.KeySuccession) (string, map[string]wire.KeySuccession) {
 	byNew := map[string]wire.KeySuccession{}
 	ambiguous := map[string]bool{}
+	newsOf := map[string]map[string]bool{}
 	byID := map[string]wire.KeySuccession{}
 	for _, s := range successions {
 		if old, ok := byNew[s.NewID]; ok && old.OldID != s.OldID {
-			delete(byNew, s.NewID)
 			ambiguous[s.NewID] = true
-			byID[s.SuccessionID] = s
-			continue
 		}
-		if !ambiguous[s.NewID] {
-			byNew[s.NewID] = s
+		if newsOf[s.OldID] == nil {
+			newsOf[s.OldID] = map[string]bool{}
 		}
+		newsOf[s.OldID][s.NewID] = true
+		byNew[s.NewID] = s
 		byID[s.SuccessionID] = s
+	}
+	for _, news := range newsOf {
+		if len(news) > 1 {
+			for id := range news {
+				ambiguous[id] = true
+			}
+		}
+	}
+	for id := range ambiguous {
+		delete(byNew, id)
 	}
 	line := provider
 	seen := map[string]bool{line: true}
