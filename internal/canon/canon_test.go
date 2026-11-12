@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"unicode/utf8"
 )
 
 // The fixture is copied byte-for-byte from the specification's tests/security-vectors.json.
@@ -83,6 +84,44 @@ func TestStringEscapes(t *testing.T) {
 	if !bytes.Equal(got, want) {
 		t.Fatalf("Canonicalize(%q) = %q; want %q", input, got, want)
 	}
+}
+
+func TestSurrogatePairs(t *testing.T) {
+	t.Run("escaped pair for U+1F600 canonicalizes to raw UTF-8", func(t *testing.T) {
+		got, err := Canonicalize([]byte(`"\ud83d\ude00"`), Limits{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if want := "\"\xf0\x9f\x98\x80\""; string(got) != want {
+			t.Fatalf("Canonicalize = %q; want %q", got, want)
+		}
+	})
+	t.Run("escaped pair parses to one code point", func(t *testing.T) {
+		got, err := Parse([]byte(`"a\ud83d\ude00b"`), Limits{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		s, ok := got.(string)
+		if !ok {
+			t.Fatalf("Parse returned %T; want string", got)
+		}
+		if want := "a\U0001F600b"; s != want {
+			t.Fatalf("Parse = %q; want %q", s, want)
+		}
+		if n := utf8.RuneCountInString(s); n != 3 {
+			t.Fatalf("Parse yields %d code points; want 3", n)
+		}
+	})
+	t.Run("high surrogate followed by escape that is not a low surrogate", func(t *testing.T) {
+		if _, err := Parse([]byte(`"\ud83d\u0041"`), Limits{}); !errors.Is(err, ErrInvalidUnicode) {
+			t.Fatalf("Parse error = %v; want ErrInvalidUnicode", err)
+		}
+	})
+	t.Run("high surrogate followed by a high surrogate", func(t *testing.T) {
+		if _, err := Parse([]byte(`"\ud83d\ud83d"`), Limits{}); !errors.Is(err, ErrInvalidUnicode) {
+			t.Fatalf("Parse error = %v; want ErrInvalidUnicode", err)
+		}
+	})
 }
 
 func TestCanonicalNumbers(t *testing.T) {

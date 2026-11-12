@@ -241,7 +241,7 @@ func (p *parser) string() (string, error) {
 				if p.pos+2 > len(p.data) || p.data[p.pos] != '\\' || p.data[p.pos+1] != 'u' {
 					return "", p.fail(ErrInvalidUnicode)
 				}
-				p.pos += 2
+				p.pos++
 				low, err := p.hexUnit()
 				if err != nil {
 					return "", err
