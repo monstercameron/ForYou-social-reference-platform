@@ -113,7 +113,7 @@ func (a *App) verifier(profile string) *sdk.Verifier {
 		}
 	}
 	root, _ := a.trustRoot()
-	return sdk.NewVerifier(sdk.VerifierConfig{Root: root, Ledger: a.ledger(), Now: a.config.Now, Trusts: func(id string) bool { return trusted[id] }})
+	return sdk.NewVerifier(sdk.VerifierConfig{Root: root, Ledger: a.ledger(), Now: a.config.Now, Trusts: func(id string) bool { return trusted[id] }, ProviderSuccessions: a.providerSuccessions()})
 }
 
 func containsString(values []string, match string) bool {

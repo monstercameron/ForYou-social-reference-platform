@@ -32,6 +32,8 @@ type post struct {
 	Settlement, Class, RecheckBy string
 	// Unverifiable explains why a network post cannot be verified right now.
 	Unverifiable string
+	// ReplyTo and Supersedes are the signed parent and predecessor message IDs.
+	ReplyTo, Supersedes string
 }
 
 func mockReceipt(seed string) string {

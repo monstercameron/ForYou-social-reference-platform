@@ -2,9 +2,58 @@ package server
 
 import (
 	"context"
+	"errors"
 	"net/http"
+	"strings"
 	"time"
+
+	"foryou.local/foryou/internal/sdk"
 )
+
+// SourceStatus is what one source answered during a read. A status describes
+// that source only: a 403, 404 or 410 is never global absence or deletion.
+type SourceStatus struct {
+	// Label names the source as the reader selected it; Endpoint is its base URL.
+	Label, Endpoint string
+	// Kind is provider, mirror or vault; zero for this server's local copy or demo data.
+	Kind sdk.SourceKind
+	// OK is true when the source answered; Signal classifies the failure otherwise.
+	OK     bool
+	Signal sdk.Signal
+	// Text says in words what the source answered, such as "restricted by policy here".
+	Text string
+}
+
+// Coverage names every source a read consulted and what each said. It never
+// states a network-wide total or proves that nothing else exists.
+type Coverage struct {
+	// Note describes the read as a whole, such as "Searching records this server has fetched".
+	Note    string
+	Sources []SourceStatus
+}
+
+// Lines renders the coverage as "Label: text" lines, the note first.
+func (c Coverage) Lines() []string {
+	lines := make([]string, 0, len(c.Sources)+1)
+	if c.Note != "" {
+		lines = append(lines, c.Note)
+	}
+	for _, source := range c.Sources {
+		lines = append(lines, source.Label+": "+source.Text)
+	}
+	return lines
+}
+
+// String joins the coverage lines for a single line of text.
+func (c Coverage) String() string { return strings.Join(c.Lines(), " · ") }
+
+// recordPage is one bounded answer of a record source. Next is the opaque
+// position of the following page of Recent, empty when no more records are held.
+type recordPage struct {
+	Posts    []post
+	Next     string
+	Coverage Coverage
+}
 
 // recordSource is the contract handlers use to read records and publish local reader actions.
 type recordSource interface {
@@ -22,6 +71,22 @@ type recordSource interface {
 	QuoteReply(ctx context.Context, w http.ResponseWriter, r *http.Request, draft replyDraft, now time.Time) (replyDraft, error)
 	// AddReply consumes a confirmed quote once.
 	AddReply(ctx context.Context, r *http.Request, token string, now time.Time) (replyDraft, bool, error)
+	// Get returns one record by ID, trying the local copy, then the selected
+	// providers in order, then mirrors, then the vault, with each source's answer.
+	Get(ctx context.Context, r *http.Request, id string) (post, Coverage, bool, error)
+	// Recent returns held records newest first by signed timestamp, from an
+	// opaque position (empty for the first page), at most limit of them.
+	Recent(ctx context.Context, r *http.Request, position string, limit int) (recordPage, error)
+	// Replies returns the verified direct replies to a record, oldest first.
+	Replies(ctx context.Context, r *http.Request, id string) (recordPage, error)
+	// Successors returns verified records whose signed supersedes names id:
+	// immediate successor candidates, not a verified chain.
+	Successors(ctx context.Context, r *http.Request, id string) (recordPage, error)
+	// ByAuthor returns verified records signed by one canonical author DID, newest first.
+	ByAuthor(ctx context.Context, r *http.Request, authorID string) (recordPage, error)
+	// Search matches text case-insensitively over records this server already
+	// holds; it never queries the network.
+	Search(ctx context.Context, r *http.Request, query string, limit int) (recordPage, error)
 }
 
 // demoRecordSource keeps the existing reader fixtures behind recordSource.
@@ -116,6 +181,84 @@ func (s *demoRecordSource) AddReply(_ context.Context, _ *http.Request, token st
 		return replyDraft{}, true, err
 	}
 	return d, true, nil
+}
+
+var errRecordPosition = errors.New("this list position is not valid")
+
+var demoCoverage = Coverage{Sources: []SourceStatus{{Label: "Demo data", OK: true, Text: "fixtures on this server, not network records"}}}
+
+func (s *demoRecordSource) Get(ctx context.Context, r *http.Request, id string) (post, Coverage, bool, error) {
+	p, ok, err := s.Post(ctx, r, id)
+	return p, demoCoverage, ok, err
+}
+
+func (s *demoRecordSource) Recent(ctx context.Context, r *http.Request, position string, limit int) (recordPage, error) {
+	posts, err := s.Posts(ctx, r)
+	if err != nil {
+		return recordPage{}, err
+	}
+	start := 0
+	if position != "" {
+		last, err := nrDecodePosition(position)
+		if err != nil {
+			return recordPage{}, err
+		}
+		start = -1
+		for i, p := range posts {
+			if p.ID == last {
+				start = i + 1
+			}
+		}
+		if start < 0 {
+			return recordPage{}, errRecordPosition
+		}
+	}
+	page := recordPage{Posts: posts[start:min(start+nrLimit(limit), len(posts))], Coverage: demoCoverage}
+	if end := start + len(page.Posts); end < len(posts) {
+		page.Next = nrEncodePosition(posts[end-1].ID)
+	}
+	return page, nil
+}
+
+func (s *demoRecordSource) Replies(ctx context.Context, r *http.Request, id string) (recordPage, error) {
+	replies, err := s.Thread(ctx, r, id)
+	if err != nil {
+		return recordPage{}, err
+	}
+	page := recordPage{Posts: make([]post, 0, len(replies)), Coverage: demoCoverage}
+	for _, item := range replies {
+		page.Posts = append(page.Posts, post{ID: item.ID, Color: item.Color, Time: item.Time, Text: item.Text, Format: item.Format, Receipt: item.Receipt, IsReply: true, ReplyTo: id})
+	}
+	return page, nil
+}
+
+func (s *demoRecordSource) Successors(context.Context, *http.Request, string) (recordPage, error) {
+	return recordPage{Coverage: demoCoverage}, nil
+}
+
+func (s *demoRecordSource) ByAuthor(ctx context.Context, r *http.Request, authorID string) (recordPage, error) {
+	return s.matching(ctx, r, 0, func(p post) bool { return p.AuthorID == authorID || p.Handle == authorID })
+}
+
+func (s *demoRecordSource) Search(ctx context.Context, r *http.Request, query string, limit int) (recordPage, error) {
+	needle := strings.ToLower(query)
+	page, err := s.matching(ctx, r, nrLimit(limit), func(p post) bool { return needle != "" && strings.Contains(strings.ToLower(p.Text), needle) })
+	page.Coverage.Note = "Searching demo data on this server"
+	return page, err
+}
+
+func (s *demoRecordSource) matching(ctx context.Context, r *http.Request, limit int, match func(post) bool) (recordPage, error) {
+	posts, err := s.Posts(ctx, r)
+	if err != nil {
+		return recordPage{}, err
+	}
+	page := recordPage{Coverage: demoCoverage}
+	for _, p := range posts {
+		if match(p) && (limit == 0 || len(page.Posts) < limit) {
+			page.Posts = append(page.Posts, p)
+		}
+	}
+	return page, nil
 }
 
 func (a *App) records() recordSource {

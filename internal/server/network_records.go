@@ -30,7 +30,6 @@ const (
 	networkListPages   = 3
 	networkThreadReads = 20
 	networkThreadNodes = 200
-	networkCacheLimit  = 500
 )
 
 var errNetworkPublish = errors.New("Publishing new posts to the network is not available in this client yet.")
@@ -41,10 +40,10 @@ var errNetworkPublish = errors.New("Publishing new posts to the network is not a
 type networkRecordSource struct {
 	app  *App
 	demo *demoRecordSource
-	mu   sync.Mutex
-	// fetched keeps exact message bytes by ID; they are verified again on every use.
-	fetched map[string]sdk.Fetched
-	quotes  map[string]networkReplyQuote
+	// store is the verified local copy; held records are verified again on every use.
+	store  *nrStore
+	mu     sync.Mutex
+	quotes map[string]networkReplyQuote
 }
 
 type networkReplyQuote struct {
@@ -59,7 +58,11 @@ type networkReplyQuote struct {
 var newRecordSource = func(a *App) recordSource {
 	demo := &demoRecordSource{app: a}
 	if len(a.config.Providers) > 0 {
-		return &networkRecordSource{app: a, demo: demo}
+		store, err := nrOpenStore(filepath.Join(a.config.DataDir, "records"))
+		if err != nil {
+			a.logger().Printf("client record store: %v", err)
+		}
+		return &networkRecordSource{app: a, demo: demo, store: store}
 	}
 	return demo
 }
@@ -86,18 +89,15 @@ func (s *networkRecordSource) reader(r *http.Request) recordReader {
 	return recordReader{verifier: s.app.verifier(requestProfile(r)), root: root, now: s.app.now()}
 }
 
-// view verifies one fetched message. A record that fails verification is not
-// shown. While no trust root is available, a record whose signatures verified
-// is shown as not verifiable now: only the schedule and fee step needs the root.
-func (rd recordReader) view(fetched sdk.Fetched) (post, bool) {
-	record := rd.verifier.Verify(fetched.Raw, fetched.ID, sdk.Source{Endpoint: fetched.Endpoint, ServiceID: fetched.ServiceID, Kind: sdk.SourceProvider})
-	if record.Class != sdk.ClassInvalid {
-		return postFromRecord(rd.verifier.Admit(rd.verifier.Settle(record, nil, nil)), rd.now), true
-	}
-	if rd.root != nil || record.Failure == nil || record.Failure.Step != 5 {
+// unverifiable shows a record that failed only for want of a trust root:
+// while none is available, a record whose signatures verified is shown as not
+// verifiable now, since only the schedule and fee step needs the root. It is
+// never stored.
+func (rd recordReader) unverifiable(record sdk.Record, message wire.TransportMessage) (post, bool) {
+	if rd.root != nil || record.Class != sdk.ClassInvalid || record.Failure == nil || record.Failure.Step != 5 {
 		return post{}, false
 	}
-	p := postFromRecord(sdk.Record{Message: fetched.Message}, rd.now)
+	p := postFromRecord(sdk.Record{Message: message}, rd.now)
 	p.Unverifiable = "The trust root is unavailable, so the fee schedule cannot be checked: " + record.Failure.Detail
 	return p, true
 }
@@ -109,24 +109,6 @@ func (s *networkRecordSource) endpoints(r *http.Request) []Endpoint {
 		endpoints = append(endpoints, Endpoint{URL: choice.Endpoint, ServiceID: choice.OperatorKey, Label: choice.Label})
 	}
 	return endpoints
-}
-
-func (s *networkRecordSource) remember(fetched sdk.Fetched) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.fetched == nil {
-		s.fetched = make(map[string]sdk.Fetched)
-	}
-	if _, ok := s.fetched[fetched.ID]; ok || len(s.fetched) < networkCacheLimit {
-		s.fetched[fetched.ID] = fetched
-	}
-}
-
-func (s *networkRecordSource) cached(id string) (sdk.Fetched, bool) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	fetched, ok := s.fetched[id]
-	return fetched, ok
 }
 
 // scan lists one route of one provider, bounded in pages.
@@ -171,8 +153,7 @@ func (s *networkRecordSource) Posts(ctx context.Context, r *http.Request) ([]pos
 				continue
 			}
 			seen[fetched.ID] = true
-			s.remember(fetched)
-			if p, ok := rd.view(fetched); ok {
+			if p, ok := s.show(rd, fetched, sdk.SourceProvider); ok {
 				posts = append(posts, p)
 			}
 		}
@@ -209,47 +190,9 @@ func (s *networkRecordSource) fallbackPost(ctx context.Context, r *http.Request,
 	return p, ok, err
 }
 
-// fetch returns a message by ID from the cache or the first selected provider that has it.
-func (s *networkRecordSource) fetch(ctx context.Context, r *http.Request, id string) (sdk.Fetched, Endpoint, bool) {
-	endpoints := s.endpoints(r)
-	if fetched, ok := s.cached(id); ok {
-		for _, endpoint := range endpoints {
-			if endpoint.URL == fetched.Endpoint {
-				return fetched, endpoint, true
-			}
-		}
-	}
-	ctx, cancel := context.WithTimeout(ctx, networkReadTimeout)
-	defer cancel()
-	for _, endpoint := range endpoints {
-		client, err := s.app.providerClient(endpoint)
-		if err != nil {
-			continue
-		}
-		fetched, err := client.GetMessage(ctx, id)
-		if err != nil {
-			var answered *sdk.Error
-			if !errors.As(err, &answered) {
-				s.app.setProviderState(endpoint, err)
-			}
-			continue
-		}
-		s.remember(fetched)
-		return fetched, endpoint, true
-	}
-	return sdk.Fetched{}, Endpoint{}, false
-}
-
 func (s *networkRecordSource) Post(ctx context.Context, r *http.Request, id string) (post, bool, error) {
-	if !canonicalMessageID(id) {
-		return s.fallbackPost(ctx, r, id)
-	}
-	fetched, _, found := s.fetch(ctx, r, id)
-	if !found {
-		return post{}, false, nil
-	}
-	p, ok := s.reader(r).view(fetched)
-	return p, ok, nil
+	p, _, ok, err := s.Get(ctx, r, id)
+	return p, ok, err
 }
 
 func (s *networkRecordSource) Thread(ctx context.Context, r *http.Request, postID string) ([]reply, error) {
@@ -259,12 +202,12 @@ func (s *networkRecordSource) Thread(ctx context.Context, r *http.Request, postI
 		}
 		return nil, nil
 	}
-	root, endpoint, found := s.fetch(ctx, r, postID)
-	if !found {
+	ctx, cancel := context.WithTimeout(ctx, nrPageTimeout)
+	defer cancel()
+	root, _ := s.locate(ctx, r, postID)
+	if !root.ok {
 		return nil, nil
 	}
-	ctx, cancel := context.WithTimeout(ctx, networkReadTimeout)
-	defer cancel()
 	rd := s.reader(r)
 	var candidates []wire.PostMessage
 	views := make(map[string]post)
@@ -275,7 +218,7 @@ func (s *networkRecordSource) Thread(ctx context.Context, r *http.Request, postI
 			return nil, err
 		}
 		queue, reads = queue[1:], reads+1
-		messages, err := s.scan(ctx, endpoint, route, 1)
+		messages, err := s.scan(ctx, root.endpoint, route, 1)
 		if err != nil {
 			break
 		}
@@ -283,17 +226,16 @@ func (s *networkRecordSource) Thread(ctx context.Context, r *http.Request, postI
 			if _, ok := views[fetched.ID]; ok {
 				continue
 			}
-			p, ok := rd.view(fetched)
+			p, ok := s.show(rd, fetched, sdk.SourceProvider)
 			if !ok {
 				continue
 			}
-			s.remember(fetched)
 			views[fetched.ID] = p
 			candidates = append(candidates, fetched.Message)
 			queue = append(queue, fetched.ID)
 		}
 	}
-	rootMessage := root.Message
+	rootMessage := root.message
 	built := sdk.BuildThread(postID, &rootMessage, candidates, sdk.Limits{MaxDepth: replyDepthLimit, MaxNodes: networkThreadNodes})
 	if built.Root == nil {
 		return nil, nil
@@ -447,8 +389,14 @@ func (s *networkRecordSource) AddReply(ctx context.Context, r *http.Request, tok
 	}
 	publisher := sdk.NewPublisher(kept.client, root, journal, s.app.config.Now)
 	approval := sdk.Approval{MessageID: kept.quoted.Prepared.MessageID, Amount: kept.quoted.Quote.AmountBaseUnits, Network: kept.quoted.Quote.Network, ApprovedAt: now}
-	_, err = publisher.Publish(ctx, kept.key, kept.quoted, approval)
-	return kept.draft, true, err
+	published, err := publisher.Publish(ctx, kept.key, kept.quoted, approval)
+	if err != nil {
+		return kept.draft, true, err
+	}
+	if err := s.keepPublished(kept.profile, published, kept.client); err != nil {
+		s.app.logger().Printf("client record store: %v", err)
+	}
+	return kept.draft, true, nil
 }
 
 // postFromRecord maps a record onto the shared post card. Media slots become
@@ -479,7 +427,7 @@ func postFromRecord(record sdk.Record, now time.Time) post {
 	when, _ := wire.ParseTime(m.Timestamp)
 	p := post{
 		ID: m.MessageID, Text: m.Payload.Text, Format: m.Payload.ContentFormat, Kind: kind,
-		IsReply: m.Payload.ReplyTo != "", AuthorID: m.AuthorID, Receipt: shortReceipt(m.SubmissionReceipt.ReceiptID),
+		IsReply: m.Payload.ReplyTo != "", ReplyTo: m.Payload.ReplyTo, Supersedes: m.Payload.Supersedes, AuthorID: m.AuthorID, Receipt: shortReceipt(m.SubmissionReceipt.ReceiptID),
 		Time: relativeTime(when, now), Timestamp: m.Timestamp, Color: authorColor(m.AuthorID), Media: template.HTML(media.String()),
 		Settlement: string(record.Settlement), Class: string(record.Class),
 	}
