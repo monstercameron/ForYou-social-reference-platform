@@ -198,7 +198,7 @@ func (a *App) feedWindowOf(r *http.Request, more bool, read func() ([]post, erro
 	chosen := feedFilter{name: filter}
 	switch filter {
 	case "following":
-		chosen.followed = followSet(r)
+		chosen.followed = a.followSet(r)
 	case "liked":
 		chosen.liked = likedSet(r)
 		lists = append(lists, adsOutsideFeed)
@@ -274,7 +274,7 @@ func (a *App) feedRead(r *http.Request, more bool) (feedHomePage, error) {
 	chosen := feedFilter{name: filter}
 	switch filter {
 	case "following":
-		chosen.followed = followSet(r)
+		chosen.followed = a.followSet(r)
 	case "liked":
 		chosen.liked = likedSet(r)
 	}

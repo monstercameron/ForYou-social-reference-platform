@@ -118,8 +118,11 @@ func TestFollowSignedName(t *testing.T) {
 	})
 	t.Run("unfollow", func(t *testing.T) {
 		off := postForm(h, "/follow/fragment", url.Values{"id": {sameKey}, "follow": {"off"}}, cookies...)
-		if off.Code != http.StatusOK || strings.Contains(off.Body.String(), `aria-pressed="true"`) || len(off.Result().Cookies()) != 1 || off.Result().Cookies()[0].MaxAge >= 0 {
-			t.Errorf("status %d; unfollowing the only key should clear the control and expire the cookie", off.Code)
+		if off.Code != http.StatusOK || strings.Contains(off.Body.String(), `aria-pressed="true"`) {
+			t.Errorf("status %d; unfollowing should clear the control", off.Code)
+		}
+		if following := feed("/feed?filter=following&limit=10000", cookies...); strings.Contains(following, `id="follow-`+signed.ID+`"`) {
+			t.Error("an unfollowed key should leave the Following filter")
 		}
 	})
 	t.Run("unsigned post", func(t *testing.T) {

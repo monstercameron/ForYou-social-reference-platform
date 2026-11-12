@@ -3,7 +3,7 @@
   {{template "card-detail-back"}}
   <header class="page-heading"><h1>Post</h1><p>Why this server trusts this record: its verification, receipt, settlement, retention and source.</p></header>
   {{if .Missing}}{{template "post-missing" .}}{{else}}
-  {{template "card-detail-post-card" .Post}}
+  {{template "card-detail-post-card" .Post}}{{if .Post.AuthorID}}{{template "following-post-control" .Post}}{{end}}
   {{template "post-actions" .}}
   <section class="detail-thread" aria-label="Replies"><div id="thread-error" class="thread-error" role="status" aria-live="polite"></div><div id="thread-{{.ID}}" class="thread-region">{{template "thread-open" .Thread}}</div></section>
   <nav class="post-sections" aria-label="On this page">

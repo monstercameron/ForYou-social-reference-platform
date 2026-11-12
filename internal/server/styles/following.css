@@ -1,0 +1,53 @@
+@layer components {
+  .following-page { @apply flex flex-col gap-4 px-4; }
+  .following-page > .feed-heading { @apply px-0; }
+  @media (max-width: 540px) {
+    .following-page { @apply px-3; }
+  }
+  .following-tabs { @apply flex gap-1 border-b border-[var(--line)]; }
+  .following-tabs a { @apply inline-flex min-h-11 items-center px-3 text-[15px] font-semibold text-[var(--muted)] no-underline; }
+  .following-tabs a[aria-current="page"] { @apply text-[var(--text)] shadow-[inset_0_-2px_0_var(--accent)]; }
+  .following-tabs a:focus-visible, .following-page a:focus-visible, .following-page button:focus-visible { @apply outline-2 outline-offset-2 outline-[var(--accent)]; }
+  .following-fallback, .following-successions:empty { @apply m-0 text-[13px] text-[var(--muted)]; }
+  .following-successions { @apply flex flex-col gap-3; }
+  .following-successions:not(:empty) { @apply mb-1; }
+  .following-offer, .following-conflict, .following-empty, .following-error, .following-card { @apply flex flex-col gap-3; }
+  .following-offer h2, .following-conflict h2, .following-empty h2, .following-error h2 { @apply m-0 text-[19px] leading-[1.35]; }
+  .following-pair, .following-caution, .following-empty p, .following-error p { @apply m-0 text-[15px] leading-[1.55]; }
+  .following-caution { @apply text-[13px] text-[var(--muted)]; }
+  .following-fp { @apply font-mono text-[13px]; overflow-wrap: anywhere; }
+  .following-actions { @apply flex flex-wrap gap-2; }
+  .following-actions > * { @apply min-h-11; }
+  .following-actions form { @apply m-0; }
+  .following-label { @apply font-semibold; overflow-wrap: anywhere; }
+  .following-candidates { @apply m-0 flex list-none flex-col gap-2 p-0 text-[15px]; }
+  .following-candidates li { @apply flex flex-wrap items-center gap-x-3 gap-y-1; }
+  .following-keys { @apply m-0 flex list-none flex-col gap-3 p-0; }
+  .following-key { @apply flex min-w-0 flex-col items-start gap-2 rounded-xl border border-[var(--line)] bg-[var(--panel)] p-4; }
+  .following-key-main { @apply flex max-w-full flex-wrap items-baseline gap-x-2; }
+  .following-key .id-chip, .following-full-key .id-chip { @apply block max-w-full whitespace-normal text-[13px]; overflow-wrap: anywhere; }
+  .following-date { @apply m-0 text-[13px] text-[var(--muted)]; }
+  .following-unfollow { @apply m-0; }
+  .following-key-removed { @apply border-dashed; }
+  .following-key-removed p { @apply m-0 text-[var(--muted)]; }
+  .following-control { @apply flex flex-col items-start gap-2; }
+  .following-form { @apply m-0; }
+  .following-toggle { @apply min-h-11 min-w-[7rem]; }
+  .following-toggle[aria-pressed="true"] { @apply border-[var(--accent)]; }
+  .following-status, .following-expired, .following-alert, .following-empty-note { @apply m-0 text-[14px]; }
+  .following-status { @apply text-[var(--muted)]; }
+  .following-alert, .following-expired { @apply text-[var(--bad)]; }
+  .following-full-key { @apply m-0 text-[14px]; }
+  .following-post-control { @apply mt-3 text-[14px]; }
+  .following-post-control a { @apply inline-flex min-h-11 items-center text-[var(--accent)]; }
+  .following-batch:focus-visible { @apply outline-2 outline-offset-2 outline-[var(--accent)]; }
+  .following-coverage { @apply mt-4 text-[13px] text-[var(--muted)]; }
+  .following-coverage p, .following-coverage ul { @apply m-0; }
+  .following-coverage ul { @apply mt-1 list-none p-0; }
+  .following-warn, .following-conflict .notice-warn { @apply rounded-lg border border-[var(--warn)] bg-[var(--warn-soft)] p-3 text-[14px]; }
+  @media (max-width: 480px) {
+    .following-unfollow, .following-unfollow button { @apply w-full; }
+    .following-toggle { @apply w-full; }
+    .following-actions > *, .following-actions button { @apply w-full; }
+  }
+}

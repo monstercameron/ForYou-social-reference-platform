@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"net/http"
 	"net/url"
 	"slices"
@@ -19,8 +20,8 @@ func registerFollow(a *App, mux *http.ServeMux) {
 	mux.HandleFunc("POST /follow/fragment", a.followHandler)
 }
 
-// followedAuthors reads the author keys this browser follows, oldest first.
-// Follows stay in the browser: no provider learns them.
+// followedAuthors reads the author keys the legacy follow cookie holds, oldest
+// first. Follows now live in the profile's file; this only feeds the migration.
 func followedAuthors(r *http.Request) []string {
 	c, err := r.Cookie(followCookie)
 	if err != nil || len(c.Value) > 4000 {
@@ -33,22 +34,6 @@ func followedAuthors(r *http.Request) []string {
 		}
 	}
 	return ids
-}
-
-func followSet(r *http.Request) map[string]bool {
-	set := make(map[string]bool)
-	for _, id := range followedAuthors(r) {
-		set[id] = true
-	}
-	return set
-}
-
-func setFollowCookie(w http.ResponseWriter, r *http.Request, ids []string) {
-	c := &http.Cookie{Name: followCookie, Value: strings.Join(ids, "."), Path: "/", MaxAge: 31536000, HttpOnly: true, Secure: r.TLS != nil, SameSite: http.SameSiteStrictMode}
-	if len(ids) == 0 {
-		c.MaxAge = -1
-	}
-	http.SetCookie(w, c)
 }
 
 // followHandler follows or unfollows the key that signed a post's display name.
@@ -68,14 +53,27 @@ func (a *App) followHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid form", http.StatusBadRequest)
 		return
 	}
-	ids := slices.DeleteFunc(followedAuthors(r), func(id string) bool { return id == p.AuthorID })
-	if choice == "on" {
-		if len(ids) == followLimit {
-			ids = ids[1:]
-		}
-		ids = append(ids, p.AuthorID)
+	profile, err := a.profile(w, r)
+	if err == nil {
+		err = a.followingMigrate(w, r, profile)
 	}
-	setFollowCookie(w, r, ids)
+	if err == nil {
+		err = a.followingUpdate(profile, func(state *followingState) error {
+			if choice == "on" {
+				return followingAdd(state, p.AuthorID, followingViaPost, a.now())
+			}
+			followingUnfollow(state, p.AuthorID)
+			return nil
+		})
+	}
+	if errors.Is(err, followingErrLimit) {
+		http.Error(w, followingLimitMessage, http.StatusConflict)
+		return
+	}
+	if err != nil {
+		http.Error(w, "follows could not be saved", http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Cache-Control", "no-store")
 	if r.URL.Path != "/follow/fragment" {
 		http.Redirect(w, r, "/posts/"+url.PathEscape(p.ID), http.StatusSeeOther)

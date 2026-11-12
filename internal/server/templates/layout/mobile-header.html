@@ -9,6 +9,7 @@
 <nav class="mobile-nav" aria-label="Primary navigation">
   <a href="/" {{if eq .Section "home"}}aria-current="page"{{end}}>{{template "layout-icon-nav-home" .}}<span>Home</span></a>
   <a href="/explore" {{if eq .Section "explore"}}aria-current="page"{{end}}>{{template "layout-icon-nav-explore" .}}<span>Explore</span></a>
+  <a href="/following" {{if eq .Section "following"}}aria-current="page"{{end}}>{{template "following-icon-nav" .}}<span>Following</span></a>
   <a href="/wallet" {{if eq .Section "wallet"}}aria-current="page"{{end}}>{{template "layout-icon-nav-wallet" .}}<span>Wallet</span></a>
   <a href="/identity" {{if eq .Section "identity"}}aria-current="page"{{end}}>{{template "layout-icon-nav-identity" .}}<span>Identity</span></a>
   <a href="/network" {{if eq .Section "network"}}aria-current="page"{{end}}>{{template "layout-icon-nav-network" .}}<span>Network</span></a>
