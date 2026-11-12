@@ -29,8 +29,8 @@ func TestCatchAllDoesNotHidePlannedLanding(t *testing.T) {
 	t.Cleanup(func() { routeGroups = previous })
 	client := newTestClient(t, false)
 	w := httptest.NewRecorder()
-	client.Handler().ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/identity", nil))
-	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "Identity and keys") || !strings.Contains(w.Body.String(), "This page is not available yet.") {
-		t.Errorf("identity landing = %d %q; GET / catch-all should not replace its specific route", w.Code, w.Body.String())
+	client.Handler().ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/network", nil))
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "Network") || !strings.Contains(w.Body.String(), "This page is not available yet.") {
+		t.Errorf("network landing = %d %q; GET / catch-all should not replace its specific route", w.Code, w.Body.String())
 	}
 }

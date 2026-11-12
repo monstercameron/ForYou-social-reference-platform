@@ -1,0 +1,31 @@
+{{define "identity-page"}}
+{{template "layout-open" .Layout}}
+  <div class="page-content identity-content">
+    <header class="page-heading"><h1>Identity and keys</h1><p>The key on this server signs your posts. Readers verify posts by it.</p></header>
+    {{if .Layout.Dev}}<div class="notice notice-warn identity-dev" role="note"><span aria-hidden="true">{{template "layout-icon-nav-info" .}}</span><p><strong>Dev custody.</strong> This key is stored unencrypted on this client server for the dev network. Never use it for anything real.</p></div>{{end}}
+    {{template "identity-main" .}}
+  </div>
+{{template "layout-close" .Layout}}
+{{end}}
+{{define "identity-create"}}{{template "identity-main" .}}{{end}}
+{{define "identity-main"}}<div id="identity-main" class="identity-main">{{if .Notice}}<p class="identity-notice" role="status">{{.Notice}}</p>{{end}}{{if and .Found .RestoreError}}<p id="identity-restore-error" class="error-text" role="alert">{{.RestoreError}}</p>{{end}}{{if .Found}}{{template "identity-panels" .}}{{else}}{{template "identity-empty" .}}{{end}}</div>{{end}}
+{{define "identity-empty"}}<section class="component-card identity-card" aria-labelledby="identity-create-title">
+  <h2 id="identity-create-title" tabindex="-1" data-identity-focus="identity">Your identity</h2>
+  <p>You do not have a signing key yet.</p>
+  <form class="identity-form" action="/identity/create" method="post" post="/identity/create/fragment" target="#identity-main(outerHTML)" timeout="5000" data-focus-after-swap="[data-identity-focus='identity']" onerror="#identity-create-status(innerHTML)">
+    <button class="button button-primary" type="submit">Create my key</button>
+  </form>
+  <p id="identity-create-status" role="status" aria-live="polite"></p>
+</section>
+{{template "identity-restore" .}}{{end}}
+{{define "identity-panels"}}<div class="identity-grid">
+  <div class="identity-column">
+    {{template "identity-you" .}}
+    {{template "identity-warnings" .}}
+  </div>
+  <div class="identity-column">
+    {{template "identity-backup" .}}
+    {{template "identity-rotate" .}}
+    {{template "identity-successions" .}}
+  </div>
+</div>{{end}}

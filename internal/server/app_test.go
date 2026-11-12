@@ -66,9 +66,6 @@ func TestClientNavigationAndLandingPages(t *testing.T) {
 			t.Error("non-dev client showed dev custody text")
 		}
 	})
-	t.Run("identity landing renders active navigation", func(t *testing.T) {
-		checkLanding(t, "/identity", "Identity and keys")
-	})
 	t.Run("network landing renders active navigation", func(t *testing.T) {
 		checkLanding(t, "/network", "Network")
 	})

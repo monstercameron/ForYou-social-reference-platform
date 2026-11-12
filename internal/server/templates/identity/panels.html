@@ -1,0 +1,73 @@
+{{define "identity-you"}}<section class="component-card identity-card" aria-labelledby="identity-you-title">
+  <h2 id="identity-you-title" tabindex="-1" data-identity-focus="identity">Your identity</h2>
+  <label class="identity-label" for="identity-did">Your did:key</label>
+  <input id="identity-did" class="identity-did" type="text" value="{{.DID}}" readonly spellcheck="false" autocomplete="off">
+  <p>Created {{.Created}}. This is your identity everywhere. Providers do not issue or own it.</p>
+</section>{{end}}
+{{define "identity-warnings"}}<section id="identity-warnings" class="component-card identity-card" aria-labelledby="identity-warnings-title">
+  <h2 id="identity-warnings-title" tabindex="-1" data-identity-focus="warnings">Before you publish</h2>
+  <ul class="identity-warning-list">
+    <li><span class="identity-warning-icon" aria-hidden="true">{{template "layout-icon-nav-info" .}}</span><span>Whoever controls this key controls your identity.</span></li>
+    <li><span class="identity-warning-icon" aria-hidden="true">{{template "layout-icon-nav-info" .}}</span><span>A lost key cannot be recovered by anyone.</span></li>
+    <li><span class="identity-warning-icon" aria-hidden="true">{{template "layout-icon-nav-info" .}}</span><span>A stolen key cannot be revoked under the same identity; you would need a new one.</span></li>
+  </ul>
+  {{if .Acked}}<p><span class="pill pill-ok">Acknowledged on {{.AckedOn}}</span></p>
+  {{else}}<form class="identity-form" action="/identity/acknowledge" method="post" post="/identity/acknowledge/fragment" target="#identity-warnings(outerHTML)" timeout="5000" data-focus-after-swap="[data-identity-focus='warnings']" onerror="#identity-warnings-status(innerHTML)">
+    <div class="identity-check"><label><input type="checkbox" name="understood" value="yes"{{if .AckError}} aria-describedby="identity-ack-error"{{end}}> I understand these three points</label>{{if .AckError}}<p id="identity-ack-error" class="error-text" role="alert">{{.AckError}}</p>{{end}}</div>
+    <button class="button button-primary" type="submit">Confirm</button>
+  </form>{{end}}
+  <p id="identity-warnings-status" class="identity-status" role="status" aria-live="polite">{{.AckNotice}}</p>
+</section>{{end}}
+{{define "identity-backup"}}<section id="identity-backup" class="component-card identity-card" aria-labelledby="identity-backup-title">
+  <h2 id="identity-backup-title">Backup</h2>
+  {{if .BackupChecked}}<p><span class="pill pill-ok">Backup checked on {{.BackupCheckedOn}}</span></p>{{else}}<p><span class="pill pill-warn">Not backed up</span></p>{{end}}
+  <p>Download an encrypted copy of your key. Only your passphrase can open it. Keep it somewhere this server is not.</p>
+  <form class="identity-form" action="/identity/backup" method="post">
+    <div class="identity-field"><label for="identity-backup-passphrase">Passphrase</label><input id="identity-backup-passphrase" name="passphrase" type="password" autocomplete="new-password" minlength="12" required aria-describedby="identity-backup-help{{if .BackupError}} identity-backup-error{{end}}"><p id="identity-backup-help" class="help-text">At least 12 characters.</p>{{if .BackupError}}<p id="identity-backup-error" class="error-text" role="alert">{{.BackupError}}</p>{{end}}</div>
+    <div class="identity-field"><label for="identity-backup-confirm">Confirm passphrase</label><input id="identity-backup-confirm" name="confirm" type="password" autocomplete="new-password" minlength="12" required></div>
+    <button class="button button-secondary" type="submit">Download encrypted backup</button>
+  </form>
+  <h3 class="identity-subhead">Check your backup</h3>
+  <form class="identity-form" action="/identity/backup/check" method="post" enctype="multipart/form-data" post="/identity/backup/check/fragment" target="#identity-backup(outerHTML)" timeout="5000" data-focus-after-swap="[data-identity-focus='backup']" loading="#identity-check-status(innerHTML)" onerror="#identity-check-status(innerHTML)">
+    <div class="identity-field"><label for="identity-check-file">Backup file</label><input id="identity-check-file" name="backup" type="file" accept="application/json,.json" required{{if .CheckError}} aria-describedby="identity-check-error"{{end}}></div>
+    <div class="identity-field"><label for="identity-check-passphrase">Passphrase</label><input id="identity-check-passphrase" name="passphrase" type="password" autocomplete="current-password" required></div>
+    <button class="button button-secondary" type="submit" data-identity-focus="backup">Check backup</button>
+    {{if .CheckError}}<p id="identity-check-error" class="error-text" role="alert">{{.CheckError}}</p>{{end}}
+    <p id="identity-check-status" class="identity-status" role="status" aria-live="polite">{{.CheckMessage}}</p>
+  </form>
+</section>{{end}}
+{{define "identity-rotate"}}<section class="component-card identity-card" aria-labelledby="identity-rotate-title">
+  <h2 id="identity-rotate-title" tabindex="-1" data-identity-focus="rotate">Rotate key</h2>
+  <p>Rotation creates a new key and a signed link from the old key to the new one. It is advisory: readers may follow it, and someone who stole your old key could publish one too. It does not recover a lost key.</p>
+  <form class="identity-form" action="/identity/rotate" method="post" post="/identity/rotate/fragment" target="#identity-main(outerHTML)" timeout="5000" data-focus-after-swap="[data-identity-focus='rotate']" loading="#identity-rotate-status(innerHTML)" onerror="#identity-rotate-status(innerHTML)">
+    <div class="identity-check"><label><input type="checkbox" name="confirm" value="yes"{{if .RotateError}} aria-describedby="identity-rotate-error"{{end}}> I understand that rotation does not recover a lost key</label>{{if .RotateError}}<p id="identity-rotate-error" class="error-text" role="alert">{{.RotateError}}</p>{{end}}</div>
+    <button class="button button-primary" type="submit">Rotate key</button>
+  </form>
+  <p id="identity-rotate-status" class="identity-status" role="status" aria-live="polite"></p>
+  {{if .Publications}}<ul class="identity-publications">{{range .Publications}}<li><span class="identity-publication-name">{{.Provider}}</span>{{if .Failed}}<span class="pill pill-warn">{{.Result}}</span>{{else}}<span class="pill pill-ok">{{.Result}}</span>{{end}}</li>{{end}}</ul>{{end}}
+  {{if .Retired}}<h3 class="identity-subhead">Earlier keys</h3>
+  <dl class="identity-retired">{{range .Retired}}<div><dt><span class="id-chip">{{.DID}}</span></dt><dd>Retired {{.Retired}} · succession <span class="id-chip">{{.SuccessionID}}</span></dd></div>{{end}}</dl>{{end}}
+</section>{{end}}
+{{define "identity-successions"}}<section id="identity-successions" class="component-card identity-card" aria-labelledby="identity-successions-title">
+  <h2 id="identity-successions-title">Published successions</h2>
+  <p>Ask the providers you selected whether they hold a link from this key or an earlier one. A link is advisory, not recovery.</p>
+  <form class="identity-form" action="/identity" method="get" get="/identity/successions" target="#identity-successions(outerHTML)" timeout="5000" onerror="#identity-successions-status(innerHTML)">
+    <input type="hidden" name="check" value="1">
+    <button class="button button-secondary" type="submit">Check published successions</button>
+  </form>
+  <div id="identity-successions-status" class="identity-status" role="status" aria-live="polite">
+    {{if not .Checked}}<p>Not checked yet.</p>{{end}}
+    {{range .Successions}}<div class="identity-line"><p>{{.Text}}</p>{{range .Notes}}<p class="identity-note">{{.}}</p>{{end}}</div>{{end}}
+  </div>
+</section>{{end}}
+{{define "identity-restore"}}<section class="component-card identity-card" aria-labelledby="identity-restore-title">
+  <h2 id="identity-restore-title" tabindex="-1" data-identity-focus="restore">Restore from a backup</h2>
+  <p>Restore an encrypted key backup into this profile. This works only when the profile has no key yet.</p>
+  <form class="identity-form" action="/identity/restore" method="post" enctype="multipart/form-data" post="/identity/restore/fragment" target="#identity-main(outerHTML)" timeout="5000" data-focus-after-swap="[data-identity-focus='restore']" loading="#identity-restore-status(innerHTML)" onerror="#identity-restore-status(innerHTML)">
+    <div class="identity-field"><label for="identity-restore-file">Backup file</label><input id="identity-restore-file" name="backup" type="file" accept="application/json,.json" required{{if .RestoreError}} aria-describedby="identity-restore-error"{{end}}></div>
+    <div class="identity-field"><label for="identity-restore-passphrase">Passphrase</label><input id="identity-restore-passphrase" name="passphrase" type="password" autocomplete="current-password" required></div>
+    {{if .RestoreError}}<p id="identity-restore-error" class="error-text" role="alert">{{.RestoreError}}</p>{{end}}
+    <button class="button button-secondary" type="submit">Restore key</button>
+  </form>
+  <p id="identity-restore-status" class="identity-status" role="status" aria-live="polite"></p>
+</section>{{end}}
