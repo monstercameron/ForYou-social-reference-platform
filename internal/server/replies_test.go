@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -74,7 +75,7 @@ func TestRepliesAcrossDemoFeed(t *testing.T) {
 	check := func(t *testing.T, id, open, want string) {
 		t.Helper()
 		w := httptest.NewRecorder()
-		h.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/thread/fragment?id="+id+"&page=2&open="+open, nil))
+		h.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/thread?id="+id+"&page=2&open="+open, nil))
 		if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), want) {
 			t.Errorf("thread %s: status %d; missing %q", id, w.Code, want)
 		}
@@ -339,4 +340,139 @@ func TestThreadFocusTargets(t *testing.T) {
 		check(t, "/thread/fragment?id=maya&view=closed", `data-thread-control="open" aria-expanded="false"`)
 	})
 	t.Run("show more targets hide", func(t *testing.T) { check(t, "/thread/fragment?id=maya", `data-thread-focus="hide"`) })
+}
+
+func TestThreadReplyList(t *testing.T) {
+	h := testClientHandler(t)
+	t.Run("replies are an ordered list with items", func(t *testing.T) {
+		body := getWith(h, "/thread/fragment?id=maya")
+		if !strings.Contains(body, `<ol class="replies" aria-label="Replies">`) || !strings.Contains(body, `<li class="reply">`) {
+			t.Error("the replies should be an ordered list named Replies, one item per reply")
+		}
+	})
+	t.Run("nested replies sit in their parent item", func(t *testing.T) {
+		body := getWith(h, "/thread/branch?id=maya&branch=0")
+		if !strings.Contains(body, `<ol class="replies nested-replies" aria-label="Replies">`) {
+			t.Error("an opened branch should be a nested ordered list")
+		}
+	})
+	t.Run("the cost note says the test network charges nothing", func(t *testing.T) {
+		w := postForm(h, "/reply/quote/fragment", url.Values{"id": {"maya"}, "parent": {""}, "text": {"Wording"}})
+		body := w.Body.String()
+		if w.Code != http.StatusOK || !strings.Contains(body, "A reply is a post: it pays the same fee and stays public. This is a test network, so nothing is really charged. This price holds for 10 minutes.") {
+			t.Errorf("status %d; the confirm note should use the agreed wording: %s", w.Code, body)
+		}
+	})
+}
+
+// thrSource serves threads from fixtures and counts the reply lookups the handlers make.
+type thrSource struct {
+	recordSource
+	replies  []reply
+	coverage Coverage
+	lookups  int
+}
+
+func (s *thrSource) Thread(_ context.Context, _ *http.Request, postID string) ([]reply, error) {
+	s.lookups++
+	return prepareReplies(s.replies, postID, "", replyDepthLimit), nil
+}
+
+func (s *thrSource) Replies(context.Context, *http.Request, string) (recordPage, error) {
+	s.lookups++
+	return recordPage{Coverage: s.coverage}, nil
+}
+
+func thrHandler(t *testing.T, source *thrSource) http.Handler {
+	t.Helper()
+	client, err := NewClient(Config{DataDir: t.TempDir(), PublicOrigin: "https://example.test"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	source.recordSource = client.app.recordSource
+	client.app.recordSource = source
+	return client.Handler()
+}
+
+func TestThreadInlineDepthAndHeading(t *testing.T) {
+	h := testClientHandler(t)
+	t.Run("inline replies stop at the third level with a link on", func(t *testing.T) {
+		body := getWith(h, "/thread/fragment?id=gaming&open=0.0")
+		if !strings.Contains(body, `<a class="thread-continue" href="/thread?id=gaming&amp;open=0.0.0">Continue this thread</a>`) || strings.Contains(body, "best thread on my feed today") {
+			t.Error("a deep thread should be cut at the third level with Continue this thread")
+		}
+	})
+	t.Run("phones stop at the second level", func(t *testing.T) {
+		body := getWith(h, "/thread/fragment?id=gaming&open=0.0")
+		if !strings.Contains(body, `<a class="thread-continue thread-continue-phone" href="/thread?id=gaming&amp;open=0.0">Continue this thread</a>`) {
+			t.Error("the second level should link on for phones")
+		}
+	})
+	t.Run("phones hide the branch below the second level", func(t *testing.T) {
+		body := getWith(h, "/thread/fragment?id=gaming&open=0.0")
+		if !strings.Contains(body, `class="reply-branch reply-branch-wide"`) {
+			t.Error("the branch under a phone Continue link should be marked for wide screens only")
+		}
+	})
+	t.Run("opening the thread moves focus to its heading", func(t *testing.T) {
+		body := getWith(h, "/thread/fragment?id=maya&view=closed")
+		if !strings.Contains(body, `data-focus-after-swap=".thread-heading"`) {
+			t.Error("the View replies control should move focus to the Replies found heading")
+		}
+	})
+	t.Run("the full page shows the deep reply without a cut", func(t *testing.T) {
+		body := getWith(h, "/thread?id=gaming&open=0.0.0.0.0.0.0")
+		if !strings.Contains(body, "best thread on my feed today") || strings.Contains(body, "Continue this thread") {
+			t.Error("the full page should show every level it holds")
+		}
+	})
+	t.Run("the heading counts every reply found, folded ones too, and the sources that answered", func(t *testing.T) {
+		body := getWith(h, "/thread/fragment?id=maya")
+		if !strings.Contains(body, `<h2 id="thread-heading-maya" class="thread-heading" tabindex="-1">Replies found: 6 on 1 of 1 sources</h2>`) {
+			t.Error("the thread should say how many replies it found and from how many sources")
+		}
+	})
+	t.Run("the full page has the same heading and the coverage line", func(t *testing.T) {
+		body := getWith(h, "/thread?id=maya")
+		if !strings.Contains(body, `<h2 id="thread-heading-maya" class="thread-heading" tabindex="-1">Replies found: 6 on 1 of 1 sources</h2>`) || !strings.Contains(body, `<p class="thread-coverage">`) {
+			t.Error("the full page should show the heading and the coverage line")
+		}
+	})
+	t.Run("an empty result says others may exist elsewhere", func(t *testing.T) {
+		body := getWith(h, "/thread/fragment?id=weather")
+		if !strings.Contains(body, "Your sources returned no replies. Others may exist elsewhere.") || strings.Contains(body, "Nothing here yet") {
+			t.Error("an empty thread should not claim that no replies exist")
+		}
+	})
+	t.Run("the expanded list continues the numbering", func(t *testing.T) {
+		body := getWith(h, "/thread/fragment?id=maya&page=2")
+		if !strings.Contains(body, `<ol class="replies" aria-label="Replies" start="3">`) {
+			t.Error("the expanded list should start after the replies above it")
+		}
+	})
+}
+
+func TestThreadFromRecordSource(t *testing.T) {
+	coverage := Coverage{Sources: []SourceStatus{{Label: "Provider", OK: true}, {Label: "Mirror", OK: false}}}
+	t.Run("a reply the source returns twice is shown once", func(t *testing.T) {
+		h := thrHandler(t, &thrSource{replies: []reply{{ID: "dup", Text: "Said twice"}, {ID: "dup", Text: "Said twice"}}, coverage: coverage})
+		body := getWith(h, "/thread/fragment?id=maya")
+		if strings.Count(body, "Said twice") != 1 || !strings.Contains(body, "Replies found: 1 on 1 of 2 sources") {
+			t.Error("a duplicate reply should be shown once and counted once")
+		}
+	})
+	t.Run("a reply to an earlier version links both versions", func(t *testing.T) {
+		h := thrHandler(t, &thrSource{replies: []reply{{ID: "answer", Text: "Newer", RepliedTo: "maya-v1", Selected: "maya-v2", ContextChanged: true}}})
+		body := getWith(h, "/thread/fragment?id=maya")
+		if !strings.Contains(body, `<a href="/posts/maya-v1">Replied to an earlier version</a>`) || !strings.Contains(body, `<a href="/posts/maya-v2">Current version</a>`) {
+			t.Error("a reply to an earlier version should link that version and the current one")
+		}
+	})
+	t.Run("the feed does not look up replies", func(t *testing.T) {
+		source := &thrSource{}
+		getWith(thrHandler(t, source), "/")
+		if source.lookups != 0 {
+			t.Errorf("the feed made %d reply lookups; want none", source.lookups)
+		}
+	})
 }

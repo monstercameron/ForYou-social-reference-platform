@@ -13,6 +13,12 @@ import (
 // replyDepthLimit is the deepest reply a thread shows or accepts.
 const replyDepthLimit = 8
 
+// An inline thread stops after thrInlineDepth levels, and after thrPhoneDepth on phones.
+const (
+	thrInlineDepth = 3
+	thrPhoneDepth  = 2
+)
+
 const replyRuneLimit = 1000
 
 func init() { routeGroups = append(routeGroups, registerThread) }
@@ -47,6 +53,15 @@ type reply struct {
 	Descendants int
 	Unfolded    bool
 	Children    []reply
+	// Continue marks a reply on the last inline level whose answers open on the full page.
+	Continue bool
+	// Deep hides the reply on phones; PhoneContinue links on from the last level phones show.
+	Deep, PhoneContinue bool
+	// Full marks a reply shown on the full page, whose answers are never cut.
+	Full bool
+	// RepliedTo is the version this reply addressed. When ContextChanged is set, Selected is the version now current.
+	RepliedTo, Selected string
+	ContextChanged      bool
 }
 
 // format is the content format the reply's text is read in.
@@ -78,6 +93,9 @@ func (r reply) ParentPath() string {
 type thread struct {
 	Layout   Layout
 	Parent   post
+	Coverage Coverage
+	// Found counts every reply the sources returned for this read, before any cut. It is not a network total.
+	Found    int
 	Replies  []reply
 	Extra    []reply
 	HasMore  bool
@@ -88,6 +106,75 @@ type thread struct {
 // Draft starts a reply to the post itself.
 func (t thread) Draft() replyDraft {
 	return replyDraft{PostID: t.Parent.ID}
+}
+
+// SourcesAnswered counts the sources of the read that answered.
+func (t thread) SourcesAnswered() int {
+	answered := 0
+	for _, s := range t.Coverage.Sources {
+		if s.OK {
+			answered++
+		}
+	}
+	return answered
+}
+
+// SourcesConsulted counts every source the read consulted.
+func (t thread) SourcesConsulted() int {
+	return len(t.Coverage.Sources)
+}
+
+// ExtraStart numbers the expanded list after the replies above it.
+func (t thread) ExtraStart() int {
+	return len(t.Replies) + 1
+}
+
+// thrCut limits a thread shown inline. A reply on the last inline level keeps its
+// place, and its answers move to the full page behind a link.
+func thrCut(replies []reply, level int) []reply {
+	kept := make([]reply, len(replies))
+	for i, r := range replies {
+		r.Deep = level > thrPhoneDepth
+		r.PhoneContinue = level == thrPhoneDepth && len(r.Children) > 0
+		if level >= thrInlineDepth {
+			r.Continue = len(r.Children) > 0
+			r.Children = nil
+		} else {
+			r.Children = thrCut(r.Children, level+1)
+		}
+		kept[i] = r
+	}
+	return kept
+}
+
+// thrMarkFull marks a thread shown on the full page, where no level is cut.
+func thrMarkFull(replies []reply) []reply {
+	marked := make([]reply, len(replies))
+	for i, r := range replies {
+		r.Full = true
+		r.Children = thrMarkFull(r.Children)
+		marked[i] = r
+	}
+	return marked
+}
+
+// thrKeepFirst drops a reply a source returned again, and renumbers the paths so
+// each one still addresses its reply.
+func thrKeepFirst(replies []reply, postID, parent string, seen map[string]bool) []reply {
+	kept := make([]reply, 0, len(replies))
+	for _, r := range replies {
+		if r.ID != "" {
+			if seen[r.ID] {
+				continue
+			}
+			seen[r.ID] = true
+		}
+		r.PostID, r.Path = postID, childPath(parent, len(kept))
+		r.Children = thrKeepFirst(r.Children, postID, r.Path, seen)
+		r.Descendants = countReplies(r.Children)
+		kept = append(kept, r)
+	}
+	return kept
 }
 
 func childPath(parent string, index int) string {
@@ -137,15 +224,21 @@ func (a *App) threadReplies(r *http.Request, postID string) []reply {
 	if err != nil {
 		return nil
 	}
+	replies = thrKeepFirst(replies, postID, "", make(map[string]bool))
 	rateReplies(replies, readerFilters(r))
 	return replies
 }
 
+// readThread reads a thread. The inline fragment cuts it at thrInlineDepth; the full page, and the post page that embeds it, shows every level.
 func (a *App) readThread(r *http.Request) (thread, int) {
 	id := r.URL.Query().Get("id")
 	parent, ok := a.requestPost(r, id)
 	if !ok {
 		return thread{}, http.StatusNotFound
+	}
+	var coverage Coverage
+	if found, err := a.records().Replies(r.Context(), r, id); err == nil {
+		coverage = found.Coverage
 	}
 	replies := a.threadReplies(r, id)
 	page := r.URL.Query().Get("page")
@@ -161,6 +254,12 @@ func (a *App) readThread(r *http.Request) (thread, int) {
 			unfolded.Unfolded = true
 		}
 	}
+	found := countReplies(replies)
+	if r.URL.Path != "/thread" {
+		replies = thrCut(replies, 1)
+	} else {
+		replies = thrMarkFull(replies)
+	}
 	expanded := page == "2" && len(replies) > 2
 	more := !expanded && len(replies) > 2
 	var extra []reply
@@ -170,7 +269,7 @@ func (a *App) readThread(r *http.Request) (thread, int) {
 	} else if more {
 		replies = replies[:2]
 	}
-	return thread{Parent: parent, Replies: replies, Extra: extra, HasMore: more, Expanded: expanded}, http.StatusOK
+	return thread{Parent: parent, Coverage: coverage, Found: found, Replies: replies, Extra: extra, HasMore: more, Expanded: expanded}, http.StatusOK
 }
 
 func (a *App) threadPageHandler(w http.ResponseWriter, r *http.Request) {
@@ -231,13 +330,19 @@ func (a *App) branchFragmentHandler(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	node := *chain[len(chain)-1]
+	if query.Get("full") == "1" {
+		node.Children = thrMarkFull(node.Children)
+	} else {
+		node.Children = thrCut(node.Children, len(chain)+1)
+	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
 	name := "thread-branch-open"
 	if view == "closed" {
 		name = "thread-branch-closed"
 	}
-	a.fragment(w, r, name, *chain[len(chain)-1])
+	a.fragment(w, r, name, node)
 }
 
 // replyHandler posts a reply the reader has confirmed. It takes the quote the

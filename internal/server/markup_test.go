@@ -66,7 +66,7 @@ func TestMarkdownInThreads(t *testing.T) {
 		}
 	})
 	t.Run("fenced code no longer shows its fences", func(t *testing.T) {
-		_, body := get("/thread/fragment?id=open-source&page=2&open=0.0.0")
+		_, body := get("/thread?id=open-source&page=2&open=0.0.0")
 		if strings.Contains(body, "```") || !strings.Contains(body, "<pre><code>func resolve(root, file, href string) string {") {
 			t.Error("a fenced block should render as a code block")
 		}
