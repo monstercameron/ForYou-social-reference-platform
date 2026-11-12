@@ -11,6 +11,7 @@ import (
 
 	"foryou.local/foryou/internal/canon"
 	"foryou.local/foryou/internal/devnet"
+	"foryou.local/foryou/internal/discovery"
 	"foryou.local/foryou/internal/keys"
 	"foryou.local/foryou/internal/wire"
 )
@@ -203,6 +204,33 @@ func TestReplicaManifestAndPolicy(t *testing.T) {
 		var renewed wire.OperatorManifest
 		if response.Code != http.StatusOK || wire.Decode(response.Body.Bytes(), "OperatorManifest", &renewed) != nil || renewed.ManifestVersion != 2 || renewed.IssuedAt != later.Format("2006-01-02T15:04:05Z") {
 			t.Fatalf("renewed manifest = %d %q", response.Code, response.Body.String())
+		}
+	})
+}
+
+func TestReplicaListingStopsAtTheSnapshotByteCap(t *testing.T) {
+	now := time.Date(2026, 11, 11, 12, 0, 0, 0, time.UTC)
+	cfg := replicaConfig(t, t.TempDir(), now)
+	cfg.Now = func() time.Time { return now }
+	cfg.Snapshots = discovery.SnapshotLimits{MaxBytes: 1024}
+	s, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	if added, err := s.Records().Import(keys.DIDOf(devnet.ProviderKey(0)), versionCopies(t), 5); err != nil || added != 5 {
+		t.Fatalf("Records().Import() = (%d, %v); want (5, nil)", added, err)
+	}
+	t.Run("a range whose records pass the cap is refused before it is copied", func(t *testing.T) {
+		got := readTestRequest(t, s, http.MethodGet, "/v1/messages?limit=2")
+		if got.Code != http.StatusTooManyRequests || got.Body.String() != `{"retry_after_seconds":1,"status":"rate_limited"}` {
+			t.Errorf("status %d, body %s; want 429 rate_limited: five records do not fit in 1024 bytes", got.Code, got.Body)
+		}
+	})
+	t.Run("a single record is still served directly", func(t *testing.T) {
+		got := readTestRequest(t, s, http.MethodGet, "/v1/messages/fy1%3A4d6821cffb7771682a92d14b537b5ac813236c45db6ea7cc7a8869fee143354f")
+		if got.Code != http.StatusOK {
+			t.Errorf("direct read status %d; want 200: the cap bounds listings only", got.Code)
 		}
 	})
 }

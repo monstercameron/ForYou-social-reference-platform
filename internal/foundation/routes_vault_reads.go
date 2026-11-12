@@ -161,8 +161,11 @@ func vaultReadList(w http.ResponseWriter, r *http.Request, s *Service, index *va
 	if cursor != "" {
 		body, err = snapshots.Continue(query.Binding(), cursor, query.Limit, visibility)
 	} else {
-		body, err = snapshots.Start(query.Binding(), query.Limit, visibility, func() ([]discovery.Entry, error) {
-			matches := index.index.Select(query)
+		body, err = snapshots.StartBudgeted(query.Binding(), query.Limit, visibility, func(budget int64) ([]discovery.Entry, error) {
+			matches, err := index.index.SelectWithin(query, budget)
+			if err != nil {
+				return nil, err
+			}
 			entries := make([]discovery.Entry, 0, len(matches))
 			for _, record := range matches {
 				entries = append(entries, discovery.Entry{MessageID: record.MessageID, Bytes: record.Bytes})

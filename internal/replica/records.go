@@ -183,8 +183,10 @@ func (r *Records) Lookup(id string) ([]byte, bool) {
 	return value, ok
 }
 
-// Select returns indexed records matching a discovery query.
-func (r *Records) Select(q discovery.Query) []discovery.Record { return r.index.Select(q) }
+// SelectWithin returns the records matching q, or discovery.ErrBusy once their bytes would pass budget.
+func (r *Records) SelectWithin(q discovery.Query, budget int64) ([]discovery.Record, error) {
+	return r.index.SelectWithin(q, budget)
+}
 
 // After returns records with a local sequence greater than after.
 func (r *Records) After(after uint64, max int) []discovery.Record { return r.index.After(after, max) }
