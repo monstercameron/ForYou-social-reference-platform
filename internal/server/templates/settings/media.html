@@ -1,0 +1,8 @@
+{{define "settings-media"}}<section id="media" class="component-card settings-card" aria-labelledby="media-title">
+  <h2 id="media-title" tabindex="-1">Media</h2>
+  <p>Allowing an origin lets that host see when this server loads media from it.</p>
+  {{if .Origins}}<ul class="settings-media-list">{{range .Origins}}<li class="settings-media-origin"><span class="settings-media-host">{{.}}</span><form action="/settings/media-origins/remove" method="post" post="/settings/media-origins/remove/fragment" target="#media(outerHTML)" timeout="5000" onerror="#media-status(innerHTML)" data-focus-after-swap="#media-title"><input type="hidden" name="origin" value="{{.}}"><button class="button button-secondary" type="submit" aria-label="Stop loading from {{.}}">Stop loading</button></form></li>{{end}}</ul>
+  <form class="settings-media-stop-all" action="/settings/media-origins/clear" method="post" post="/settings/media-origins/clear/fragment" target="#media(outerHTML)" timeout="5000" onerror="#media-status(innerHTML)" data-focus-after-swap="#media-title"><button class="button button-secondary" type="submit">Stop all</button></form>
+  {{else}}<p class="settings-media-empty">No origins allowed. Media loads only when you click it.</p>{{end}}
+  <p id="media-status" class="settings-status" role="status" aria-live="polite">{{.Notice}}</p>
+</section>{{end}}

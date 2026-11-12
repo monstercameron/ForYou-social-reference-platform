@@ -1,1 +1,16 @@
-@layer components {}
+@layer components {
+  @media (max-width: 480px) {
+    .settings-card .segmented-control { @apply grid-cols-1; }
+  }
+  .settings-card .id-chip { @apply align-bottom text-[13px]; }
+  .settings-links { @apply mt-3 flex flex-wrap gap-2; }
+  .settings-dev { @apply mt-3 mb-0 text-[13px] text-[var(--muted)]; }
+  .settings-status { @apply m-0 text-[13px] text-[var(--muted)]; }
+  .settings-status:not(:empty) { @apply mt-3; }
+  .settings-media-list { @apply m-0 list-none p-0; }
+  .settings-media-origin { @apply flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-[var(--line)] py-2.5; }
+  .settings-media-host { @apply min-w-0 font-mono text-[13px]; overflow-wrap: anywhere; }
+  .settings-media-origin form, .settings-media-stop-all { @apply shrink-0; }
+  .settings-media-stop-all { @apply mt-3; }
+  .settings-media-empty { @apply m-0 text-[13px] text-[var(--muted)]; }
+}

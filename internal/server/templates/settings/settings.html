@@ -1,20 +1,31 @@
 {{define "settings-page"}}
 {{template "layout-open" .Layout}}
   <div class="page-content settings-content">
-    <header class="page-heading"><h1>Settings</h1><p>Choose how ForYou looks on this browser.</p></header>
-    <section class="component-card settings-card" aria-labelledby="appearance-title">
+    <header class="page-heading"><h1>Settings</h1><p>These choices stay on this server for this browser. They are not sent to the network.</p></header>
+    <section id="appearance" class="component-card settings-card" aria-labelledby="appearance-title">
       <h2 id="appearance-title">Appearance</h2>
       <p>Use your device preference or select a theme. Your choice is saved in this browser.</p>
       {{template "layout-appearance-control" .Layout}}
     </section>
+    {{template "settings-media" .Media}}
     {{template "settings-filters" .Filters}}
-    <section class="component-card settings-card" aria-labelledby="feedback-title">
+    <section id="feedback" class="component-card settings-card" aria-labelledby="feedback-title">
       <h2 id="feedback-title">Personal feedback</h2>
       <p>Thumbs up and down are saved in this browser and sent to this server with requests. The 24 most recent choices are used; older choices are cleaned up on updates. They fill the Liked filter and sort the ads section.</p>
       <p class="settings-meta">Saved choices: {{.FeedbackCount}}</p>
       <form action="/feedback/clear" method="post"><button class="button button-secondary" type="submit">Clear feedback</button></form>
     </section>
-    <section class="component-card settings-card" aria-labelledby="connection-title">
+    <section id="profile" class="component-card settings-card" aria-labelledby="profile-title">
+      <h2 id="profile-title">This profile</h2>
+      {{if .Profile.Prefix}}<p>This browser is profile <span class="id-chip">{{.Profile.Prefix}}…</span>, identified by a cookie on this server. It is not an account.</p>{{else}}<p>This browser has no profile yet. A profile is created when you create an identity. It is not an account.</p>{{end}}
+      <nav class="settings-links" aria-label="Profile settings">
+        <a class="button button-secondary" href="/identity">Identity and keys</a>
+        <a class="button button-secondary" href="/network">Network</a>
+        <a class="button button-secondary" href="/wallet">Wallet</a>
+      </nav>
+      {{if .Layout.Dev}}<p class="settings-dev">Dev custody: keys and payments are not real.</p>{{end}}
+    </section>
+    <section id="connection" class="component-card settings-card" aria-labelledby="connection-title">
       <h2 id="connection-title">Connection</h2>
       {{if .Layout.NetworkConfigured}}<p>{{.Layout.Source}}</p><dl class="network-list">{{range .Layout.Network}}<div><dt><span>{{.Label}}</span></dt><dd>{{.Value}}</dd></div>{{end}}</dl>{{if .Layout.DefaultList}}<p>Default list: {{.Layout.DefaultList}}</p>{{end}}{{else}}<p>No provider is connected. Demo posts are stored on this client server until it restarts.</p>{{end}}
     </section>
