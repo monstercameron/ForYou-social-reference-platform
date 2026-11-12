@@ -4,7 +4,7 @@
     <div><h1>Home</h1><p>Recent posts from your sources, newest first by the author's timestamp.</p></div>
     {{template "feed-filter-pills" .}}
   </header>
-  {{template "fyo-bar" .Order}}
+  {{if eq .Layout.Section "home"}}{{template "start-feed" .Layout}}{{end}}{{template "fyo-bar" .Order}}
   {{template "feed-search" .}}
   <div id="search-status" class="search-status" role="status" aria-live="polite"></div>
   <div id="thread-error" class="thread-error" role="status" aria-live="polite"></div>

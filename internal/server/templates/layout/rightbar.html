@@ -1,6 +1,7 @@
 {{define "layout-rightbar"}}
 <aside class="rightbar">
   <div class="rightbar-content">
+    {{if eq .Section "home"}}{{template "start-rail" .}}{{end}}
     {{template "layout-network-panel" .}}
     {{template "layout-about-panel" .}}
     {{template "topics-rail" .}}
