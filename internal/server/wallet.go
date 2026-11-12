@@ -84,6 +84,8 @@ type walNetwork struct{ Value, Label, Cap string }
 
 type walBalance struct {
 	Label, Available, Reserved, Frozen, Stated, Err string
+	// HasFrozen reports a frozen amount above zero, which the page explains.
+	HasFrozen bool
 }
 
 type walAttempt struct{ DepositID, Amount string }
@@ -118,8 +120,8 @@ type walWithdraw struct {
 }
 
 type walErrors struct {
-	Ack, Deposit, Withdraw string
-	Invoice                map[string]string
+	Ack, Deposit, Withdraw, Reorg string
+	Invoice                       map[string]string
 }
 
 type walView struct {
@@ -135,6 +137,7 @@ type walView struct {
 	Balances     []walBalance
 	Invoices     []walInvoice
 	Interrupted  []walAttempt
+	Reorg        walReorg
 	Withdraw     walWithdraw
 	Notice       string
 	Errors       walErrors
@@ -142,6 +145,7 @@ type walView struct {
 
 type walOptions struct {
 	Balances  bool
+	Reorg     bool
 	RequestID string
 	Observed  map[string]walObserve
 	Errors    walErrors
@@ -376,6 +380,9 @@ func (a *App) walBalances(ctx context.Context, funding walFunding, key ed25519.P
 			out = append(out, row)
 			continue
 		}
+		if frozen, err := fee.ParseAmount(status.Frozen); err == nil {
+			row.HasFrozen = frozen.Sign() > 0
+		}
 		row.Stated = walWhen(status.UpdatedAt)
 		out = append(out, row)
 	}
@@ -472,6 +479,9 @@ func (a *App) walView(r *http.Request, profile string, opts walOptions) walView 
 	}
 	view.Invoices = a.walInvoices(attempts, choice, opts, a.now())
 	view.Interrupted = walInterrupted(attempts)
+	if opts.Reorg {
+		view.Reorg = a.walReorgView(r.Context(), attempts)
+	}
 	return view
 }
 
@@ -481,7 +491,7 @@ func (a *App) walletHandler(w http.ResponseWriter, r *http.Request) {
 		a.fail(w, r, http.StatusInternalServerError, "The wallet could not start a session.")
 		return
 	}
-	a.page(w, r, "wallet-page", a.walView(r, profile, walOptions{Balances: true}))
+	a.page(w, r, "wallet-page", a.walView(r, profile, walOptions{Balances: true, Reorg: true}))
 }
 
 // walFail answers a refused wallet action: the message in the form's alert for an HTMLeX fragment, the full page with the status otherwise.

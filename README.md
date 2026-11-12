@@ -19,7 +19,7 @@ Each row is implemented and tested. The [specification](https://github.com/monst
 | Area | Specification | Packages |
 | --- | --- | --- |
 | Canonical JSON, strict Ed25519, `did:key`, signed messages, versions and replies | [Protocol](https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification/blob/main/docs/02-protocol.md) | `canon`, `keys`, `message`, `content`, `wire` |
-| Fee schedule 1, quotes, receipts, prepaid balances, deposits, withdrawals, signed account history | [Protocol](https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification/blob/main/docs/02-protocol.md), [Economics](https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification/blob/main/docs/03-economics.md) | `fee`, `funding`, `provider` |
+| Fee schedule 1, quotes, receipts, prepaid balances, deposits, freezing and reversal after a chain reorganization, withdrawals, signed account history | [Protocol](https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification/blob/main/docs/02-protocol.md), [Economics](https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification/blob/main/docs/03-economics.md) | `fee`, `funding`, `provider` |
 | Settlement claims, committee witnesses and quorum, equivocation evidence | [Economics](https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification/blob/main/docs/03-economics.md) | `settlement`, `committee`, `monitor` |
 | Retention declarations, Lifetime Vault delivery and reads | [Economics](https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification/blob/main/docs/03-economics.md) | `retention`, `foundation` |
 | Quality probes and reports with served evidence, quarterly distribution, monitor disclosures | [Economics](https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification/blob/main/docs/03-economics.md), [Quality](https://github.com/monstercameron/ForYou-Social-Ecosystem-Specification/blob/main/docs/09-quality.md) | `quality`, `distribution`, `monitor`, `foundation` |
@@ -34,7 +34,7 @@ The wire types are checked against the specification's JSON schemas, which are v
 
 ### Known limits
 
-- There is no adapter for a real chain. The faux chain does not simulate a reorganization, so a credited deposit is never frozen or reversed.
+- There is no adapter for a real chain. Deposits, payouts and reorganizations are exercised only on the faux chain.
 - Distribution statements and vault status follow real calendar quarters. On a fresh dev network the Ledger shows none yet; the end-to-end test in `cmd/foryou` moves the clock to cover that flow.
 - The client renders no author avatars from the network.
 - Only dev mode is exercised. Without `FORYOU_DEV` a role serves HTTPS and HTTP/3 with the certificate named by `FORYOU_TLS_CERT` and `FORYOU_TLS_KEY`, but that is not a supported deployment.
@@ -58,7 +58,7 @@ FORYOU_DEV=1 go run ./cmd/foryou-seed
 A first walk through the client:
 
 1. **Identity**: create your key and confirm the three warnings.
-2. **Wallet**: read the custody disclosure, request an invoice and pay it with the faux chain. The balance is credited once the provider signs the credit, and the account history lists it.
+2. **Wallet**: read the custody disclosure, request an invoice and pay it with the faux chain. The balance is credited once the provider signs the credit, and the account history lists it. The same page can then drop that transfer from the faux chain, to show the provider freezing the deposit, reversing it after two minutes and restoring it when the transfer is mined again.
 3. **New post**: write, get a quote for the exact bytes, confirm and publish. The receipt appears with the fee.
 4. **Home**: the post is there, marked pending until the committee settles its claim. Reply, like, save and embed work in place.
 5. **Ledger**: follow the fee of a post through its receipt, claim, witnesses and vault receipt, and read the fee schedules the release keys signed.

@@ -18,6 +18,7 @@
   .wallet-rows dt { padding:0; }
   .wallet-mono { font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:13px; overflow-wrap:anywhere; }
   .wallet-stated { color:var(--muted); font-size:13px; }
+  .wallet-frozen { padding:10px 12px; border-radius:10px; background:var(--control); font-size:14px; }
   .wallet-error { color:var(--bad); font-size:14px; }
   .wallet-form { display:grid; gap:14px; }
   .wallet-form .button { justify-self:start; }
