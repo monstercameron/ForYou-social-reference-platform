@@ -17,7 +17,11 @@
   .field .error-text { @apply text-xs text-[var(--bad)]; }
   .id-chip { @apply inline-block max-w-full overflow-hidden text-ellipsis whitespace-nowrap font-mono text-xs; }
   .dev-network { @apply grid gap-1 border-t border-[var(--line)] px-3 pt-3 text-xs; }
-  .dev-network small { @apply leading-snug text-[var(--muted)]; text-wrap:balance; }
+  .dev-network small { @apply text-xs leading-snug text-[var(--muted)]; text-wrap:balance; }
+  .page-content .notice { @apply mx-0; }
+  input[type="file"] { color:var(--muted); font:inherit; font-size:14px; max-width:100%; }
+  input[type="file"]::file-selector-button { @apply mr-3 min-h-11 cursor-pointer rounded-[9px] border border-[var(--line)] bg-[var(--control)] px-4 py-[9px] text-[var(--text)]; font:inherit; font-weight:600; }
+  input[type="file"]::file-selector-button:hover { background:var(--accent-soft); }
   .receipt-badge { @apply inline-block rounded-full bg-[var(--control)] px-2 py-[3px] text-[10px] text-[var(--muted)]; }
   .notice { @apply mx-6 mb-3 flex items-start gap-3 rounded-[10px] bg-[var(--accent-soft)] px-[15px] py-[13px] text-xs leading-[1.45] text-[var(--text)] max-[1100px]:mx-[18px]; }
   .notice > span { @apply text-[19px]; }

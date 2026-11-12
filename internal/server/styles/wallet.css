@@ -44,6 +44,8 @@
   .wallet-content .id-chip { white-space:normal; overflow-wrap:anywhere; }
   .wallet-observe, .wallet-observe > * { min-width:0; }
   .wallet-provider a, .wallet-error a { display:inline-flex; align-items:center; min-height:44px; }
+  .wallet-panel p, .wallet-provider p, .wallet-empty p { margin:0; }
+  @media (min-width:640px) { .wallet-balance .wallet-rows { grid-template-columns:repeat(3,minmax(0,1fr)); } }
   .wallet-history-tabs { display:flex; gap:6px; flex-wrap:wrap; }
   .wallet-history-tabs a { min-height:44px; display:inline-flex; align-items:center; padding:0 16px; border:1px solid var(--line); border-radius:999px; color:var(--muted); font-weight:600; font-size:14px; }
   .wallet-history-tabs a[aria-current="page"] { background:var(--accent-soft); border-color:transparent; color:var(--accent); }

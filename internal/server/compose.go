@@ -763,7 +763,7 @@ func cmpResultFor(published sdk.Published, entry sdk.JournalEntry) cmpResultView
 		ReceiptID: entry.Receipt.ReceiptID,
 		Amount:    groupDigits(entry.Quote.AmountBaseUnits),
 		Unit:      cmpUnit(entry.Prepared),
-		IssuedAt:  entry.Receipt.IssuedAt,
+		IssuedAt:  walWhen(entry.Receipt.IssuedAt),
 		Already:   published.Retry,
 	}
 }

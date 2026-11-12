@@ -3,9 +3,9 @@
   <div class="rightbar-content">
     {{if eq .Section "home"}}{{template "start-rail" .}}{{end}}
     {{template "layout-network-panel" .}}
-    {{template "layout-about-panel" .}}
+    {{if .FeedRail}}{{template "layout-about-panel" .}}
     {{template "topics-rail" .}}
-    {{template "layout-ads-panel" .}}
+    {{template "layout-ads-panel" .}}{{end}}
     <section class="component-card appearance-panel" aria-label="Appearance">
       <h2>Appearance</h2>
       {{template "layout-appearance-control" .}}
@@ -16,8 +16,8 @@
 
 {{define "layout-appearance-control"}}
 <nav class="segmented-control" aria-label="Appearance">
-  <a href="/settings?theme=system" {{if and (ne .Theme "light") (ne .Theme "dark")}}aria-current="true"{{end}}>{{template "layout-icon-nav-system" .}}<span>System</span></a>
-  <a href="{{if eq .Section "settings"}}/settings{{else if eq .Section "compose"}}/compose{{else if eq .Section "explore"}}/explore{{else}}/{{end}}?theme=light{{if or (eq .Section "home") (eq .Section "explore")}}&amp;filter={{.Filter}}&amp;q={{.Query}}{{end}}" {{if eq .Theme "light"}}aria-current="true"{{end}}>{{template "layout-icon-nav-sun" .}}<span>Light</span></a>
-  <a href="{{if eq .Section "settings"}}/settings{{else if eq .Section "compose"}}/compose{{else if eq .Section "explore"}}/explore{{else}}/{{end}}?theme=dark{{if or (eq .Section "home") (eq .Section "explore")}}&amp;filter={{.Filter}}&amp;q={{.Query}}{{end}}" {{if eq .Theme "dark"}}aria-current="true"{{end}}>{{template "layout-icon-nav-moon" .}}<span>Dark</span></a>
+  <a href="/theme?choice=system&amp;back={{.Here}}" {{if and (ne .Theme "light") (ne .Theme "dark")}}aria-current="true"{{end}}>{{template "layout-icon-nav-system" .}}<span>System</span></a>
+  <a href="/theme?choice=light&amp;back={{.Here}}" {{if eq .Theme "light"}}aria-current="true"{{end}}>{{template "layout-icon-nav-sun" .}}<span>Light</span></a>
+  <a href="/theme?choice=dark&amp;back={{.Here}}" {{if eq .Theme "dark"}}aria-current="true"{{end}}>{{template "layout-icon-nav-moon" .}}<span>Dark</span></a>
 </nav>
 {{end}}

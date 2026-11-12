@@ -34,6 +34,18 @@
   .network-table { @apply w-full border-collapse text-[13px]; }
   .network-table caption { @apply pb-1.5 text-left text-[var(--muted)]; }
   .network-table th, .network-table td { @apply whitespace-nowrap border-t border-[var(--line)] px-1.5 py-2 text-left align-top; }
+  .network-section > h3 { @apply mt-1 border-t border-[var(--line)] pt-3 text-[15px] font-bold; }
+  .network-monitor { @apply grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 p-3; }
+  .network-monitor > h4, .network-monitor > code { @apply col-start-1 justify-self-start; }
+  .network-monitor > form { @apply col-start-2 row-span-2 row-start-1 m-0; }
+  .network-monitor-result { @apply col-span-full text-[13px]; }
+  .network-monitor-result:empty { @apply hidden; }
+  .network-monitor-result p { @apply m-0; }
+  .network-keys > summary { @apply flex min-h-11 cursor-pointer items-center text-sm font-semibold text-[var(--accent)]; }
+  .network-keys[open] > summary { @apply mb-1; }
+  .network-rejected { @apply m-0 grid list-none gap-0 p-0 text-[13px]; }
+  .network-rejected li { @apply flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 border-t border-[var(--line)] py-2.5; }
+  .network-rejected li > span:last-child { @apply basis-full text-[var(--muted)]; }
   .network-detail:empty { @apply hidden; }
   .network-detail-body { @apply flex flex-col gap-2.5 border-t border-[var(--line)] pt-2.5 text-[13px] [overflow-wrap:anywhere]; }
   .network-detail-body h4 { @apply text-sm font-bold; }

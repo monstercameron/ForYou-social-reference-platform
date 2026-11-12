@@ -69,7 +69,7 @@ func TestExplorePage(t *testing.T) {
 	})
 	t.Run("navigation marks Explore and keeps the theme switch", func(t *testing.T) {
 		status, body := expGet(t, testClientHandler(t), "/explore?q=server")
-		if status != http.StatusOK || !strings.Contains(body, `href="/explore" aria-current="page"`) || !strings.Contains(body, `href="/explore?theme=light&amp;filter=all&amp;q=server"`) || !strings.Contains(body, `action="/explore"`) {
+		if status != http.StatusOK || !strings.Contains(body, `href="/explore" aria-current="page"`) || !strings.Contains(body, `href="/theme?choice=light&amp;back=%2fexplore%3fq%3dserver"`) || !strings.Contains(body, `action="/explore"`) {
 			t.Errorf("Explore navigation or theme context missing, status %d", status)
 		}
 	})

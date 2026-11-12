@@ -245,7 +245,7 @@ func walWhen(value string) string {
 	if err != nil {
 		return value
 	}
-	return t.In(time.Local).Format("2 Jan 2006, 15:04 MST")
+	return t.UTC().Format("2 Jan 2006, 15:04 UTC")
 }
 
 func walAccounting(network, chain string) (*big.Int, error) {
@@ -376,7 +376,7 @@ func (a *App) walBalances(ctx context.Context, funding walFunding, key ed25519.P
 			out = append(out, row)
 			continue
 		}
-		row.Stated = status.UpdatedAt
+		row.Stated = walWhen(status.UpdatedAt)
 		out = append(out, row)
 	}
 	return out

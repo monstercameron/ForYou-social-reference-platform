@@ -49,7 +49,7 @@ func TestFilterPreservesSearchAndTheme(t *testing.T) {
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/?filter=text&theme=dark&q=plants", nil))
 	body := w.Body.String()
-	if w.Code != http.StatusOK || !strings.Contains(body, `name="q" value="plants"`) || !strings.Contains(body, `aria-current="page"`) || !strings.Contains(body, `theme=light&amp;filter=text&amp;q=plants`) {
+	if w.Code != http.StatusOK || !strings.Contains(body, `name="q" value="plants"`) || !strings.Contains(body, `aria-current="page"`) || !strings.Contains(body, `href="/theme?choice=light&amp;back=%2f%3ffilter%3dtext%26q%3dplants"`) {
 		t.Errorf("filter context missing in status %d: %s", w.Code, body)
 	}
 }

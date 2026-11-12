@@ -143,6 +143,7 @@
     <div><dt>Issued</dt><dd>{{.IssuedAt}}</dd></div>
   </dl>
   <p class="compose-hint">Settlement: pending until a committee settles the claim.</p>
+  <nav class="settings-links" aria-label="After publishing"><a class="button button-primary button-link" href="/posts/{{.MessageID}}">Open your post</a><a class="button button-secondary button-link" href="/ledger/fee?id={{.MessageID}}">Follow the fee</a><a class="button button-secondary button-link" href="/compose">Write another</a></nav>
 {{end}}
 {{else if .Failure}}{{with .Failure}}
   <div class="notice-bad" role="alert">

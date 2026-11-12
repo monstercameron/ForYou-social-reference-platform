@@ -18,6 +18,10 @@ type Layout struct {
 	DefaultList   string
 	Query, Filter string
 	Rightbar      bool
+	// FeedRail adds the panels about the feed, its topics and ads to the right bar.
+	FeedRail bool
+	// Here is this page's own address, for controls that return to it.
+	Here string
 	// Ads are the ads most relevant to this reader, for the right bar.
 	Ads []post
 }

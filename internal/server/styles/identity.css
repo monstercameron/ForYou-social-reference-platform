@@ -13,7 +13,7 @@
   .identity-label { display: block; margin-top: 12px; font-size: 13px; font-weight: 600; }
   .identity-did { display: block; width: 100%; min-height: 44px; margin-top: 6px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--control); color: var(--text); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; overflow-wrap: anywhere; }
   .identity-form { display: grid; gap: 12px; margin-top: 12px; }
-  .identity-form > .button { width: 100%; }
+  .identity-form > .button { justify-self: start; min-width: min(100%, 220px); }
   .identity-field { display: grid; gap: 6px; }
   .identity-field label { font-size: 14px; font-weight: 600; }
   .identity-field p { margin: 0; }

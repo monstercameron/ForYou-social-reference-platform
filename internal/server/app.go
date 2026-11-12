@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -125,6 +126,11 @@ func (a *App) layout(r *http.Request, section, title string) Layout {
 		filter = "all"
 	}
 	shell := Layout{Title: title, Section: section, Theme: requestTheme(r), Dev: a.config.Dev, Query: r.URL.Query().Get("q"), Filter: filter, Rightbar: section != "compose" && section != "settings" && section != "gallery"}
+	shell.FeedRail = slices.Contains([]string{"home", "explore", "following", "topics", "thread", "post", "saved"}, section)
+	shell.Here = r.URL.Path
+	if r.Method == http.MethodGet {
+		shell.Here = themeBack(r.URL.RequestURI())
+	}
 	shell.Identity = "No identity yet"
 	if cookie, err := r.Cookie(profileCookie); err == nil && validProfileID(cookie.Value) {
 		if identity, found, identityErr := a.keystore().Identity(cookie.Value); identityErr == nil && found {

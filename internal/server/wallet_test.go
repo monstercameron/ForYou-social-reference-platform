@@ -247,7 +247,7 @@ func TestWalletBalances(t *testing.T) {
 	t.Run("amounts render with units", func(t *testing.T) {
 		client, profile, _ := walSetup(t, &walFake{balances: walBalancesFor("136000000")}, true, true)
 		code, body := walGet(t, client, "/wallet", profile)
-		if code != http.StatusOK || !strings.Contains(body, "136,000,000 msat (136,000 sat)") || !strings.Contains(body, "As stated by the provider, 2026-11-11T00:00:00Z.") {
+		if code != http.StatusOK || !strings.Contains(body, "136,000,000 msat (136,000 sat)") || !strings.Contains(body, "As stated by the provider, 11 Nov 2026, 00:00 UTC.") {
 			t.Errorf("status %d; balance with unit and source missing", code)
 		}
 	})
