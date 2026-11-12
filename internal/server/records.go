@@ -262,7 +262,7 @@ func (s *demoRecordSource) matching(ctx context.Context, r *http.Request, limit 
 }
 
 func (a *App) records() recordSource {
-	return a.recordSource
+	return namesRecords{recordSource: a.recordSource, app: a}
 }
 
 func (a *App) requestPost(r *http.Request, id string) (post, bool) {

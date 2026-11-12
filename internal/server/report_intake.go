@@ -184,7 +184,7 @@ type reportResolution struct {
 // reportResolve finds the post on the reader's selected providers and checks
 // which provider admitted it. The whole lookup has a five-second budget.
 func (a *App) reportResolve(ctx context.Context, profile, id string) reportResolution {
-	if _, network := a.records().(*networkRecordSource); !network || !canonicalMessageID(id) {
+	if _, network := a.networkSource(); !network || !canonicalMessageID(id) {
 		return reportResolution{Outcome: reportOutcomeDemo}
 	}
 	ctx, cancel := context.WithTimeout(ctx, reportResolveBudget)

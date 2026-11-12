@@ -1,0 +1,37 @@
+@layer components {
+  /* The author name page and panel. The author label itself is the card label in signature.css. */
+  .names-page { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+  .names-page > * { min-width: 0; max-width: 100%; }
+  .names-title { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.75rem; overflow-wrap: anywhere; }
+  .names-title .signed-name { font-size: inherit; letter-spacing: inherit; }
+  .names-title .signed-key code { font-size: 15px; }
+  .names-panel { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.75rem; min-width: 0; }
+  .names-panel .field { min-width: 0; }
+  .names-panel h2,
+  .names-panel p { margin: 0; }
+  .names-page > .page-heading { margin-bottom: 0; }
+  .names-panel input { width: 100%; min-width: 0; max-width: 100%; }
+  .names-fp { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+  .names-mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 13px; }
+  .names-name-region { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.375rem; min-width: 0; }
+  .names-name-region .id-chip { max-width: 100%; overflow-wrap: anywhere; word-break: break-all; }
+  .names-current bdi { font-weight: 600; overflow-wrap: anywhere; }
+  .names-meta { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+  .names-checks { display: grid; gap: 0.25rem; padding-left: 1rem; font-size: 14px; list-style: disc; overflow-wrap: anywhere; }
+  .names-check { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+  .names-check > button,
+  .names-actions > * { min-height: 44px; }
+  .names-form { display: grid; gap: 0.5rem; }
+  .names-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .names-error { color: var(--bad); font-size: 14px; }
+  .names-status { min-height: 1.25rem; font-size: 14px; color: var(--muted); }
+  .names-collisions { display: grid; gap: 0.5rem; border-top: 1px solid var(--line); padding-top: 0.75rem; }
+  .names-list { display: grid; gap: 0.5rem; padding: 0; list-style: none; }
+  .names-list .signed-label { min-height: 44px; }
+  .names-candidate { display: inline-flex; flex-wrap: wrap; gap: 0.375rem; align-items: baseline; min-height: 44px; color: var(--text); overflow-wrap: anywhere; }
+  @media (max-width: 420px) {
+    .names-page { gap: 0.75rem; }
+    .names-check > button,
+    .names-actions > * { flex: 1 1 100%; justify-content: center; }
+  }
+}

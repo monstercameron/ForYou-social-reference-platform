@@ -14,7 +14,7 @@ import (
 type post struct {
 	ID, Name, Handle, Initials, Color, Time, Text, Topic, Art string
 	Receipt, Kind, Feedback                                   string
-	// SignedName is a display name the author key signed; AuthorID is that key.
+	// SignedName is a verified display name the author key signed; AuthorID is that key.
 	// Avatar is the picture that goes with the name, when the author set one.
 	SignedName, AuthorID, Fingerprint, Avatar string
 	// Why says why this reader is shown the post, where a view chose it for them.
@@ -39,6 +39,10 @@ type post struct {
 	Unverifiable string
 	// ReplyTo and Supersedes are the signed parent and predecessor message IDs.
 	ReplyTo, Supersedes string
+	// Petname is the reader's own local name for AuthorID, shown instead of SignedName.
+	// NameShared marks that another key the reader can see uses a matching name.
+	Petname    string
+	NameShared bool
 	// IssuedAt is the provider receipt time of a network post. RootSigned is true
 	// when the author's own key signed it without delegation.
 	IssuedAt   time.Time

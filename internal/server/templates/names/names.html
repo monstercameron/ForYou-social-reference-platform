@@ -1,0 +1,42 @@
+{{define "names-label"}}{{template "card-signed-name" .}}{{end}}
+
+{{define "names-label-fragment"}}<div class="names-label-region">{{template "names-label" .}}</div>{{end}}
+
+{{define "names-author-page"}}{{template "layout-open" .Layout}}<div class="page-content names-page">
+<header class="page-heading"><h1 class="names-title">{{template "card-signed-name-body" .Label}}</h1><p>Name, fingerprint and your name for this key.</p></header>
+{{template "names-author-panel" .Panel}}
+</div>{{template "layout-close" .Layout}}{{end}}
+
+{{define "names-author-panel"}}<section id="names-author-panel" class="component-card settings-card names-panel" aria-labelledby="names-key-title">
+<h2 id="names-key-title">Key</h2>
+<p><code class="names-fp">{{.Fingerprint}}</code></p>
+<div class="field"><label for="names-full-key">Full key (did:key)</label><input id="names-full-key" class="names-mono" type="text" readonly value="{{.AuthorID}}"></div>
+<p class="help-text">People are identified by this key. A name is a label the key signed; anyone can use the same name.</p>
+<h2 id="names-name-title">Name</h2>
+<div id="names-author-name" class="names-name-region" role="status" aria-live="polite">{{template "names-author-name" .}}</div>
+<form class="names-check" action="/authors/{{.Encoded}}" method="get" get="/authors/{{.Encoded}}/name" target="#names-author-name(innerHTML)" timeout="10000" loading="#names-check-status(innerHTML)" onerror="#names-check-status(innerHTML)"><input type="hidden" name="check" value="1"><button class="btn-secondary" type="submit">Check name now</button><span id="names-check-status" class="names-status" role="status" aria-live="polite"></span></form>
+<h2 id="names-petname-title">Your name for this key</h2>
+{{template "names-petname-form" .Petname}}
+{{if .Collision}}{{template "names-collisions" .}}{{end}}
+</section>{{end}}
+
+{{define "names-author-name"}}{{if eq .State "named"}}<p class="names-current"><bdi>{{.Name}}</bdi></p><p class="names-meta">Issued <time datetime="{{.IssuedAt}}">{{.IssuedAt}}</time></p><p class="names-meta">Record <span class="id-chip">{{.NameID}}</span></p>{{else if eq .State "withdrawn"}}<p>This key has withdrawn its name.</p><p class="names-meta">Record <span class="id-chip">{{.NameID}}</span></p>{{else if eq .State "none"}}<p>No published name</p>{{else}}<p>Not checked yet.</p>{{end}}{{if .Checked}}<ul class="names-checks">{{range .Checks}}<li>{{.Source}}: {{.Text}}</li>{{else}}<li>No providers are selected.</li>{{end}}</ul>{{end}}{{end}}
+
+{{define "names-petname-form"}}<div id="names-petname" class="names-petname">
+<form id="names-save-form" class="names-form" action="/authors/{{.Encoded}}/petname" method="post" post="/authors/{{.Encoded}}/petname/fragment" target="#names-petname(outerHTML)" timeout="5000" onerror="#names-petname-status(innerHTML)">
+<div class="field"><label for="names-petname-input">Your name for this key</label><input id="names-petname-input" name="petname" type="text" value="{{.Value}}" maxlength="64" autocomplete="off" {{if .Error}}aria-invalid="true" aria-describedby="names-petname-help names-petname-error"{{else}}aria-describedby="names-petname-help"{{end}}><span id="names-petname-help" class="help-text">Only you see this. It is stored on this client and never published.</span></div>
+{{if .Error}}<p id="names-petname-error" class="names-error" role="alert">{{.Error}}</p>{{end}}
+</form>
+<form id="names-clear-form" class="names-form" action="/authors/{{.Encoded}}/petname/clear" method="post" post="/authors/{{.Encoded}}/petname/clear/fragment" target="#names-petname(outerHTML)" timeout="5000" onerror="#names-petname-status(innerHTML)"></form>
+<div class="names-actions"><button form="names-save-form" class="btn-primary" type="submit">Save</button><button form="names-clear-form" class="btn-secondary" type="submit">Clear</button></div>
+<p id="names-petname-status" class="names-status" role="status" aria-live="polite">{{.Status}}</p>
+</div>{{end}}
+
+{{define "names-collisions"}}<section class="names-collisions" aria-labelledby="names-collisions-title">
+<h2 id="names-collisions-title">Other keys using a matching name</h2>
+{{if .Others}}<ul class="names-list">{{range .Others}}<li>{{template "names-label" .}}</li>{{end}}</ul>{{end}}
+<form class="names-check" action="/authors/{{.Encoded}}" method="get" get="/authors/{{.Encoded}}/same-name" target="#names-same(innerHTML)" timeout="10000" loading="#names-same(innerHTML)" onerror="#names-same(innerHTML)"><input type="hidden" name="same" value="1"><button class="btn-secondary" type="submit">Search providers for this name</button></form>
+<div id="names-same" class="names-same" role="status" aria-live="polite">{{if .Search}}{{template "names-same-results" .Search}}{{end}}</div>
+</section>{{end}}
+
+{{define "names-same-results"}}{{if .Candidates}}<p class="help-text">These are candidates from your providers. A name does not identify a person.</p><ul class="names-list">{{range .Candidates}}<li><a class="names-candidate" href="/authors/{{.Encoded}}"><bdi>{{.Name}}</bdi> <code class="names-fp">{{.Fingerprint}}</code></a></li>{{end}}</ul>{{else if .Name}}<p class="help-text">No other keys found for this name on your providers.</p>{{end}}{{range .Notes}}<p class="help-text">{{.}}</p>{{end}}{{end}}
