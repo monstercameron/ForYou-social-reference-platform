@@ -1,0 +1,12 @@
+@layer components {
+  .install-installed { display:none; }
+  @media (display-mode: standalone) {
+    .install-installed { display:block; }
+    .install-how { display:none; }
+  }
+  .install-how h3 { margin:16px 0 0; font-size:15px; font-weight:600; }
+  .install-steps { padding-left:1.25rem; margin:8px 0 12px; }
+  .install-steps li + li { margin-top:6px; }
+  .install-offline { margin-inline:auto; max-width:760px; }
+  .install-offline-brand { display:inline-flex; margin-bottom:16px; }
+}
