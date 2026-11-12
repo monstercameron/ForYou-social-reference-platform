@@ -21,7 +21,7 @@
 {{template "layout-close" .Layout}}
 {{end}}
 
-{{define "wallet-balances"}}<section id="wallet-balances" class="component-card wallet-panel" aria-labelledby="wallet-balances-title"><h2 id="wallet-balances-title">Balances</h2><p>A balance is held by this provider. It is not a token and does not move to another provider.</p>{{range .Balances}}<div class="wallet-balance"><h3>{{.Label}}</h3>{{if .Err}}<p class="wallet-error">{{.Err}} <a href="/wallet#wallet-balances">Retry</a></p>{{else}}<dl class="wallet-rows"><div><dt>Available</dt><dd>{{.Available}}</dd></div><div><dt>Reserved</dt><dd>{{.Reserved}}</dd></div><div><dt>Frozen</dt><dd>{{.Frozen}}</dd></div></dl><p class="wallet-stated">As stated by the provider, {{.Stated}}.</p>{{end}}</div>{{end}}</section>{{end}}
+{{define "wallet-balances"}}<section id="wallet-balances" class="component-card wallet-panel" aria-labelledby="wallet-balances-title"><h2 id="wallet-balances-title">Balances</h2><p>A balance is held by this provider. It is not a token and does not move to another provider.</p>{{range .Balances}}<div class="wallet-balance"><h3>{{.Label}}</h3>{{if .Err}}<p class="wallet-error">{{.Err}} <a href="/wallet#wallet-balances">Retry</a></p>{{else}}<dl class="wallet-rows"><div><dt>Available</dt><dd>{{.Available}}</dd></div><div><dt>Reserved</dt><dd>{{.Reserved}}</dd></div><div><dt>Frozen</dt><dd>{{.Frozen}}</dd></div></dl><p class="wallet-stated">As stated by the provider, {{.Stated}}.</p>{{end}}</div>{{end}}<p><a href="/wallet/history">Account history</a></p></section>{{end}}
 
 {{define "wallet-funding"}}<div id="wallet-funding" class="wallet-funding">{{if .Acknowledged}}{{template "wallet-deposit" .}}{{else}}{{template "wallet-disclosure" .}}{{end}}</div>{{end}}
 

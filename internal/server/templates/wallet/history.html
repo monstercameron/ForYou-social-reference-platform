@@ -1,0 +1,24 @@
+{{define "wallet-history-page"}}
+{{template "layout-open" .Layout}}
+<div class="page-content wallet-content">
+  <header class="page-heading"><h1>Account history</h1><p>Every change to your balance, in the order the provider committed it. The provider signs each page; this client checks the signature and that no entry is skipped.</p></header>
+  <p><a href="/wallet">Back to Wallet</a></p>
+  {{if not .HasIdentity}}
+  <section class="component-card wallet-empty" aria-labelledby="wallet-history-empty"><h2 id="wallet-history-empty">Create an identity first</h2><p>A history belongs to your author key. Create the key on the identity page, then come back.</p><a class="button button-primary button-link" href="/identity">Open identity</a></section>
+  {{else if not .HasProvider}}
+  <section class="component-card wallet-empty" aria-labelledby="wallet-history-empty"><h2 id="wallet-history-empty">No trusted provider</h2><p>Choose a provider on the network page. The history is the one that provider keeps for your key.</p><a class="button button-primary button-link" href="/network">Open network</a></section>
+  {{else}}
+  <nav class="wallet-history-tabs" aria-label="Network">{{range .Tabs}}<a href="{{.Href}}"{{if .Current}} aria-current="page"{{end}}>{{.Label}}</a>{{end}}</nav>
+  <section class="component-card wallet-panel" aria-labelledby="wallet-history-title">
+    <h2 id="wallet-history-title">{{.Network}} at {{.Provider}}</h2>
+    {{if .Unavailable}}<p class="wallet-error" role="status">Unavailable: the provider did not return a verified history right now. <a href="{{.RetryHref}}">Retry</a></p>
+    {{else if .Rows}}
+    <ol class="wallet-history" start="{{.First}}">{{range .Rows}}<li class="wallet-history-row"><span class="wallet-history-what">{{.What}}</span><span class="wallet-history-amount{{if .Credit}} wallet-history-credit{{end}}">{{if .Credit}}+{{else}}−{{end}}{{.Amount}}</span><span class="wallet-history-when">{{.When}}</span><span class="wallet-history-ref"><span class="mydata-sr">Reference </span>{{.Reference}}</span></li>{{end}}</ol>
+    {{if .NextHref}}<a class="button button-secondary button-link" href="{{.NextHref}}">Later entries</a>{{else}}<p class="wallet-stated">End of the history so far.</p>{{end}}
+    {{else if .After}}<p>No entries after number {{.After}}.</p>
+    {{else}}<p>No entries yet. The first one appears when a deposit is credited.</p>{{end}}
+  </section>
+  {{end}}
+</div>
+{{template "layout-close" .Layout}}
+{{end}}
