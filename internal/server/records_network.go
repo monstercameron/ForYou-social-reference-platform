@@ -306,10 +306,14 @@ func (s *networkRecordSource) heldProof(id string) *wire.SettlementProof {
 // keep stores a verified record and returns its card, settled from the best
 // source the local copy knows for it: the same bytes from a mirror never hide
 // that the admitting provider served them. A record is locally admitted only
-// once it is durably stored.
+// once its exact representation is durably stored, so another receipt for a
+// held message is shown without admission.
 func (s *networkRecordSource) keep(rd recordReader, rec sdk.Record) post {
-	if err := s.store.put(rec, rd.now, false); err != nil {
+	stored, err := s.store.put(rec, rd.now, false)
+	if err != nil {
 		s.app.logger().Printf("client record store: %v", err)
+	}
+	if err != nil || !stored {
 		return postFromRecord(rec, rd.now)
 	}
 	if entry, ok := s.store.get(rec.ID); ok && entry.Source.Endpoint != rec.Source.Endpoint {
@@ -559,7 +563,14 @@ func (s *networkRecordSource) keepPublished(profile string, published sdk.Publis
 	if rec.Class == sdk.ClassInvalid {
 		return fmt.Errorf("published record failed local verification: %s", rec.Failure.Name)
 	}
-	return s.store.put(verifier.Settle(rec, nil, nil), s.app.now(), true)
+	stored, err := s.store.put(verifier.Settle(rec, nil, nil), s.app.now(), true)
+	if err != nil {
+		return err
+	}
+	if !stored {
+		return errors.New("another receipt for this message is already held")
+	}
+	return nil
 }
 
 func (a *App) networkSource() (*networkRecordSource, bool) {
@@ -669,10 +680,14 @@ func (s *networkRecordSource) syncSource(ctx context.Context, verifier *sdk.Veri
 				state.Rejected++
 				continue
 			}
-			if failure = s.store.put(verifier.Settle(rec, s.heldProof(rec.ID), nil), now, false); failure != nil {
+			stored, err := s.store.put(verifier.Settle(rec, s.heldProof(rec.ID), nil), now, false)
+			if err != nil {
+				failure = err
 				break
 			}
-			state.Stored++
+			if stored {
+				state.Stored++
+			}
 		}
 		if failure != nil {
 			state.Failure = "could not store records"

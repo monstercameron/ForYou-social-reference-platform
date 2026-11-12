@@ -28,6 +28,12 @@ var nrTestNow = time.Date(2026, 11, 12, 0, 0, 0, 0, time.UTC)
 // nrTestRecord signs a post by the fixture author, admitted by devnet provider 0.
 func nrTestRecord(t *testing.T, text string, issuedAt time.Time, replyTo string) ([]byte, wire.TransportMessage) {
 	t.Helper()
+	return nrTestReceipt(t, 0, text, issuedAt, replyTo)
+}
+
+// nrTestReceipt signs a post by the fixture author, admitted by the given devnet provider.
+func nrTestReceipt(t *testing.T, providerIndex int, text string, issuedAt time.Time, replyTo string) ([]byte, wire.TransportMessage) {
+	t.Helper()
 	author := ed25519.NewKeyFromSeed([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31})
 	schedule := devnet.Genesis().FeeSchedules[0]
 	intent := wire.Intent{AuthorID: keys.DIDOf(author), Timestamp: wire.FormatTime(issuedAt), MessageType: "post", Version: wire.Version{Major: 2, Minor: 0}, Payload: wire.PostPayload{ContentFormat: "text/plain", Text: text, ReplyTo: replyTo}}
@@ -43,8 +49,8 @@ func nrTestRecord(t *testing.T, text string, issuedAt time.Time, replyTo string)
 	if err != nil {
 		t.Fatal(err)
 	}
-	receiptID := sha256.Sum256([]byte(text))
-	provider := devnet.ProviderKey(0)
+	provider := devnet.ProviderKey(providerIndex)
+	receiptID := sha256.Sum256([]byte(text + keys.DIDOf(provider)))
 	receipt := wire.SubmissionReceipt{ProviderID: keys.DIDOf(provider), AuthorID: intent.AuthorID, MessageID: id, ReceiptID: keys.EncodeB64URL(receiptID[:]), QuoteID: "fyfq2:0000000000000000000000000000000000000000000000000000000000000000", ScheduleID: schedule.ScheduleID, Network: schedule.Network, AmountBaseUnits: amount.String(), AuthorizationAt: wire.FormatTime(issuedAt), IssuedAt: wire.FormatTime(issuedAt)}
 	if receipt, err = fee.SignReceipt(receipt, provider); err != nil {
 		t.Fatal(err)

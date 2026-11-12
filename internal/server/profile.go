@@ -62,6 +62,9 @@ func (a *App) profile(w http.ResponseWriter, r *http.Request) (string, error) {
 	if cookie, err := r.Cookie(profileCookie); err == nil && validProfileID(cookie.Value) {
 		return cookie.Value, nil
 	}
+	if id, ok := issuedProfile(w); ok {
+		return id, nil
+	}
 	var random [32]byte
 	if _, err := rand.Read(random[:]); err != nil {
 		return "", err
@@ -69,6 +72,18 @@ func (a *App) profile(w http.ResponseWriter, r *http.Request) (string, error) {
 	id := base64.RawURLEncoding.EncodeToString(random[:])
 	http.SetCookie(w, &http.Cookie{Name: profileCookie, Value: id, Path: "/", MaxAge: 31536000, HttpOnly: true, Secure: r.TLS != nil, SameSite: http.SameSiteLaxMode})
 	return id, nil
+}
+
+// issuedProfile returns the profile this response already sets, so that every
+// step of one request sees the same profile and a request issues one cookie.
+func issuedProfile(w http.ResponseWriter) (string, bool) {
+	response := http.Response{Header: http.Header{"Set-Cookie": w.Header().Values("Set-Cookie")}}
+	for _, cookie := range response.Cookies() {
+		if cookie.Name == profileCookie && validProfileID(cookie.Value) {
+			return cookie.Value, true
+		}
+	}
+	return "", false
 }
 
 func validProfileID(id string) bool {

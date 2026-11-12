@@ -42,6 +42,24 @@ func TestBrowserProfileCookie(t *testing.T) {
 			t.Errorf("malformed profile = %q, error %v", got, err)
 		}
 	})
+	t.Run("one request issues one cookie for its profile and key", func(t *testing.T) {
+		dev := newTestClient(t, true)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/reply/quote", nil)
+		id, err := dev.app.profile(w, r)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := dev.app.authorKey(w, r); err != nil {
+			t.Fatal(err)
+		}
+		if cookies := w.Result().Cookies(); len(cookies) != 1 || cookies[0].Value != id {
+			t.Errorf("cookies = %v; want one cookie for profile %q", cookies, id)
+		}
+		if _, found, err := dev.app.keystore().Identity(id); err != nil || !found {
+			t.Errorf("identity of profile %q: found %v, error %v", id, found, err)
+		}
+	})
 }
 
 func TestProfileSettingsAreIsolatedAndStrict(t *testing.T) {

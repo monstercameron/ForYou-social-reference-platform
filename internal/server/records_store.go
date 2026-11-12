@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"os"
@@ -136,10 +137,15 @@ func (s *nrStore) path(id string) string {
 // record from its provider's own routes replaces a mirror or vault source,
 // because only that origin can make a receipt pending; the held settlement
 // state is replaced only by one judged from the held source, or by a proof.
-func (s *nrStore) put(rec sdk.Record, now time.Time, mine bool) error {
+// One receipt representation is held per message ID: another representation of
+// a held message is not stored, and put reports false.
+func (s *nrStore) put(rec sdk.Record, now time.Time, mine bool) (bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	entry, held := s.entries[rec.ID]
+	if held && !bytes.Equal(entry.Raw, rec.Raw) {
+		return false, nil
+	}
 	changed := !held
 	if !held {
 		entry = &nrEntry{Raw: rec.Raw, message: rec.Message, FetchedAt: now}
@@ -163,10 +169,10 @@ func (s *nrStore) put(rec sdk.Record, now time.Time, mine bool) error {
 		changed = true
 	}
 	if !changed {
-		return nil
+		return true, nil
 	}
 	s.evict()
-	return s.write(rec.ID, entry)
+	return true, s.write(rec.ID, entry)
 }
 
 func nrApplySettlement(entry *nrEntry, rec sdk.Record) {
