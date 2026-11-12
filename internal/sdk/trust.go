@@ -147,6 +147,7 @@ func BuildTrustRoot(pin Pin, pub Publications) (*TrustRoot, error) {
 	for _, pair := range feePairs {
 		root.vfApproveSchedule(pair.Schedule, pair.Approval)
 	}
+	root.vfPruneUnpairedRevisions()
 	root.vfApprovePolicy(pub.Genesis.DistributionPolicy)
 	policies := append([]wire.DistributionPolicy(nil), pub.Distribution.Policies...)
 	sort.Slice(policies, func(i, j int) bool { return policies[i].EffectiveAt < policies[j].EffectiveAt })
@@ -257,6 +258,51 @@ func (t *TrustRoot) vfApproveSchedule(s wire.FeeSchedule, a wire.FeeScheduleAppr
 		return
 	}
 	t.schedules = append(t.schedules, s)
+}
+
+func (t *TrustRoot) vfPruneUnpairedRevisions() {
+	for {
+		i, reason := t.vfFirstUnpairedRevision()
+		if i < 0 {
+			return
+		}
+		t.rejected = append(t.rejected, RejectedObject{Kind: "fee_schedule", ID: t.schedules[i].ScheduleID, Reason: reason})
+		t.schedules = append(t.schedules[:i], t.schedules[i+1:]...)
+	}
+}
+
+func (t *TrustRoot) vfFirstUnpairedRevision() (int, string) {
+	for i, s := range t.schedules {
+		if s.Revision <= 1 {
+			continue
+		}
+		if !vfHasPredecessor(s, t.schedules) {
+			return i, "previous revision rejected"
+		}
+		if err := fee.CheckScheduleSet(vfWithPartners(s, t.schedules)); err != nil {
+			return i, err.Error()
+		}
+	}
+	return -1, ""
+}
+
+func vfHasPredecessor(s wire.FeeSchedule, schedules []wire.FeeSchedule) bool {
+	for _, candidate := range schedules {
+		if candidate.Network == s.Network && candidate.Revision+1 == s.Revision {
+			return true
+		}
+	}
+	return false
+}
+
+func vfWithPartners(s wire.FeeSchedule, pool []wire.FeeSchedule) []wire.FeeSchedule {
+	set := []wire.FeeSchedule{s}
+	for _, candidate := range pool {
+		if candidate.Network != s.Network && candidate.EffectiveAt == s.EffectiveAt {
+			set = append(set, candidate)
+		}
+	}
+	return set
 }
 
 func (t *TrustRoot) vfApprovePolicy(p wire.DistributionPolicy) {
