@@ -1,0 +1,57 @@
+{{define "versions-page"}}
+{{template "layout-open" .Layout}}
+<div class="page-content versions-content">
+  <a class="detail-back" href="/posts/{{.Versions.ID}}">{{template "layout-icon-detail-back"}}<span>Back to post</span></a>
+  <header class="page-heading"><h1>Version history</h1><p>Each version is a separate signed post with its own fee and retention. Earlier versions are not changed or deleted.</p></header>
+  {{template "versions-graph" .Versions}}
+</div>
+{{template "layout-close" .Layout}}
+{{end}}
+
+{{define "versions-graph"}}
+<section class="versions-graph" aria-label="Version graph">
+{{if .Notice}}
+  <p class="versions-notice">{{.Notice}}</p>
+{{else}}
+  {{if .Leaves}}<p class="notice notice-warn" role="status">This post has {{.Leaves}} competing latest versions. All are shown below.</p>{{end}}
+  <section class="versions-selected" aria-labelledby="versions-selected-title">
+    <h2 id="versions-selected-title">Selected version</h2>
+    {{template "card-detail-post-card" .Selected}}
+    <p class="versions-rule"><span class="pill pill-ok">Shown by default</span> {{.Rule}}.</p>
+    <p class="versions-note">This is a local choice over the versions your sources returned. It is not proof that no later version exists.</p>
+  </section>
+  <section class="component-card versions-history" aria-labelledby="versions-history-title">
+    <h2 id="versions-history-title">History</h2>
+    <ol class="version-list" aria-label="Version history">{{range .Tree}}{{template "versions-node" .}}{{end}}</ol>
+    {{if .Truncated}}<p class="versions-note">History is longer than this client follows; showing the first {{.Shown}} versions.</p>{{end}}
+  </section>
+  {{if .Sources}}<ul class="versions-sources" aria-label="Sources">{{range .Sources}}<li>{{.}}</li>{{end}}</ul>{{end}}
+  {{if .PublishURL}}<p class="versions-actions"><a class="button button-primary" href="{{.PublishURL}}">Publish a new version</a></p>{{end}}
+{{end}}
+</section>
+{{end}}
+
+{{define "versions-node"}}
+<li class="version-node{{if .Selected}} is-selected{{end}}"{{if .Selected}} aria-current="true"{{end}}>
+  <div class="version-row">
+    <a class="id-chip version-id" href="/posts/{{.ID}}">{{.Short}}</a>
+    <time class="version-time">{{.When}}</time>
+    <span class="version-signer">{{.Signer}}</span>
+    {{if .Branch}}<span class="version-label">Branch</span>{{end}}
+    {{if .Leaf}}<span class="version-label">Latest in this branch</span>{{end}}
+  </div>
+  {{template "card-post-badges" .Post}}
+  <p class="version-text">{{.FirstLine}}</p>
+  <details class="version-details">
+    <summary>Full version</summary>
+    <p class="version-full">{{.Post.Text}}</p>
+  </details>
+  {{template "versions-edge" .}}
+  {{if .Children}}<ol class="version-branch" aria-label="{{if .ChildLabel}}{{.ChildLabel}}{{else}}Later versions{{end}}">{{range .Children}}{{template "versions-node" .}}{{end}}</ol>{{end}}
+</li>
+{{end}}
+
+{{define "versions-edge"}}
+{{if .Missing}}<p class="version-edge">Earlier version not available from your sources (<span class="id-chip">{{.Missing}}</span>)</p>{{end}}
+{{if .Rejected}}<p class="version-edge version-rejected">{{.Rejected}}</p>{{end}}
+{{end}}

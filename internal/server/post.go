@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"html/template"
+	"time"
 
 	"foryou.local/foryou/internal/content"
 	"foryou.local/foryou/internal/sdk"
@@ -36,6 +37,10 @@ type post struct {
 	Unverifiable string
 	// ReplyTo and Supersedes are the signed parent and predecessor message IDs.
 	ReplyTo, Supersedes string
+	// IssuedAt is the provider receipt time of a network post. RootSigned is true
+	// when the author's own key signed it without delegation.
+	IssuedAt   time.Time
+	RootSigned bool
 	// Payload is the signed payload of a network post; its declared references and media slots drive Markdown rendering.
 	Payload wire.PostPayload
 	// Verified is the full verification state of a network record, with its signed bytes; nil for demo data.

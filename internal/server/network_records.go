@@ -18,6 +18,7 @@ import (
 
 	"foryou.local/foryou/internal/content"
 	"foryou.local/foryou/internal/fee"
+	"foryou.local/foryou/internal/message"
 	"foryou.local/foryou/internal/sdk"
 	"foryou.local/foryou/internal/wire"
 )
@@ -425,10 +426,12 @@ func postFromRecord(record sdk.Record, now time.Time) post {
 		}
 	}
 	when, _ := wire.ParseTime(m.Timestamp)
+	issuedAt, _ := wire.ParseTime(m.SubmissionReceipt.IssuedAt)
 	p := post{
 		ID: m.MessageID, Text: m.Payload.Text, Format: m.Payload.ContentFormat, Payload: m.Payload, Kind: kind,
 		IsReply: m.Payload.ReplyTo != "", ReplyTo: m.Payload.ReplyTo, Supersedes: m.Payload.Supersedes, AuthorID: m.AuthorID, Receipt: shortReceipt(m.SubmissionReceipt.ReceiptID),
 		Time: relativeTime(when, now), Timestamp: m.Timestamp, Color: authorColor(m.AuthorID), Media: template.HTML(media.String()),
+		IssuedAt: issuedAt, RootSigned: message.RootSigned(m),
 		Settlement: string(record.Settlement), Class: string(record.Class), Verified: &record,
 	}
 	if !record.RecheckBy.IsZero() {

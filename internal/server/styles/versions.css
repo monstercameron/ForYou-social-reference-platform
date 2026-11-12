@@ -1,1 +1,31 @@
-@layer components {}
+@layer components {
+  .versions-content .detail-back { @apply mb-4; }
+  .versions-notice, .versions-note { @apply mt-3 mb-0 text-[13px] leading-[1.55] text-[var(--muted)]; }
+  .versions-notice { @apply text-sm text-[var(--text)]; }
+  .versions-selected, .versions-history { @apply mt-6; }
+  .versions-selected h2 { @apply mt-0 mb-3 text-[19px] leading-[1.35] tracking-[-.2px]; }
+  .versions-history h2 { @apply mb-3; }
+  .versions-rule { @apply mt-3 mb-0 text-[13px] text-[var(--muted)]; }
+  .versions-rule .pill { @apply mr-1; }
+  .versions-sources { @apply mt-4 mb-0 flex list-none flex-col gap-1 p-0 text-[13px] text-[var(--muted)]; }
+  .versions-actions { @apply mt-4 mb-0; }
+  .version-list, .version-branch { @apply m-0 list-none p-0; list-style: none; padding-inline-start: 0; }
+  .version-branch { @apply mt-3 ml-1 border-l border-[var(--line)] pl-3; }
+  .version-node { @apply border-t border-[var(--line)] py-3 first:border-t-0; }
+  .version-node.is-selected > .version-row .version-id { @apply border-[var(--accent)] bg-[var(--accent-soft)]; }
+  .version-row { @apply flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[13px]; }
+  .version-id { @apply inline-flex min-h-11 max-w-full items-center rounded-lg border border-[var(--line)] px-2.5 text-[var(--text)]; overflow-wrap: anywhere; }
+  .version-id:hover { @apply text-[var(--accent)]; }
+  .version-time, .version-signer { @apply text-[var(--muted)]; }
+  .version-label { @apply rounded-full bg-[var(--control)] px-2 py-0.5 text-xs text-[var(--muted)]; }
+  .version-text { @apply mt-2 mb-0 text-sm leading-[1.55] text-[var(--text)] [overflow-wrap:anywhere]; }
+  .version-details summary { @apply mt-2 inline-flex min-h-11 cursor-pointer items-center text-[13px] text-[var(--accent)]; }
+  .version-full { @apply mt-1 mb-0 whitespace-pre-wrap text-sm leading-[1.55] [overflow-wrap:anywhere]; }
+  .version-edge { @apply mt-2 mb-0 text-[13px] leading-[1.55] text-[var(--warn)]; }
+  .version-edge .id-chip { @apply inline-block max-w-full align-bottom whitespace-normal; overflow-wrap: anywhere; }
+  .version-rejected { @apply text-[var(--bad)]; }
+  @media (max-width: 480px) {
+    .version-row { @apply flex-col items-start gap-y-2; }
+    .version-branch { @apply ml-0 pl-3; }
+  }
+}
