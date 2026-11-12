@@ -1,0 +1,48 @@
+{{define "topics-page"}}{{template "layout-open" .Layout}}
+<section aria-labelledby="topics-title" class="min-w-0">
+  <header class="feed-heading">
+    <div><h1 id="topics-title">{{.Label}}</h1><p>{{.Summary}}{{if not .Layout.NetworkConfigured}} These are demo posts on this server.{{end}}</p></div>
+    <a class="button button-secondary" href="/topics">All topics</a>
+  </header>
+  <div id="thread-error" class="thread-error" role="status" aria-live="polite"></div>
+  <div class="posts">
+  {{if .Failed}}<div class="empty-results"><h2>Posts could not be loaded</h2><p>Your sources did not answer. Try again in a moment.</p><a href="/topics/{{.Slug}}">Try again</a></div>
+  {{else if .Posts}}{{template "card-post-list" .Posts}}{{if .Overflow}}<p class="topics-note">{{.Overflow}}</p>{{end}}
+  {{else if .Fetched}}<div class="empty-results"><h2>No fetched posts with this topic</h2><p>None of {{.Scope}} has the topic “{{.Slug}}”. Other posts may carry it on providers you have not queried.</p><a href="/topics">See the topics in your feed</a></div>
+  {{else}}<div class="empty-results"><h2>No fetched posts with this topic</h2><p>This client has not fetched any posts yet.</p><a href="/">Go to Home</a></div>{{end}}
+  </div>
+</section>
+{{template "layout-close" .Layout}}{{end}}
+
+{{define "topics-index-page"}}{{template "layout-open" .Layout}}
+<section aria-labelledby="topics-title" class="min-w-0">
+  <header class="feed-heading">
+    <div><h1 id="topics-title">Topics in your feed</h1><p>{{.Summary}}{{if not .Layout.NetworkConfigured}} These are demo posts on this server.{{end}}</p></div>
+  </header>
+  <div class="posts">
+  <section class="component-card topics-panel" aria-labelledby="topics-list-title">
+    <h2 id="topics-list-title" class="sr-only">Topics</h2>
+    {{if .Failed}}<p>Your sources did not answer. Try again in a moment.</p><a href="/topics">Try again</a>
+    {{else if .Counts}}{{template "topics-count-list" .Counts}}
+    {{else if .Fetched}}<p>No post this client fetched matches a rubric topic.</p>
+    {{else}}<p>This client has not fetched any posts yet.</p><a href="/">Go to Home</a>{{end}}
+  </section>
+  <p class="topics-note">The rubric tags a post with up to three topics from a fixed word list. It runs on this server; nothing about the topics you open is saved or sent.</p>
+  </div>
+</section>
+{{template "layout-close" .Layout}}{{end}}
+
+{{define "topics-count-list"}}<ul class="topics-list">{{range .}}<li><a class="topics-row" href="{{.Href}}"><span class="topics-row-name">{{.Label}}</span><span class="topics-row-count">{{.Posts}} {{if eq .Posts 1}}post{{else}}posts{{end}}</span></a></li>{{end}}</ul>{{end}}
+
+{{define "topics-chips"}}{{with .Rating.TopicLinks}}<ul class="topics-chips" aria-label="Topics">{{range .}}<li><a class="topics-chip" href="{{.Href}}"><span class="topics-chip-label">{{.Label}}</span></a></li>{{end}}</ul>{{end}}{{end}}
+
+{{define "topics-rail"}}{{if ne .Section "topics"}}<section class="component-card topics-rail" aria-labelledby="topics-rail-title">
+  <h2 id="topics-rail-title">Topics in your feed</h2>
+  <div id="topics-rail-body" aria-live="polite" aria-busy="false">
+    <form action="/topics" method="get" get="/topics/rail" auto="lazy" target="#topics-rail-body(innerHTML)" timeout="5000" onerror="#topics-rail-body(innerHTML)">
+      <button class="topics-rail-load" type="submit">See topics in your feed</button>
+    </form>
+  </div>
+</section>{{end}}{{end}}
+
+{{define "topics-rail-list"}}{{if .Failed}}<p>Your sources did not answer. Try again in a moment.</p>{{else if .Counts}}{{template "topics-count-list" .Counts}}<p class="topics-rail-note">Counted over {{.Scope}}. Not a network count.</p>{{else if .Fetched}}<p>No post this client fetched matches a rubric topic.</p>{{else}}<p>This client has not fetched any posts yet.</p>{{end}}<a class="ads-panel-all" href="/topics">All topics</a>{{end}}

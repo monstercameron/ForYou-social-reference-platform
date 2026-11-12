@@ -1,0 +1,31 @@
+@layer components {
+  .topics-chips { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 0; padding:0; list-style:none; }
+  .topics-chip { display:inline-flex; align-items:center; min-height:32px; border-radius:9999px; color:var(--muted); font-size:12px; text-decoration:none; }
+  .topics-chip-label { display:inline-block; border:1px solid var(--line); border-radius:9999px; padding:2px 9px; line-height:1.5; white-space:nowrap; transition:border-color var(--dur-fast) ease,color var(--dur-fast) ease,background-color var(--dur-fast) ease; }
+  .topics-chip:hover .topics-chip-label { border-color:var(--accent); background:var(--accent-soft); color:var(--accent); }
+  .topics-chip:focus-visible { border-radius:9999px; }
+  @media(prefers-reduced-motion:no-preference) {
+    .topics-chip { transition:transform var(--dur-fast) ease; }
+    .topics-chip:active { transform:scale(.97); }
+  }
+  @media(max-width:540px) {
+    .topics-chips { gap:4px 6px; }
+    .topics-chip { min-height:44px; }
+  }
+
+  .topics-panel { margin:0 0 12px; }
+  .topics-panel > p { margin:0; color:var(--muted); font-size:14px; }
+  .topics-panel > a { display:inline-flex; min-height:44px; align-items:center; color:var(--accent); font-size:14px; font-weight:600; }
+  .topics-list { margin:0; padding:0; list-style:none; }
+  .topics-row { display:flex; justify-content:space-between; align-items:center; gap:12px; min-height:44px; border-top:1px solid var(--line); color:var(--text); text-decoration:none; }
+  .topics-list li:first-child .topics-row { border-top:0; }
+  .topics-row:focus-visible { border-radius:8px; }
+  .topics-row:hover .topics-row-name { color:var(--accent); }
+  .topics-row-name { min-width:0; overflow-wrap:anywhere; font-size:14px; font-weight:600; }
+  .topics-row-count { flex:none; color:var(--muted); font-size:13px; font-variant-numeric:tabular-nums; }
+  .topics-note, .topics-rail-note { margin:8px 0 0; color:var(--muted); font-size:12px; }
+
+  .topics-rail { min-width:0; }
+  .topics-rail h2 { margin-bottom:10px; }
+  .topics-rail-load { display:inline-flex; min-height:44px; align-items:center; padding:0; border:0; background:none; color:var(--accent); font-size:14px; font-weight:600; cursor:pointer; }
+}
