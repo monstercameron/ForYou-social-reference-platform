@@ -74,11 +74,20 @@ func TestBuildVersionGraph(t *testing.T) {
 			t.Fatalf("Nodes = %v", got.Nodes)
 		}
 	})
-	t.Run("root signed leaf takes priority", func(t *testing.T) {
+	t.Run("root signed leaf beats a later delegate leaf", func(t *testing.T) {
 		root := wire.PostMessage{MessageID: "root", AuthorID: "author"}
-		delegate := wire.PostMessage{MessageID: "fy1:b", AuthorID: "author", Payload: wire.PostPayload{Supersedes: "root"}}
+		delegate := wire.PostMessage{MessageID: "fy1:b", AuthorID: "author", SignerID: "delegate", Payload: wire.PostPayload{Supersedes: "root"}}
 		direct := wire.PostMessage{MessageID: "fy1:a", AuthorID: "author", Payload: wire.PostPayload{Supersedes: "root"}}
-		got := BuildVersionGraph("root", []VersionInput{{Message: root}, {Message: delegate, IssuedAt: time.Unix(20, 0)}, {Message: direct, IssuedAt: time.Unix(10, 0), RootSigned: true}}, Limits{})
+		got := BuildVersionGraph("root", []VersionInput{{Message: root}, {Message: delegate, IssuedAt: time.Unix(20, 0)}, {Message: direct, IssuedAt: time.Unix(10, 0)}}, Limits{})
+		if got.Selected != "fy1:a" || got.SelectedBy != "root_signed" {
+			t.Fatalf("selection = %q by %q", got.Selected, got.SelectedBy)
+		}
+	})
+	t.Run("root signed leaf beats an earlier delegate leaf", func(t *testing.T) {
+		root := wire.PostMessage{MessageID: "root", AuthorID: "author"}
+		delegate := wire.PostMessage{MessageID: "fy1:b", AuthorID: "author", SignerID: "delegate", Payload: wire.PostPayload{Supersedes: "root"}}
+		direct := wire.PostMessage{MessageID: "fy1:a", AuthorID: "author", Payload: wire.PostPayload{Supersedes: "root"}}
+		got := BuildVersionGraph("root", []VersionInput{{Message: root}, {Message: delegate, IssuedAt: time.Unix(10, 0)}, {Message: direct, IssuedAt: time.Unix(20, 0)}}, Limits{})
 		if got.Selected != "fy1:a" || got.SelectedBy != "root_signed" {
 			t.Fatalf("selection = %q by %q", got.Selected, got.SelectedBy)
 		}

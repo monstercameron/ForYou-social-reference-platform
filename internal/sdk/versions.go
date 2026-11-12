@@ -13,9 +13,8 @@ type Limits struct{ MaxNodes, MaxDepth int }
 
 // VersionInput describes a record that has already passed full verification.
 type VersionInput struct {
-	Message    wire.PostMessage
-	IssuedAt   time.Time
-	RootSigned bool
+	Message  wire.PostMessage
+	IssuedAt time.Time
 }
 
 // EdgeState identifies the local status of a supersedes edge.
@@ -249,14 +248,14 @@ func BuildVersionGraph(start string, known []VersionInput, lim Limits) VersionGr
 		pool := append([]string(nil), result.Leaves...)
 		keepRoot := false
 		for _, id := range pool {
-			if byID[id].RootSigned {
+			if message.RootSigned(byID[id].Message) {
 				keepRoot = true
 			}
 		}
 		if keepRoot {
 			filtered := pool[:0]
 			for _, id := range pool {
-				if byID[id].RootSigned {
+				if message.RootSigned(byID[id].Message) {
 					filtered = append(filtered, id)
 				}
 			}
