@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"sort"
@@ -27,11 +28,17 @@ import (
 
 const (
 	vaultDeliveryMaxBody = 4 << 20
-	// vaultDeliveryMaxSuccessionKeys bounds the outbound succession lookups one unauthenticated delivery can cause.
-	vaultDeliveryMaxSuccessionKeys = 4
+	// vaultDeliveryMaxSuccessionLookups bounds the distinct outbound succession lookups one delivery can cause.
+	// It equals the settlement chain limit, so every valid chain fits within it.
+	vaultDeliveryMaxSuccessionLookups = 1000
+	// vaultDeliveryMaxChainClaims is the settlement chain limit a delivery's proof may not exceed.
+	vaultDeliveryMaxChainClaims = 1000
 	// vaultDeliveryNoQuorumMessage is the missing-quorum text returned by settlement.VerifyProof.
 	vaultDeliveryNoQuorumMessage = "settlement: step 4: no committee quorum"
 )
+
+// errVaultDeliveryUnavailable marks a delivery that cannot be verified now, not one that is invalid.
+var errVaultDeliveryUnavailable = errors.New("vault: verification inputs unavailable")
 
 var vaultDeliveryMergeMu sync.Mutex
 
@@ -46,6 +53,10 @@ func vaultDeliveryRoutes(s *Service, mux *http.ServeMux) {
 
 func (s *Service) vaultDeliveryPut(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
+	if err := s.legalControlsReady(); err != nil {
+		vaultDeliveryWriteError(w, apierr.Unavailable, apierr.DefaultRetryAfterSeconds)
+		return
+	}
 	pathID := r.PathValue("message_id")
 	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, vaultDeliveryMaxBody))
 	if err != nil {
@@ -72,9 +83,12 @@ func (s *Service) vaultDeliveryPut(w http.ResponseWriter, r *http.Request) {
 	}
 	now := s.Clock()
 	if err := s.vaultDeliveryVerify(r.Context(), posted, delivery.Proof, now); err != nil {
-		if strings.Contains(err.Error(), vaultDeliveryNoQuorumMessage) {
+		switch {
+		case errors.Is(err, errVaultDeliveryUnavailable):
+			vaultDeliveryWriteError(w, apierr.Unavailable, apierr.DefaultRetryAfterSeconds)
+		case strings.Contains(err.Error(), vaultDeliveryNoQuorumMessage):
 			vaultDeliveryWriteError(w, apierr.NotReady, 0)
-		} else {
+		default:
 			vaultDeliveryWriteError(w, apierr.InvalidMessage, 0)
 		}
 		return
@@ -83,8 +97,13 @@ func (s *Service) vaultDeliveryPut(w http.ResponseWriter, r *http.Request) {
 		vaultDeliveryWriteError(w, apierr.Unavailable, apierr.DefaultRetryAfterSeconds)
 		return
 	}
-	if status, restricted := vaultDeliveryLegalRestriction(posted); restricted {
-		vaultDeliveryWriteError(w, status, 0)
+	_, restricted, err := s.legalRestriction(posted.MessageID)
+	if err != nil {
+		vaultDeliveryWriteError(w, apierr.Unavailable, apierr.DefaultRetryAfterSeconds)
+		return
+	}
+	if restricted {
+		vaultDeliveryWriteError(w, apierr.LegalRestricted, 0)
 		return
 	}
 	if held, ok := s.VaultRecord(posted.MessageID); ok {
@@ -97,7 +116,11 @@ func (s *Service) vaultDeliveryPut(w http.ResponseWriter, r *http.Request) {
 		}
 		merged, changed := vaultDeliveryMergeProof(held.Proof, delivery.Proof)
 		if changed {
-			proofContext := s.vaultDeliveryProofContext(r.Context(), now, merged)
+			proofContext, contextErr := s.vaultDeliveryVerifyContext(r.Context(), now, merged)
+			if contextErr != nil {
+				vaultDeliveryWriteError(w, apierr.Unavailable, apierr.DefaultRetryAfterSeconds)
+				return
+			}
 			if _, err := settlement.VerifyProof(posted.SubmissionReceipt, merged, proofContext); err == nil {
 				if err := s.ReplaceVaultProof(posted.MessageID, merged); err != nil {
 					vaultDeliveryWriteError(w, apierr.Unavailable, apierr.DefaultRetryAfterSeconds)
@@ -187,18 +210,37 @@ func (s *Service) vaultDeliveryVerify(ctx context.Context, posted wire.PostMessa
 	if err != nil || amount.Cmp(paid) != 0 {
 		return errors.New("vault: receipt amount does not match message fee")
 	}
-	_, err = settlement.VerifyProof(posted.SubmissionReceipt, proof, s.vaultDeliveryProofContext(ctx, now, proof))
+	if len(proof.Chain) > vaultDeliveryMaxChainClaims {
+		return errors.New("vault: proof chain exceeds the claim limit")
+	}
+	proofContext, err := s.vaultDeliveryVerifyContext(ctx, now, proof)
+	if err != nil {
+		return err
+	}
+	_, err = settlement.VerifyProof(posted.SubmissionReceipt, proof, proofContext)
 	return err
 }
 
+// vaultDeliveryProofContext serves the background refresh. A failed succession lookup leaves the proof unverified there.
 func (s *Service) vaultDeliveryProofContext(ctx context.Context, now time.Time, proof wire.SettlementProof) settlement.ProofContext {
+	proofContext, err := s.vaultDeliveryVerifyContext(ctx, now, proof)
+	if err != nil {
+		return settlement.ProofContext{}
+	}
+	return proofContext
+}
+
+func (s *Service) vaultDeliveryVerifyContext(ctx context.Context, now time.Time, proof wire.SettlementProof) (settlement.ProofContext, error) {
 	policies := s.Policies()
 	policy, ok := s.PolicyInForce(now)
 	if !ok {
-		return settlement.ProofContext{}
+		return settlement.ProofContext{}, nil
 	}
-	proofContext := settlement.ProofContext{Committee: policy.Monitors}
-	proofContext.Successions = s.vaultDeliverySuccessions(ctx, proof)
+	successions, err := s.vaultDeliverySuccessions(ctx, proof)
+	if err != nil {
+		return settlement.ProofContext{}, err
+	}
+	proofContext := settlement.ProofContext{Committee: policy.Monitors, Successions: successions}
 	currentIndex := -1
 	for index := len(policies) - 1; index >= 0; index-- {
 		if policies[index].PolicyID == policy.PolicyID {
@@ -213,24 +255,20 @@ func (s *Service) vaultDeliveryProofContext(ctx context.Context, now time.Time, 
 		changePolicy := policies[previous+1]
 		changedAt, err := wire.ParseTime(changePolicy.EffectiveAt)
 		if err != nil || now.Before(changedAt) || !now.Before(changedAt.Add(30*24*time.Hour)) {
-			return proofContext
+			return proofContext, nil
 		}
 		proofContext.PreviousCommittee = append([]string(nil), policies[previous].Monitors...)
 		proofContext.ChangedAt = &changedAt
-		return proofContext
+		return proofContext, nil
 	}
-	return proofContext
+	return proofContext, nil
 }
 
-func (s *Service) vaultDeliverySuccessions(ctx context.Context, proof wire.SettlementProof) settlement.SuccessionLookup {
+// vaultDeliverySuccessions fetches every succession the proof chain names, one lookup per distinct old key.
+// It fails with errVaultDeliveryUnavailable when the lookup budget is exhausted or a lookup cannot be answered.
+func (s *Service) vaultDeliverySuccessions(ctx context.Context, proof wire.SettlementProof) (settlement.SuccessionLookup, error) {
 	claims := append([]wire.SettlementClaim{proof.Claim}, proof.Chain...)
-	monitors := s.Monitors()
 	verified := make(map[string]wire.KeySuccession)
-	monitorIDs := make([]string, 0, len(monitors))
-	for monitorID := range monitors {
-		monitorIDs = append(monitorIDs, monitorID)
-	}
-	sort.Strings(monitorIDs)
 	fetched := make(map[string]struct{})
 	for index := 1; index < len(claims); index++ {
 		later := claims[index]
@@ -238,37 +276,49 @@ func (s *Service) vaultDeliverySuccessions(ctx context.Context, proof wire.Settl
 			continue
 		}
 		oldID := claims[index-1].ProviderID
-		if _, exists := fetched[oldID]; exists || len(fetched) >= vaultDeliveryMaxSuccessionKeys {
+		if _, exists := fetched[oldID]; exists {
 			continue
 		}
+		if len(fetched) >= s.successionBudget {
+			return nil, fmt.Errorf("%w: succession lookup budget of %d exhausted", errVaultDeliveryUnavailable, s.successionBudget)
+		}
 		fetched[oldID] = struct{}{}
-		for _, monitorID := range monitorIDs {
-			baseURL := monitors[monitorID]
-			client, err := sdk.New(baseURL, sdk.Options{ServiceID: monitorID, AllowLoopbackHTTP: s.cfg.Dev})
-			if err != nil {
-				continue
+		items, err := s.successionSource(ctx, oldID)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %v", errVaultDeliveryUnavailable, err)
+		}
+		for _, item := range items {
+			if succession.Verify(item) == nil {
+				verified[item.SuccessionID] = item
 			}
-			items, _, _, err := client.Successions(ctx, oldID)
-			if err != nil {
-				continue
-			}
-			for _, item := range items {
-				if succession.Verify(item) == nil {
-					verified[item.SuccessionID] = item
-				}
-			}
-			break
 		}
 	}
 	return func(id string) (wire.KeySuccession, bool) {
 		item, ok := verified[id]
 		return item, ok
-	}
+	}, nil
 }
 
-// vaultDeliveryLegalRestriction is a placeholder because the platform has no legal-restriction source.
-func vaultDeliveryLegalRestriction(_ wire.PostMessage) (apierr.Status, bool) {
-	return "", false
+// monitorSuccessions asks the configured monitors, in DID order, for the successions of providerID until one answers.
+func (s *Service) monitorSuccessions(ctx context.Context, providerID string) ([]wire.KeySuccession, error) {
+	monitors := s.Monitors()
+	monitorIDs := make([]string, 0, len(monitors))
+	for monitorID := range monitors {
+		monitorIDs = append(monitorIDs, monitorID)
+	}
+	sort.Strings(monitorIDs)
+	for _, monitorID := range monitorIDs {
+		client, err := sdk.New(monitors[monitorID], sdk.Options{ServiceID: monitorID, AllowLoopbackHTTP: s.cfg.Dev})
+		if err != nil {
+			continue
+		}
+		items, _, _, err := client.Successions(ctx, providerID)
+		if err != nil {
+			continue
+		}
+		return items, nil
+	}
+	return nil, errors.New("no monitor answered the succession query")
 }
 
 func vaultDeliverySameCommittee(left, right []string) bool {

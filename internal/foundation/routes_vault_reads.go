@@ -37,11 +37,20 @@ func vaultReadRegisterRoutes(s *Service, mux *http.ServeMux) {
 		panic(fmt.Sprintf("foundation: invalid vault read snapshot limits: %v", err))
 	}
 	index := &vaultReadIndex{index: discovery.NewIndex()}
-	visibility := vaultReadVisibility{}
+	visibility := vaultReadVisibility{s: s}
 	mux.HandleFunc("GET /v1/messages/{message_id}", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
+		if s.legalControlsReady() != nil {
+			vaultReadUnavailable(w)
+			return
+		}
 		record, ok := s.VaultRecord(r.PathValue("message_id"))
-		if !ok || !vaultReadDeliverable(record.MessageID) {
+		visible, _, err := visibility.Visible(r.PathValue("message_id"))
+		if err != nil {
+			vaultReadUnavailable(w)
+			return
+		}
+		if !ok || !visible {
 			apierr.Write(w, apierr.PublicReadError{Status: apierr.NotFound})
 			return
 		}
@@ -67,6 +76,10 @@ func vaultReadRegisterRoutes(s *Service, mux *http.ServeMux) {
 			apierr.Write(w, apierr.PublicReadError{Status: apierr.InvalidQuery})
 			return
 		}
+		if s.legalControlsReady() != nil {
+			vaultReadUnavailable(w)
+			return
+		}
 		if err := index.sync(s); err != nil {
 			vaultReadUnavailable(w)
 			return
@@ -80,10 +93,15 @@ func vaultReadRegisterRoutes(s *Service, mux *http.ServeMux) {
 		records := index.index.After(after, limit)
 		candidates := make([]discovery.Candidate, 0, len(records))
 		for _, record := range records {
+			visible, _, err := visibility.Visible(record.MessageID)
+			if err != nil {
+				vaultReadUnavailable(w)
+				return
+			}
 			candidates = append(candidates, discovery.Candidate{
 				Sequence: record.Sequence,
 				Bytes:    record.Bytes,
-				Visible:  vaultReadDeliverable(record.MessageID),
+				Visible:  visible,
 			})
 		}
 		complete := len(records) < limit
@@ -94,8 +112,17 @@ func vaultReadRegisterRoutes(s *Service, mux *http.ServeMux) {
 	})
 	mux.HandleFunc("GET /v1/settlements/{receipt_id}", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
+		if s.legalControlsReady() != nil {
+			vaultReadUnavailable(w)
+			return
+		}
 		record, ok := s.VaultRecordByReceiptID(r.PathValue("receipt_id"))
-		if !ok || !vaultReadDeliverable(record.MessageID) {
+		visible, _, err := visibility.Visible(record.MessageID)
+		if err != nil {
+			vaultReadUnavailable(w)
+			return
+		}
+		if !ok || !visible {
 			apierr.Write(w, apierr.PublicReadError{Status: apierr.NotFound})
 			return
 		}
@@ -120,6 +147,10 @@ func vaultReadList(w http.ResponseWriter, r *http.Request, s *Service, index *va
 			return
 		}
 		apierr.Write(w, apierr.PublicReadError{Status: apierr.InvalidQuery})
+		return
+	}
+	if s.legalControlsReady() != nil {
+		vaultReadUnavailable(w)
 		return
 	}
 	if err := index.sync(s); err != nil {
@@ -159,10 +190,6 @@ func vaultReadUnavailable(w http.ResponseWriter) {
 	apierr.Write(w, apierr.PublicReadError{Status: apierr.Unavailable, RetryAfterSeconds: vaultReadRetryAfterSeconds})
 }
 
-// vaultReadDeliverable is consulted by every route; a later legal-restriction issue replaces this
-// body here, failing closed when the restriction source is unknown.
-func vaultReadDeliverable(_ string) bool { return true }
-
 type vaultReadIndex struct {
 	mu                  sync.Mutex
 	index               *discovery.Index
@@ -187,10 +214,17 @@ func (i *vaultReadIndex) sync(s *Service) error {
 	return nil
 }
 
-type vaultReadVisibility struct{}
+// vaultReadVisibility reports committed legal restrictions to listing snapshots and the changes feed.
+type vaultReadVisibility struct{ s *Service }
 
-func (vaultReadVisibility) Generation() uint64 { return 0 }
+// Generation returns the latest committed restriction generation; routes check readiness before using it.
+func (v vaultReadVisibility) Generation() uint64 {
+	generation, _ := v.s.legalGeneration()
+	return generation
+}
 
-func (vaultReadVisibility) Visible(messageID string) (bool, uint64, error) {
-	return vaultReadDeliverable(messageID), 0, nil
+// Visible reports whether messageID is deliverable and the generation of its restriction, if any.
+func (v vaultReadVisibility) Visible(messageID string) (bool, uint64, error) {
+	hiddenAt, restricted, err := v.s.legalRestriction(messageID)
+	return !restricted, hiddenAt, err
 }

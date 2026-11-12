@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"foryou.local/foryou/internal/devnet"
 	"foryou.local/foryou/internal/keys"
 	"foryou.local/foryou/internal/message"
+	"foryou.local/foryou/internal/store"
 	"foryou.local/foryou/internal/wire"
 )
 
@@ -196,6 +198,85 @@ func TestVaultReadChangesRoute(t *testing.T) {
 			t.Fatalf("terminal changes page = (%d, %#v), want empty after 3", response.Code, page)
 		}
 	})
+}
+
+func TestVaultReadLegalRestrictions(t *testing.T) {
+	t.Run("a committed restriction hides the record from every read at once", func(t *testing.T) {
+		service, records := vaultReadTestService(t)
+		handler := service.Handler()
+		hidden, shown := records[0], records[1]
+		if before := vaultReadRequest(handler, http.MethodGet, "/v1/messages/"+hidden.MessageID); before.Code != http.StatusOK {
+			t.Fatalf("direct GET before restriction = %d, want 200", before.Code)
+		}
+		generation, err := service.CommitLegalRestriction(hidden.MessageID)
+		if err != nil || generation != 1 {
+			t.Fatalf("CommitLegalRestriction() = (%d, %v), want (1, nil)", generation, err)
+		}
+		direct := vaultReadRequest(handler, http.MethodGet, "/v1/messages/"+hidden.MessageID)
+		if direct.Code != http.StatusNotFound || direct.Body.String() != `{"status":"not_found"}` {
+			t.Fatalf("direct GET after restriction = (%d, %s), want 404 not_found", direct.Code, direct.Body)
+		}
+		listing := vaultReadRequest(handler, http.MethodGet, "/v1/messages?date=2026-11-10")
+		if listing.Code != http.StatusOK || bytes.Contains(listing.Body.Bytes(), hidden.Message) || !bytes.Contains(listing.Body.Bytes(), shown.Message) {
+			t.Fatalf("listing after restriction = (%d, %s), want only the unrestricted record", listing.Code, listing.Body)
+		}
+		changes := vaultReadRequest(handler, http.MethodGet, "/v1/changes?after=0&limit=10")
+		if changes.Code != http.StatusOK || bytes.Contains(changes.Body.Bytes(), hidden.Message) || !bytes.Contains(changes.Body.Bytes(), shown.Message) {
+			t.Fatalf("changes after restriction = (%d, %s), want only the unrestricted record", changes.Code, changes.Body)
+		}
+		settlement := vaultReadRequest(handler, http.MethodGet, "/v1/settlements/"+hidden.SettlementReceiptID)
+		if settlement.Code != http.StatusNotFound || settlement.Body.String() != `{"status":"not_found"}` {
+			t.Fatalf("settlement after restriction = (%d, %s), want 404 not_found", settlement.Code, settlement.Body)
+		}
+		if unrestricted := vaultReadRequest(handler, http.MethodGet, "/v1/messages/"+shown.MessageID); unrestricted.Code != http.StatusOK {
+			t.Fatalf("direct GET of unrestricted record = %d, want 200", unrestricted.Code)
+		}
+	})
+
+	t.Run("unreadable control record fails every vault read and delivery closed", func(t *testing.T) {
+		now := time.Date(2026, 11, 11, 12, 0, 0, 0, time.UTC)
+		cfg := testConfig(t, &now)
+		service, err := New(cfg)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := service.Close(); err != nil {
+			t.Fatal(err)
+		}
+		db, err := store.Open(cfg.DataDir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := db.Update(func(tx store.Tx) error { return tx.Put(controlsCollection, legalRestrictionsKey, []byte("{")) }); err != nil {
+			t.Fatal(err)
+		}
+		if err := db.Close(); err != nil {
+			t.Fatal(err)
+		}
+		service, err = New(cfg)
+		if err != nil {
+			t.Fatalf("New() with unreadable control record = %v, want the service to start and fail closed", err)
+		}
+		defer service.Close()
+		handler := service.Handler()
+		direct := vaultReadRequest(handler, http.MethodGet, "/v1/messages/fy1:"+strings.Repeat("0", 64))
+		listing := vaultReadRequest(handler, http.MethodGet, "/v1/messages?date=2026-11-10")
+		changes := vaultReadRequest(handler, http.MethodGet, "/v1/changes?after=0")
+		settlement := vaultReadRequest(handler, http.MethodGet, "/v1/settlements/fy1:"+strings.Repeat("0", 64))
+		vaultReadAssertUnavailable(t, "direct", direct)
+		vaultReadAssertUnavailable(t, "listing", listing)
+		vaultReadAssertUnavailable(t, "changes", changes)
+		vaultReadAssertUnavailable(t, "settlement", settlement)
+		delivery, messageID := vaultDeliveryTestDelivery(t, now, 4)
+		vaultDeliveryAssertPutStatus(t, service, messageID, delivery, http.StatusServiceUnavailable, `{"retry_after_seconds":30,"status":"unavailable"}`)
+	})
+}
+
+func vaultReadAssertUnavailable(t *testing.T, name string, response *httptest.ResponseRecorder) {
+	t.Helper()
+	if response.Code != http.StatusServiceUnavailable || response.Body.String() != `{"retry_after_seconds":30,"status":"unavailable"}` {
+		t.Fatalf("%s read with unknown control state = (%d, %s), want 503 unavailable", name, response.Code, response.Body)
+	}
 }
 
 func vaultReadTestService(t *testing.T) (*Service, []VaultRecord) {

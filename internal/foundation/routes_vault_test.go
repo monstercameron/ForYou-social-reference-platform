@@ -2,6 +2,7 @@ package foundation
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"io"
@@ -19,6 +20,7 @@ import (
 	"foryou.local/foryou/internal/keys"
 	"foryou.local/foryou/internal/message"
 	"foryou.local/foryou/internal/settlement"
+	"foryou.local/foryou/internal/succession"
 	"foryou.local/foryou/internal/wire"
 )
 
@@ -252,6 +254,65 @@ func TestVaultDeliveryRoutes(t *testing.T) {
 		}
 	})
 
+	t.Run("chain naming five distinct successions is stored", func(t *testing.T) {
+		now := time.Date(2026, 11, 11, 12, 0, 0, 0, time.UTC)
+		service, err := New(testConfig(t, &now))
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer service.Close()
+		delivery, messageID, successions := vaultDeliveryTestChainDelivery(t, now, 5)
+		service.successionSource = vaultDeliveryTestSuccessionSource(successions)
+		vaultDeliveryAssertPutStatus(t, service, messageID, delivery, http.StatusCreated, `"message_id":"`+messageID+`"`)
+	})
+
+	t.Run("succession lookups beyond the budget are unavailable, not invalid", func(t *testing.T) {
+		now := time.Date(2026, 11, 11, 12, 0, 0, 0, time.UTC)
+		service, err := New(testConfig(t, &now))
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer service.Close()
+		delivery, messageID, successions := vaultDeliveryTestChainDelivery(t, now, 5)
+		service.successionSource = vaultDeliveryTestSuccessionSource(successions)
+		service.successionBudget = 4
+		vaultDeliveryAssertPutStatus(t, service, messageID, delivery, http.StatusServiceUnavailable, `{"retry_after_seconds":30,"status":"unavailable"}`)
+	})
+
+	t.Run("chain longer than 1,000 claims is invalid, not unavailable", func(t *testing.T) {
+		now := time.Date(2026, 11, 11, 12, 0, 0, 0, time.UTC)
+		service, err := New(testConfig(t, &now))
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer service.Close()
+		delivery, messageID, successions := vaultDeliveryTestChainDelivery(t, now, 1001)
+		lookups := 0
+		answer := vaultDeliveryTestSuccessionSource(successions)
+		service.successionSource = func(ctx context.Context, providerID string) ([]wire.KeySuccession, error) {
+			lookups++
+			return answer(ctx, providerID)
+		}
+		vaultDeliveryAssertPutStatus(t, service, messageID, delivery, http.StatusUnprocessableEntity, `"status":"invalid_message"`)
+		if lookups != 0 {
+			t.Fatalf("succession lookups = %d, want 0", lookups)
+		}
+	})
+
+	t.Run("committed legal restriction refuses delivery", func(t *testing.T) {
+		now := time.Date(2026, 11, 11, 12, 0, 0, 0, time.UTC)
+		service, err := New(testConfig(t, &now))
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer service.Close()
+		delivery, messageID := vaultDeliveryTestDelivery(t, now, 4)
+		if _, err := service.CommitLegalRestriction(messageID); err != nil {
+			t.Fatal(err)
+		}
+		vaultDeliveryAssertPutStatus(t, service, messageID, delivery, http.StatusForbidden, `"status":"legal_restricted"`)
+	})
+
 	t.Run("four MiB body bound rejects oversized input", func(t *testing.T) {
 		now := time.Date(2026, 11, 11, 12, 0, 0, 0, time.UTC)
 		service, err := New(testConfig(t, &now))
@@ -282,6 +343,70 @@ func vaultDeliveryAssertPutStatus(t *testing.T, service *Service, pathID string,
 	if response.Code != wantStatus || !strings.Contains(response.Body.String(), wantBody) {
 		t.Fatalf("delivery response = %d %s; want %d containing %s", response.Code, response.Body, wantStatus, wantBody)
 	}
+}
+
+// vaultDeliveryTestSuccessionSource answers succession lookups from successions keyed by old provider DID.
+func vaultDeliveryTestSuccessionSource(successions map[string]wire.KeySuccession) func(context.Context, string) ([]wire.KeySuccession, error) {
+	return func(_ context.Context, providerID string) ([]wire.KeySuccession, error) {
+		if item, ok := successions[providerID]; ok {
+			return []wire.KeySuccession{item}, nil
+		}
+		return []wire.KeySuccession{}, nil
+	}
+}
+
+// vaultDeliveryTestChainDelivery extends a settled delivery with links provider key changes, each named by a succession,
+// and re-signs the committee witnesses on the final claim of the chain.
+func vaultDeliveryTestChainDelivery(t *testing.T, now time.Time, links int) (wire.VaultDelivery, string, map[string]wire.KeySuccession) {
+	t.Helper()
+	delivery, messageID := vaultDeliveryTestDelivery(t, now, 4)
+	successions := make(map[string]wire.KeySuccession, links)
+	chain := make([]wire.SettlementClaim, 0, links)
+	previous := delivery.Proof.Claim
+	providerKey := devnet.ProviderKey(0)
+	for index := 1; index <= links; index++ {
+		effectiveAt, err := wire.ParseTime(previous.PeriodEnd)
+		if err != nil {
+			t.Fatal(err)
+		}
+		nextKey := devnet.ProviderKey(index)
+		item, err := succession.New(providerKey, nextKey, effectiveAt)
+		if err != nil {
+			t.Fatal(err)
+		}
+		successions[item.OldID] = item
+		successionID := item.SuccessionID
+		claim, err := settlement.BuildClaim(nextKey, settlement.ClaimInput{
+			Network: previous.Network, Previous: &previous, PeriodStart: effectiveAt, PeriodEnd: effectiveAt.Add(time.Minute),
+			DeclarationID: previous.DeclarationID, SuccessionID: &successionID, ReceiptCount: 1, Total: big.NewInt(1), ReceiptsRoot: strings.Repeat("0", 64),
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		chain = append(chain, claim)
+		previous = claim
+		providerKey = nextKey
+	}
+	final := chain[len(chain)-1]
+	finalEnd, err := wire.ParseTime(final.PeriodEnd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	witnessAt := now
+	if finalEnd.After(now) {
+		witnessAt = finalEnd
+	}
+	witnesses := make([]wire.SettlementWitness, 0, 4)
+	for index := 0; index < 4; index++ {
+		witness, err := settlement.SignWitness(devnet.MonitorKey(index), final, big.NewInt(100), witnessAt)
+		if err != nil {
+			t.Fatal(err)
+		}
+		witnesses = append(witnesses, witness)
+	}
+	delivery.Proof.Chain = chain
+	delivery.Proof.Witnesses = witnesses
+	return delivery, messageID, successions
 }
 
 type vaultDeliveryCountingReader struct {

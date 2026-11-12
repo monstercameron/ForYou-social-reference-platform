@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"sync"
@@ -20,16 +21,33 @@ import (
 var routeGroups []func(*Service, *http.ServeMux)
 var backgroundLoops []func(context.Context, *Service)
 
+const (
+	controlsCollection   = "foundation.controls"
+	legalRestrictionsKey = "legal_restrictions"
+)
+
+// legalRestrictions is the committed Foundation legal-restriction state. Restricted maps each restricted
+// message ID to the generation whose commit restricted it.
+type legalRestrictions struct {
+	Generation uint64            `json:"generation"`
+	Restricted map[string]uint64 `json:"restricted"`
+}
+
 // Service serves Foundation publications and the Lifetime Vault.
 type Service struct {
-	cfg          Config
-	db           *store.DB
-	state        *state
-	log          *governance.Log
-	appendMu     sync.Mutex
-	trustMu      sync.Mutex
-	trustCertIDs []string
-	trust        *governance.Trust
+	cfg              Config
+	db               *store.DB
+	state            *state
+	log              *governance.Log
+	appendMu         sync.Mutex
+	trustMu          sync.Mutex
+	trustCertIDs     []string
+	trust            *governance.Trust
+	controlMu        sync.RWMutex
+	controls         legalRestrictions
+	controlsErr      error
+	successionSource func(context.Context, string) ([]wire.KeySuccession, error)
+	successionBudget int
 }
 
 // New validates configuration, verifies the trust root and replays the data directory.
@@ -64,9 +82,82 @@ func New(cfg Config) (*Service, error) {
 		_ = db.Close()
 		return nil, err
 	}
-	s := &Service{cfg: cfg, db: db, state: savedState, log: log, trust: trust}
+	controls, controlsErr := recoverLegalRestrictions(db)
+	s := &Service{
+		cfg: cfg, db: db, state: savedState, log: log, trust: trust,
+		controls: controls, controlsErr: controlsErr,
+		successionBudget: vaultDeliveryMaxSuccessionLookups,
+	}
+	s.successionSource = s.monitorSuccessions
 	s.trustCertIDs = certificateIDs(certificatesAt(cfg, now))
 	return s, nil
+}
+
+// recoverLegalRestrictions loads the committed legal restrictions. An unreadable record leaves the vault unavailable
+// rather than failing startup, so every vault read and delivery fails closed.
+func recoverLegalRestrictions(db *store.DB) (legalRestrictions, error) {
+	controls := legalRestrictions{Restricted: map[string]uint64{}}
+	err := db.View(func(tx store.Tx) error {
+		data, ok, err := tx.Get(controlsCollection, legalRestrictionsKey)
+		if err != nil || !ok {
+			return err
+		}
+		return json.Unmarshal(data, &controls)
+	})
+	if err != nil {
+		return legalRestrictions{}, err
+	}
+	if controls.Restricted == nil {
+		controls.Restricted = map[string]uint64{}
+	}
+	return controls, nil
+}
+
+// CommitLegalRestriction durably restricts messageID and returns the control generation that committed it.
+// Restricting an already restricted message changes nothing and returns the current generation.
+func (s *Service) CommitLegalRestriction(messageID string) (uint64, error) {
+	s.controlMu.Lock()
+	defer s.controlMu.Unlock()
+	if s.controlsErr != nil {
+		return 0, s.controlsErr
+	}
+	if _, restricted := s.controls.Restricted[messageID]; restricted {
+		return s.controls.Generation, nil
+	}
+	next := legalRestrictions{Generation: s.controls.Generation + 1, Restricted: make(map[string]uint64, len(s.controls.Restricted)+1)}
+	for id, generation := range s.controls.Restricted {
+		next.Restricted[id] = generation
+	}
+	next.Restricted[messageID] = next.Generation
+	if err := s.db.Update(func(tx store.Tx) error { return putJSON(tx, controlsCollection, legalRestrictionsKey, next) }); err != nil {
+		return 0, err
+	}
+	s.controls = next
+	return next.Generation, nil
+}
+
+// legalControlsReady returns the recovery error when the committed legal restrictions could not be loaded.
+func (s *Service) legalControlsReady() error { return s.controlsErr }
+
+// legalRestriction reports whether messageID is under a committed legal restriction and the generation that committed it.
+func (s *Service) legalRestriction(messageID string) (uint64, bool, error) {
+	if err := s.legalControlsReady(); err != nil {
+		return 0, false, err
+	}
+	s.controlMu.RLock()
+	defer s.controlMu.RUnlock()
+	generation, restricted := s.controls.Restricted[messageID]
+	return generation, restricted, nil
+}
+
+// legalGeneration returns the generation of the latest committed legal restriction.
+func (s *Service) legalGeneration() (uint64, error) {
+	if err := s.legalControlsReady(); err != nil {
+		return 0, err
+	}
+	s.controlMu.RLock()
+	defer s.controlMu.RUnlock()
+	return s.controls.Generation, nil
 }
 
 // Close closes the journaled store; call it after Run has returned.
