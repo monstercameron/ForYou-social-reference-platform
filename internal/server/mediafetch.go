@@ -222,7 +222,11 @@ func (f *medFetcher) run(ctx context.Context, flight *medFlight, slot wire.Media
 	}
 	f.unwatchLocked(flight)
 	f.mu.Unlock()
-	if err == nil && ctx.Err() == nil {
+	if cause := ctx.Err(); cause != nil {
+		// A stopped flight reports the stop, never what the torn-down transfer happened to look like.
+		media, err = content.VerifiedMedia{}, cause
+	}
+	if err == nil {
 		f.cache.put(medKey{sha: slot.SHA256, size: slot.SizeBytes}, media)
 	}
 	flight.media, flight.err = media, err
