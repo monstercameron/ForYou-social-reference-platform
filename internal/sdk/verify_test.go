@@ -102,7 +102,7 @@ func TestVerifyApprovedDevnetRecord(t *testing.T) {
 			t.Fatalf("failure = %#v", rec.Failure)
 		}
 	})
-	t.Run("receipt 61 seconds ahead of local clock fails step five", func(t *testing.T) {
+	t.Run("receipt 61 seconds ahead of local clock is not evaluated yet, never invalid", func(t *testing.T) {
 		genesis := devnet.Genesis()
 		issued := time.Date(2026, 11, 11, 0, 0, 0, 0, time.UTC)
 		root, err := BuildTrustRoot(Pin{ReleaseKeyIDs: genesis.ReleaseKeyIDs, Threshold: int(genesis.ReleaseThreshold)}, Publications{Genesis: genesis, FetchedAt: issued})
@@ -111,8 +111,24 @@ func TestVerifyApprovedDevnetRecord(t *testing.T) {
 		}
 		raw, _ := vfSignedRecord(t, issued)
 		rec := NewVerifier(VerifierConfig{Root: root, Now: func() time.Time { return issued.Add(-61 * time.Second) }}).Verify(raw, "", Source{})
-		if rec.Failure == nil || rec.Failure.Step != 5 {
-			t.Fatalf("failure = %#v", rec.Failure)
+		if rec.Class != ClassNotEvaluated || !rec.EvaluateAfter.Equal(issued) || !rec.Rejected() {
+			t.Fatalf("class %q, evaluate after %v, rejected %v; want not_evaluated until the receipt time, and not usable as verified", rec.Class, rec.EvaluateAfter, rec.Rejected())
+		}
+		if settled := NewVerifier(VerifierConfig{Root: root}).Settle(rec, nil, nil); settled.Class != ClassNotEvaluated {
+			t.Fatalf("settling changed the class to %q; a record that is not evaluated stays so", settled.Class)
+		}
+	})
+	t.Run("the same receipt verifies once the clock has passed it", func(t *testing.T) {
+		genesis := devnet.Genesis()
+		issued := time.Date(2026, 11, 11, 0, 0, 0, 0, time.UTC)
+		root, err := BuildTrustRoot(Pin{ReleaseKeyIDs: genesis.ReleaseKeyIDs, Threshold: int(genesis.ReleaseThreshold)}, Publications{Genesis: genesis, FetchedAt: issued})
+		if err != nil {
+			t.Fatal(err)
+		}
+		raw, _ := vfSignedRecord(t, issued)
+		rec := NewVerifier(VerifierConfig{Root: root, Now: func() time.Time { return issued.Add(-60 * time.Second) }}).Verify(raw, "", Source{})
+		if rec.Class != ClassValidUntrusted {
+			t.Fatalf("class %q at exactly 60 seconds ahead; want cryptographically_valid_untrusted", rec.Class)
 		}
 	})
 }

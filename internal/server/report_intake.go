@@ -208,6 +208,9 @@ func (a *App) reportResolve(ctx context.Context, profile, id string) reportResol
 // fails only at the fee step, while no trust root is loaded, still names its provider.
 func (a *App) reportVerifyFetched(profile string, selected []ProviderChoice, fetched sdk.Fetched) reportResolution {
 	record := a.verifier(profile).Verify(fetched.Raw, fetched.ID, sdk.Source{Endpoint: fetched.Endpoint, ServiceID: fetched.ServiceID, Kind: sdk.SourceProvider})
+	if record.Class == sdk.ClassNotEvaluated {
+		return reportResolution{Outcome: reportOutcomeUnverified}
+	}
 	if record.Class == sdk.ClassInvalid {
 		root, _ := a.trustRoot()
 		if root != nil || record.Failure == nil || record.Failure.Step != 5 {

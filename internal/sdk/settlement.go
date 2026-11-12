@@ -10,7 +10,7 @@ import (
 
 // Settle applies proof, pending-settlement, and delinquency rules to a valid record.
 func (v *Verifier) Settle(rec Record, proof *wire.SettlementProof, successions []wire.KeySuccession) Record {
-	if rec.Class == ClassInvalid {
+	if rec.Rejected() {
 		return rec
 	}
 	now := v.now().UTC().Truncate(time.Second)

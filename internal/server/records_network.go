@@ -202,7 +202,7 @@ func (s *networkRecordSource) locate(ctx context.Context, r *http.Request, id st
 		if view, shown := rd.unverifiable(rec, entry.message); shown {
 			return nrFound{view: view, message: entry.message, endpoint: nrReadEndpoint(sources, entry.Source.Endpoint), ok: true}, Coverage{Sources: []SourceStatus{local}}
 		}
-		if rec.Class != sdk.ClassInvalid {
+		if !rec.Rejected() {
 			if rec = rd.verifier.Settle(rec, entry.Proof, nil); rec.Settlement != settlement.StateSettled && !rd.now.Before(entry.ProofCheckedAt.Add(nrProofInterval)) {
 				rec = s.settleFresh(ctx, rd.verifier, sources, rec, entry.Proof)
 				_ = s.store.settle(rec, rd.now)
@@ -565,7 +565,7 @@ func (s *networkRecordSource) Search(ctx context.Context, r *http.Request, query
 func (s *networkRecordSource) keepPublished(profile string, published sdk.Published, client *sdk.Client) error {
 	verifier := s.app.verifier(profile)
 	rec := verifier.Verify(published.Raw, published.MessageID, sdk.Source{Endpoint: client.BaseURL(), ServiceID: client.ServiceID(), Kind: sdk.SourceProvider})
-	if rec.Class == sdk.ClassInvalid {
+	if rec.Rejected() {
 		return fmt.Errorf("published record failed local verification: %s", rec.Failure.Name)
 	}
 	stored, err := s.store.put(verifier.Settle(rec, nil, nil), s.app.now(), true)
@@ -681,6 +681,9 @@ func (s *networkRecordSource) syncSource(ctx context.Context, verifier *sdk.Veri
 		}
 		for i, item := range result.Page.Items {
 			rec := verifier.Verify(raws[i], item.Message.MessageID, sdk.Source{Endpoint: client.BaseURL(), ServiceID: client.ServiceID(), Kind: src.kind})
+			if rec.Class == sdk.ClassNotEvaluated {
+				continue
+			}
 			if rec.Class == sdk.ClassInvalid {
 				state.Rejected++
 				continue
@@ -756,6 +759,9 @@ func nrRecheckJob(ctx context.Context, a *App) error {
 	var failures []error
 	for _, entry := range due[:min(len(due), nrRecheckBatch)] {
 		rec := verifier.Verify(entry.Raw, entry.message.MessageID, entry.source())
+		if rec.Class == sdk.ClassNotEvaluated {
+			continue
+		}
 		if rec.Class == sdk.ClassInvalid {
 			s.store.remove(entry.message.MessageID)
 			continue

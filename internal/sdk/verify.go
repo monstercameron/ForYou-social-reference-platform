@@ -21,6 +21,9 @@ type Class string
 const (
 	// ClassInvalid marks a record with a failed required verification.
 	ClassInvalid Class = "invalid"
+	// ClassNotEvaluated marks a record whose receipt is dated ahead of this clock. Every other
+	// check passed; it is evaluated again once the clock has passed Record.EvaluateAfter.
+	ClassNotEvaluated Class = "not_evaluated"
 	// ClassValidUntrusted marks valid evidence from a locally untrusted provider.
 	ClassValidUntrusted Class = "cryptographically_valid_untrusted"
 	// ClassValidTrustedUnaccepted marks trusted-provider evidence not durably accepted here.
@@ -79,6 +82,14 @@ type Record struct {
 	SettledUnderPolicy string
 	RecheckBy          time.Time
 	CheckedAt          time.Time
+	// EvaluateAfter is the receipt time a not-evaluated record waits for.
+	EvaluateAfter time.Time
+}
+
+// Rejected reports whether the record must not be used as verified: a check failed, or it
+// cannot be evaluated yet.
+func (r Record) Rejected() bool {
+	return r.Class == ClassInvalid || r.Class == ClassNotEvaluated
 }
 
 // VerifierConfig configures a verifier's pinned root, local provider policy, and time.
@@ -215,9 +226,6 @@ func (v *Verifier) Verify(raw []byte, requestedID string, src Source) Record {
 	if step5err == nil && (issuedAt.After(timestamp.Add(300*time.Second)) || issuedAt.Before(timestamp.Add(-60*time.Second))) {
 		step5err = errors.New("receipt issued_at outside message timestamp window")
 	}
-	if step5err == nil && issuedAt.After(now.Add(60*time.Second)) {
-		step5err = errors.New("receipt issued_at more than 60 seconds ahead")
-	}
 	if !check(5, "approved schedule and fee", step5err) {
 		return r
 	}
@@ -233,6 +241,13 @@ func (v *Verifier) Verify(raw []byte, requestedID string, src Source) Record {
 	r.Network = schedule.Network
 	r.Denomination = schedule.Denomination
 	r.ScheduleID = schedule.ScheduleID
+	if issuedAt.After(now.Add(60 * time.Second)) {
+		// This clock may be the one that is wrong, so the record is not called invalid.
+		r.Checks = append(r.Checks, Check{Step: 5, Name: "receipt time against this clock", Detail: "receipt issued_at more than 60 seconds ahead"})
+		r.Failure = &r.Checks[len(r.Checks)-1]
+		r.Class, r.EvaluateAfter = ClassNotEvaluated, issuedAt
+		return r
+	}
 	if v.trusts != nil && v.trusts(receipt.ProviderID) {
 		r.Class = ClassValidTrustedUnaccepted
 	} else {

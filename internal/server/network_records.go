@@ -110,6 +110,11 @@ func (rd recordReader) post(record sdk.Record) post {
 // verifiable now, since only the schedule and fee step needs the root. It is
 // never stored.
 func (rd recordReader) unverifiable(record sdk.Record, message wire.TransportMessage) (post, bool) {
+	if record.Class == sdk.ClassNotEvaluated {
+		p := rd.post(sdk.Record{Message: message})
+		p.Unverifiable = "Not verified yet: the receipt is dated ahead of this server's clock, and that clock may be the one that is wrong. It is checked again after " + ldgTimeOf(record.EvaluateAfter).Text + "."
+		return p, true
+	}
 	if rd.root != nil || record.Class != sdk.ClassInvalid || record.Failure == nil || record.Failure.Step != 5 {
 		return post{}, false
 	}

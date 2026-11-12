@@ -159,6 +159,10 @@ func (a *App) ldgWalk(r *http.Request, profile, id string) ldgWalkPage {
 		return page
 	}
 	record := a.verifier(profile).Verify(fetched.Raw, id, sdk.Source{Endpoint: fetched.Endpoint, ServiceID: fetched.ServiceID, Kind: kind})
+	if record.Class == sdk.ClassNotEvaluated {
+		page.Invalid = "This record is not verified yet: its receipt is dated ahead of this server's clock. Its fee is shown once the clock has passed " + ldgTimeOf(record.EvaluateAfter).Text + "."
+		return page
+	}
 	if record.Class == sdk.ClassInvalid {
 		page.Invalid = fmt.Sprintf("This record failed verification at step %d: %s. Its fee is not shown.", record.Failure.Step, record.Failure.Detail)
 		return page

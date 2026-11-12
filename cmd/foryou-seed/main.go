@@ -525,7 +525,7 @@ func printSummary(ctx context.Context, provider *sdk.Client, journal sdk.Journal
 			return fmt.Errorf("missing journal entry for %s", item.key)
 		}
 		record := verifier.Verify(entry.FinalMessage, id, sdk.Source{Endpoint: provider.BaseURL(), ServiceID: provider.ServiceID(), Kind: sdk.SourceProvider})
-		if record.Class == sdk.ClassInvalid {
+		if record.Rejected() {
 			return fmt.Errorf("message %s failed SDK verification at summary", id)
 		}
 		proof, proofErr := retryLimited(ctx, func() (wire.SettlementProof, error) {
@@ -717,7 +717,7 @@ func publishOne(ctx context.Context, client *sdk.Client, publisher *sdk.Publishe
 		return "", err
 	}
 	verifiedRecord := verifier.Verify(fetched.Raw, published.MessageID, sdk.Source{Endpoint: client.BaseURL(), ServiceID: client.ServiceID(), Kind: sdk.SourceProvider})
-	if verifiedRecord.Class == sdk.ClassInvalid {
+	if verifiedRecord.Rejected() {
 		return "", fmt.Errorf("provider returned an invalid message %s", published.MessageID)
 	}
 	verified[published.MessageID] = verifiedRecord.Message
@@ -726,7 +726,7 @@ func publishOne(ctx context.Context, client *sdk.Client, publisher *sdk.Publishe
 
 func verifyFinal(verifier *sdk.Verifier, raw []byte, id string, client *sdk.Client) (wire.PostMessage, error) {
 	record := verifier.Verify(raw, id, sdk.Source{Endpoint: client.BaseURL(), ServiceID: client.ServiceID(), Kind: sdk.SourceProvider})
-	if record.Class == sdk.ClassInvalid {
+	if record.Rejected() {
 		return wire.PostMessage{}, fmt.Errorf("stored message %s failed SDK verification", id)
 	}
 	return record.Message, nil
