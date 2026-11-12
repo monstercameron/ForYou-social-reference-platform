@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"foryou.local/foryou/internal/fee"
 	"foryou.local/foryou/internal/funding"
 	"foryou.local/foryou/internal/message"
+	"foryou.local/foryou/internal/store"
 	"foryou.local/foryou/internal/wire"
 )
 
@@ -24,9 +26,18 @@ type admissionCapacityFailure struct {
 
 func (e admissionCapacityFailure) Error() string { return "provider: admission capacity exhausted" }
 
-// admissionCapacity reports whether the provider can retain a new admission.
-// The core currently has no retention-capacity signal; this seam defaults open.
-var admissionCapacity = func(_ *Service, _ int) (retryAfterSeconds int, ok bool) { return 0, true }
+// admissionCapacity reports whether size bytes, the new admission plus admissions committed but not yet retained,
+// fit the declared retention and the storage budget.
+var admissionCapacity = func(s *Service, size int) (retryAfterSeconds int, ok bool) {
+	if _, ok := s.CurrentDeclaration(); !ok {
+		return apierr.DefaultRetryAfterSeconds, false
+	}
+	retained, err := s.retainedMessageBytes()
+	if err != nil || retained+int64(size) > s.cfg.AdmissionStorageBudget {
+		return apierr.DefaultRetryAfterSeconds, false
+	}
+	return 0, true
+}
 
 func init() {
 	routeGroups = append(routeGroups, admissionRegisterRoutes)
@@ -124,12 +135,19 @@ func (s *Service) admissionAdmit(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnprocessableEntity, "invalid_message")
 		return
 	}
+	s.admissionMu.Lock()
+	defer s.admissionMu.Unlock()
+	pending, err := s.admissionPendingBytes()
+	if err != nil {
+		writeRetry(w, http.StatusServiceUnavailable, "unavailable", apierr.DefaultRetryAfterSeconds)
+		return
+	}
 	draft := funding.AdmissionDraft{Request: req, AuthorID: req.Intent.AuthorID, MessageID: id, Quote: quote}
 	check := func(at time.Time) error {
 		if !at.Before(expires) {
 			return admissionQuoteExpired
 		}
-		if retry, ok := admissionCapacity(s, len(intentBytes)); !ok {
+		if retry, ok := admissionCapacity(s, int(pending)+len(intentBytes)); !ok {
 			return admissionCapacityFailure{seconds: retry}
 		}
 		return nil
@@ -153,6 +171,10 @@ func (s *Service) admissionAdmit(w http.ResponseWriter, r *http.Request) {
 		return callbackErr
 	}
 	if req.Intent.Delegation != nil {
+		if err := s.controlsState.Ready(); err != nil {
+			writeRetry(w, http.StatusServiceUnavailable, "unavailable", apierr.DefaultRetryAfterSeconds)
+			return
+		}
 		use := delegation.Use{AuthorID: req.Intent.AuthorID, SignerID: req.Intent.SignerID, MessageType: "post", ProviderID: s.ProviderID()}
 		err = s.Authority.Admit(*req.Intent.Delegation, use, commit)
 	} else {
@@ -177,6 +199,63 @@ func (s *Service) admissionAdmit(w http.ResponseWriter, r *http.Request) {
 	}
 	writeCanonical(w, status, body, "no-store")
 }
+
+// admissionPendingBytes sums the canonical intent bytes of committed admissions that can still be finalized
+// and have no record yet, so capacity holds them before another admission is debited.
+func (s *Service) admissionPendingBytes() (int64, error) {
+	now := s.Now()
+	var total int64
+	for _, network := range settlementNetworks {
+		for after := uint64(0); ; {
+			page := s.Ledger.Receipts(network, after, admissionPendingPageSize)
+			for _, entry := range page {
+				size, err := s.admissionPendingSize(entry.Receipt, now)
+				if err != nil {
+					return 0, err
+				}
+				total += size
+			}
+			if len(page) < admissionPendingPageSize {
+				break
+			}
+			after = page[len(page)-1].Sequence
+		}
+	}
+	return total, nil
+}
+
+func (s *Service) admissionPendingSize(receipt wire.SubmissionReceipt, now time.Time) (int64, error) {
+	issuedAt, err := wire.ParseTime(receipt.IssuedAt)
+	if err != nil {
+		return 0, err
+	}
+	if !now.Before(issuedAt.Add(finalizeWindow)) || s.Ledger.Restored(receipt.AuthorID, receipt.MessageID) {
+		return 0, nil
+	}
+	_, state, err := s.Records().Lookup(receipt.MessageID)
+	if err != nil || state != RecordUnknown {
+		return 0, err
+	}
+	prepared, ok := s.Ledger.Admission(receipt.AuthorID, receipt.MessageID)
+	if !ok {
+		return 0, errors.New("provider: prepared admission missing")
+	}
+	encoded, err := canon.Encode(prepared.Request.Intent)
+	return int64(len(encoded)), err
+}
+
+func (s *Service) retainedMessageBytes() (int64, error) {
+	var total int64
+	err := s.Store().View(func(tx store.Tx) error {
+		return tx.Scan("provider.message_bytes", store.Range{}, func(_ string, b []byte) (bool, error) {
+			total += int64(len(b))
+			return true, nil
+		})
+	})
+	return total, err
+}
+
+const admissionPendingPageSize = 1000
 
 var admissionQuoteExpired = errors.New("provider: quote expired at authorization time")
 
@@ -264,6 +343,9 @@ func (s *Service) admissionVerifyIntentSigner(intent wire.Intent, verify func(si
 	}
 	if intent.Delegation == nil || !currentDelegation {
 		return nil
+	}
+	if s.controlsState.Ready() != nil {
+		return fmt.Errorf("%w: control state unverified", delegation.ErrUncertain)
 	}
 	use := delegation.Use{AuthorID: intent.AuthorID, SignerID: signer, MessageType: "post", ProviderID: s.ProviderID(), At: at}
 	// Authority.Admit is used as a read-only current-authorization check with a no-op commit.

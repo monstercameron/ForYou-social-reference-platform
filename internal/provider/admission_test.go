@@ -5,6 +5,7 @@ import (
 	"crypto/ed25519"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
@@ -262,6 +263,40 @@ func TestAdmissionDelegationGate(t *testing.T) {
 			t.Fatalf("delegated quote/debit = %s/%s for %d billable bytes; want 272 msat for two started KiB", quote.AmountBaseUnits, new(big.Int).Sub(before.Available, after.Available), quote.BillableBytes)
 		}
 	})
+	t.Run("delegated admission waits for verified control state without debit", func(t *testing.T) {
+		f := admissionNewFixture(t)
+		intent := f.delegatedAdmissionIntent(t, f.now.Add(time.Hour))
+		quote := f.admissionQuote(t, intent)
+		before, _ := f.service.Ledger.Balance(f.author, faux.BitcoinMainnet)
+		f.service.controlsState = &controlFailureState{err: errors.New("control store unavailable")}
+		response := admissionServe(f.service, "POST", "/v1/admissions", f.admissionRequest(t, intent, quote.QuoteID))
+		if response.Code != http.StatusServiceUnavailable || response.Body.String() != `{"retry_after_seconds":30,"status":"unavailable"}` {
+			t.Fatalf("delegated admission = %d %s", response.Code, response.Body.String())
+		}
+		after, _ := f.service.Ledger.Balance(f.author, faux.BitcoinMainnet)
+		if before.Available.Cmp(after.Available) != 0 {
+			t.Fatalf("balance changed from %s to %s", before.Available, after.Available)
+		}
+	})
+	t.Run("delegated fee quote waits for verified control state", func(t *testing.T) {
+		f := admissionNewFixture(t)
+		intent := f.delegatedAdmissionIntent(t, f.now.Add(time.Hour))
+		f.service.controlsState = &controlFailureState{err: errors.New("control store unavailable")}
+		response := admissionServe(f.service, "POST", "/v1/fee-quotes", admissionQuoteBody(t, f, intent))
+		if response.Code != http.StatusServiceUnavailable || response.Body.String() != `{"retry_after_seconds":30,"status":"unavailable"}` {
+			t.Fatalf("delegated fee quote = %d %s", response.Code, response.Body.String())
+		}
+	})
+	t.Run("non-delegated admission is unaffected by control store failure", func(t *testing.T) {
+		f := admissionNewFixture(t)
+		intent := f.admissionIntent()
+		quote := f.admissionQuote(t, intent)
+		f.service.controlsState = &controlFailureState{err: errors.New("control store unavailable")}
+		response := admissionServe(f.service, "POST", "/v1/admissions", f.admissionRequest(t, intent, quote.QuoteID))
+		if response.Code != http.StatusCreated {
+			t.Fatalf("non-delegated admission = %d %s", response.Code, response.Body.String())
+		}
+	})
 	t.Run("revoked delegation is rejected without debit", func(t *testing.T) {
 		f := admissionNewFixture(t)
 		intent := f.delegatedAdmissionIntent(t, f.now.Add(time.Hour))
@@ -364,7 +399,7 @@ func admissionQuoteBody(t *testing.T, f *admissionTestFixture, intent wire.Inten
 	t.Helper()
 	schedule, _ := fee.InForce(f.service.FeeSchedules(), faux.BitcoinMainnet, f.now)
 	id, _ := message.ID(intent)
-	authorization, err := fee.SignPreflight(fee.PreflightAuthorization(f.service.ProviderID(), f.author, id, schedule.ScheduleID), f.key)
+	authorization, err := fee.SignPreflight(fee.PreflightAuthorization(f.service.ProviderID(), f.author, id, schedule.ScheduleID), f.admissionSigner(intent))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -479,6 +514,57 @@ func TestAdmissionCommitAndRetry(t *testing.T) {
 		after, _ := f.service.Ledger.Balance(f.author, faux.BitcoinMainnet)
 		if before.Available.Cmp(after.Available) != 0 {
 			t.Fatalf("balance changed from %s to %s", before.Available, after.Available)
+		}
+	})
+	t.Run("admission beyond the storage budget is refused without debit", func(t *testing.T) {
+		f := admissionNewFixture(t)
+		intent := f.admissionIntent()
+		quote := f.admissionQuote(t, intent)
+		before, _ := f.service.Ledger.Balance(f.author, faux.BitcoinMainnet)
+		f.service.cfg.AdmissionStorageBudget = 1
+		response := admissionServe(f.service, "POST", "/v1/admissions", f.admissionRequest(t, intent, quote.QuoteID))
+		if response.Code != http.StatusServiceUnavailable || response.Body.String() != `{"retry_after_seconds":30,"status":"unavailable"}` {
+			t.Fatalf("response = %d %s", response.Code, response.Body.String())
+		}
+		after, _ := f.service.Ledger.Balance(f.author, faux.BitcoinMainnet)
+		if before.Available.Cmp(after.Available) != 0 {
+			t.Fatalf("balance changed from %s to %s", before.Available, after.Available)
+		}
+	})
+	t.Run("admission within the storage budget is accepted", func(t *testing.T) {
+		f := admissionNewFixture(t)
+		intent := f.admissionIntent()
+		quote := f.admissionQuote(t, intent)
+		f.service.cfg.AdmissionStorageBudget = 1 << 20
+		response := admissionServe(f.service, "POST", "/v1/admissions", f.admissionRequest(t, intent, quote.QuoteID))
+		if response.Code != http.StatusCreated {
+			t.Fatalf("response = %d %s", response.Code, response.Body.String())
+		}
+	})
+	t.Run("pending admission holds capacity until finalized", func(t *testing.T) {
+		f := admissionNewFixture(t)
+		first := f.admissionIntent()
+		firstQuote := f.admissionQuote(t, first)
+		second := f.admissionIntent()
+		second.Payload.Text = "a paid host"
+		secondQuote := f.admissionQuote(t, second)
+		firstBytes, err := canon.Encode(first)
+		if err != nil {
+			t.Fatal(err)
+		}
+		f.service.cfg.AdmissionStorageBudget = int64(len(firstBytes)) + 4
+		response := admissionServe(f.service, "POST", "/v1/admissions", f.admissionRequest(t, first, firstQuote.QuoteID))
+		if response.Code != http.StatusCreated {
+			t.Fatalf("first admission = %d %s", response.Code, response.Body.String())
+		}
+		afterFirst, _ := f.service.Ledger.Balance(f.author, faux.BitcoinMainnet)
+		response = admissionServe(f.service, "POST", "/v1/admissions", f.admissionRequest(t, second, secondQuote.QuoteID))
+		if response.Code != http.StatusServiceUnavailable || response.Body.String() != `{"retry_after_seconds":30,"status":"unavailable"}` {
+			t.Fatalf("second admission = %d %s", response.Code, response.Body.String())
+		}
+		after, _ := f.service.Ledger.Balance(f.author, faux.BitcoinMainnet)
+		if afterFirst.Available.Cmp(after.Available) != 0 {
+			t.Fatalf("balance changed from %s to %s", afterFirst.Available, after.Available)
 		}
 	})
 	t.Run("mismatched quote leaves balance unchanged", func(t *testing.T) {

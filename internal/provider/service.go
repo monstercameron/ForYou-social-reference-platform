@@ -59,6 +59,7 @@ type Service struct {
 	visibility        *visibility
 	gen               uint64
 	fundingJournal    funding.Journal
+	admissionMu       sync.Mutex
 }
 type loop struct {
 	name     string

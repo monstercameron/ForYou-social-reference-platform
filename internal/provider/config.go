@@ -85,6 +85,8 @@ type Config struct {
 	Retention RetentionConfig
 	// Operator contains public operator disclosure fields.
 	Operator OperatorConfig
+	// AdmissionStorageBudget bounds retained message bytes plus each new admission; zero selects one GiB.
+	AdmissionStorageBudget int64
 	// DirectCacheMaxAge bounds direct-read caching; zero selects the one-hour default.
 	DirectCacheMaxAge time.Duration
 	// QuoteLifetime bounds fee quote lifetime.
@@ -109,6 +111,12 @@ func (c *Config) validate() error {
 	}
 	if c.Random == nil {
 		c.Random = cryptorand.Reader
+	}
+	if c.AdmissionStorageBudget < 0 {
+		return invalidField("AdmissionStorageBudget", "must not be negative")
+	}
+	if c.AdmissionStorageBudget == 0 {
+		c.AdmissionStorageBudget = 1 << 30
 	}
 	if c.DirectCacheMaxAge == 0 {
 		c.DirectCacheMaxAge = time.Hour
