@@ -145,11 +145,16 @@ func creditStands(ctx context.Context, chain faux.Chain, credit wire.DepositCred
 	return t.Success && !t.Coinbase && final(t) && t.AmountChainUnits == credit.AmountChainUnits && paysRecipient(t, recipient), nil
 }
 
-// held reports whether the credit of a transfer is frozen or reversed.
-func (l *Ledger) held(transferID string) bool {
+// rechecks reports whether a retry for this credit looks at the chain again: the
+// credit is frozen or reversed, or still inside the watch window.
+func (l *Ledger) rechecks(transferID string) bool {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
-	return l.holds[transferID] != nil
+	if l.holds[transferID] != nil {
+		return true
+	}
+	at, err := wire.ParseTime(l.credits[transferID].CreditedAt)
+	return err == nil && at.After(l.clock().Add(-l.cfg.ReorgWatch))
 }
 
 // dropPending forgets the pending observation of a transfer the chain no longer

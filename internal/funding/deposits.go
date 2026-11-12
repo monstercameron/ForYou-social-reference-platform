@@ -263,7 +263,7 @@ func (l *Ledger) Observe(ctx context.Context, p wire.DepositProof, chain faux.Ch
 		return wire.DepositCredit{}, Pending, err
 	}
 	if credit, out, done, err := l.fenced(id, p.DepositID); done {
-		if out == Existing && l.held(id) {
+		if out == Existing && l.rechecks(id) {
 			// The retry still recovers the original credit when the chain cannot be read.
 			_ = l.recheck(ctx, chain, id)
 		}
@@ -375,7 +375,7 @@ func (l *Ledger) observeTarget(p wire.DepositProof) (string, error) {
 	return id, nil
 }
 
-// fenced is consumed under the read lock, so retries are answered without a chain lookup.
+// fenced is consumed under the read lock, so a retry is answered from the ledger.
 func (l *Ledger) fenced(transferID, depositID string) (wire.DepositCredit, Outcome, bool, error) {
 	l.mu.RLock()
 	defer l.mu.RUnlock()

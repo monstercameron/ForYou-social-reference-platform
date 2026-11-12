@@ -200,6 +200,20 @@ func TestReorganizationNeverMakesABalanceNegative(t *testing.T) {
 	})
 }
 
+func TestRetryRechecksAWatchedCredit(t *testing.T) {
+	f, proof, credit, _ := reorgFixture(t)
+	f.orphan(t, proof)
+	got, outcome, err := f.observe(proof)
+	t.Run("the retry still returns the original credit", func(t *testing.T) {
+		if err != nil || outcome != Existing || !reflect.DeepEqual(got, credit) {
+			t.Errorf("Observe = %+v, %v, %v; want the original credit, Existing", got, outcome, err)
+		}
+	})
+	t.Run("the missing transfer is frozen without waiting for the loop", func(t *testing.T) {
+		checkFrozen(t, f.ledger, 0, 49_999_864)
+	})
+}
+
 type unreadableChain struct{ faux.Chain }
 
 func (unreadableChain) Transfer(context.Context, string, string) (faux.Transfer, error) {
