@@ -27,6 +27,7 @@
 @import "./install.css";
 @import "./motion.css";
 @import "./responsive.css";
+@import "./a11y.css";
 @source "../templates";
 
 @keyframes gallery-enter {
