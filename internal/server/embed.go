@@ -91,7 +91,7 @@ func (a *App) shareData(r *http.Request, id string) (shareDetails, int) {
 	if details.Theme != "" {
 		details.EmbedURL += "?theme=" + details.Theme
 	}
-	details.Code = fmt.Sprintf(`<iframe src="%s" title="ForYou post by %s" width="480" height="480" loading="lazy" referrerpolicy="no-referrer" sandbox="allow-popups allow-popups-to-escape-sandbox"></iframe>`, html.EscapeString(details.EmbedURL), html.EscapeString(details.Author))
+	details.Code = fmt.Sprintf(`<iframe src="%s" title="ForYou post by %s" width="550" height="720" style="width:100%%;max-width:550px;border:0" loading="lazy" referrerpolicy="no-referrer" sandbox="allow-popups allow-popups-to-escape-sandbox"></iframe>`, html.EscapeString(details.EmbedURL), html.EscapeString(details.Author))
 	return details, http.StatusOK
 }
 

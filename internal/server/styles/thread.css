@@ -194,6 +194,7 @@
   .detail-embed-line { display:flex; align-items:center; gap:8px; min-width:0; }
   .detail-embed-line strong { min-width:0; overflow:hidden; font-size:14px; font-weight:600; text-overflow:ellipsis; white-space:nowrap; }
   .detail-embed .receipt-badge { flex:none; }
+  .detail-embed .post-badges { margin-top:10px; }
   .detail-embed-by time { color:var(--muted); font-size:13px; }
   .detail-embed-topic { display:inline-block; margin-top:12px; padding:2px 9px; border:1px solid var(--line); border-radius:999px; color:var(--muted); font-size:13px; }
   .detail-embed-text { margin:12px 0; font-size:15px; line-height:1.55; white-space:pre-wrap; overflow-wrap:anywhere; }

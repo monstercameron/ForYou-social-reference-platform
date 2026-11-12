@@ -156,9 +156,25 @@ func TestShareFieldsUseConfiguredOrigin(t *testing.T) {
 	w := httptest.NewRecorder()
 	testClientHandler(t).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/share/fragment?id=maya", nil))
 	body := w.Body.String()
-	if w.Code != http.StatusOK || !strings.Contains(body, `value="https://example.test/posts/maya"`) || !strings.Contains(body, "Anyone can read this post without an account. The link works where this client is reachable.") || strings.Contains(body, "data-copy-target") {
+	if w.Code != http.StatusOK || !strings.Contains(body, `value="https://example.test/posts/maya"`) || !strings.Contains(body, "Copy the link or the embed code. They open only for people who can reach this ForYou server.") || strings.Contains(body, "data-copy-target") {
 		t.Errorf("share panel fields or configured origin missing (status %d)", w.Code)
 	}
+}
+
+func TestEmbedSnippetFitsEmbedCard(t *testing.T) {
+	w := httptest.NewRecorder()
+	testClientHandler(t).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/share/fragment?id=maya", nil))
+	body := w.Body.String()
+	t.Run("iframe matches the 550px embed card", func(t *testing.T) {
+		if w.Code != http.StatusOK || !strings.Contains(html.UnescapeString(body), `width="550" height="720" style="width:100%;max-width:550px;border:0"`) || strings.Contains(html.UnescapeString(body), `width="480"`) {
+			t.Errorf("embed snippet dimensions: status %d; want 550 by 720 without the old 480 square", w.Code)
+		}
+	})
+	t.Run("code box shows six lines", func(t *testing.T) {
+		if !strings.Contains(body, `class="share-field share-code" id="embed-code-maya" readonly rows="6"`) {
+			t.Errorf("embed code textarea does not have six rows")
+		}
+	})
 }
 
 func TestShareFallbackReturnsToPost(t *testing.T) {
@@ -310,7 +326,7 @@ func TestSeededRecordShareAndEmbed(t *testing.T) {
 	t.Run("embed shows the verified card with its settlement badge", func(t *testing.T) {
 		w := httptest.NewRecorder()
 		h.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/embed/"+id, nil))
-		if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "A verified network post.") || !strings.Contains(w.Body.String(), "Pending") {
+		if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "A verified network post.") || !strings.Contains(w.Body.String(), "Pending") || !strings.Contains(w.Body.String(), "Not proof of payment.") {
 			t.Errorf("embed of a seeded record: status %d", w.Code)
 		}
 	})

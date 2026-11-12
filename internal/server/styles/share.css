@@ -19,7 +19,7 @@
     display:block; box-sizing:border-box; width:100%; min-width:0; min-height:44px; margin:0; padding:10px 12px; border:1px solid var(--line);
     border-radius:8px; background:var(--bg); color:var(--text); font:13px/1.45 ui-monospace,SFMono-Regular,Consolas,monospace; overflow-wrap:anywhere;
   }
-  .share-code { resize:vertical; white-space:pre-wrap; word-break:break-all; }
+  .share-code { resize:vertical; white-space:pre-wrap; word-break:break-all; field-sizing:content; min-height:6lh; }
   .share-panel p { margin:12px 0 0; color:var(--muted); font-size:13px; line-height:1.5; }
   .share-panel .share-notice { padding:12px; border-radius:8px; background:var(--warn-soft); color:var(--text); font-size:14px; font-weight:600; }
   .share-id { overflow-wrap:anywhere; }
