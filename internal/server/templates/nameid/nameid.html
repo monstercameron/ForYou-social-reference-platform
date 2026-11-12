@@ -1,0 +1,100 @@
+{{define "nameid-page"}}
+{{template "layout-open" .Layout}}
+  <div class="page-content nameid-content">
+    <header class="page-heading"><h1>Display name</h1><p>A display name is a label your key signs. Anyone can use the same name, so readers always see it with your key fingerprint.</p></header>
+    {{if .HasIdentity}}
+    {{template "nameid-key" .}}
+    <div id="nameid-main" class="nameid-main">{{template "nameid-body" .}}</div>
+    {{template "nameid-results" .}}
+    {{template "nameid-withdraw" .}}
+    {{else}}{{template "nameid-empty"}}{{end}}
+  </div>
+{{template "layout-close" .Layout}}
+{{end}}
+{{define "nameid-empty"}}<section class="component-card nameid-card" aria-labelledby="nameid-empty-title">
+  <h2 id="nameid-empty-title">Your key</h2>
+  <p>You need a signing key before you can name it.</p>
+  <p><a class="button button-primary" href="/identity">Go to identity and keys</a></p>
+</section>{{end}}
+{{define "nameid-key"}}<section class="component-card nameid-card" aria-labelledby="nameid-key-title">
+  <h2 id="nameid-key-title">Your key</h2>
+  <p class="nameid-fingerprint"><span class="nameid-label">Your key fingerprint</span> <span class="id-chip">{{.Fingerprint}}</span></p>
+  <details class="nameid-details"><summary>Show the full key</summary><p><code class="nameid-did">{{.DID}}</code></p></details>
+</section>{{end}}
+{{define "nameid-body"}}{{if .Notice}}<p class="nameid-notice" role="status">{{.Notice}}</p>{{end}}{{template "nameid-form" .}}{{template "nameid-status" .}}{{end}}
+{{define "nameid-form"}}<section id="nameid-form" class="component-card nameid-card" aria-labelledby="nameid-form-title">
+  <h2 id="nameid-form-title">Name this key</h2>
+  <form class="nameid-form" action="/identity/name/check" method="post">
+    <div class="nameid-field">
+      <label for="nameid-name">Display name</label>
+      <input id="nameid-name" class="nameid-input" name="name" type="text" value="{{.Form.Name}}" autocomplete="nickname" spellcheck="false" dir="auto" aria-describedby="nameid-name-help nameid-name-error" post="/identity/name/check" trigger="input" debounce="400" target="#nameid-preview(innerHTML)" timeout="5000">
+      <p id="nameid-name-help" class="help-text">1 to 64 characters on one line. Invisible and control characters are not allowed.</p>
+    </div>
+    <div id="nameid-preview" class="nameid-preview" role="status" aria-live="polite">{{template "nameid-preview" .Preview}}</div>
+    <noscript><div class="nameid-actions"><button class="button button-secondary" type="submit" formaction="/identity/name/check" formmethod="post" formnovalidate>Check</button></div></noscript>
+    <div class="nameid-field">
+      <label for="nameid-avatar">Picture address (optional)</label>
+      <input id="nameid-avatar" class="nameid-input" name="avatar" type="url" value="{{.Form.Avatar}}" inputmode="url" autocomplete="off" spellcheck="false" aria-describedby="nameid-avatar-help">
+      <p id="nameid-avatar-help" class="help-text">An https:// address of a picture on a host you choose. The picture is fetched once, when you check it, and its digest is signed with the name. Clear the address to publish without a picture.</p>
+    </div>
+    <div class="nameid-actions">
+      <button class="button button-secondary js-only" type="button" post="/identity/name/avatar" source="#nameid-name,#nameid-avatar" target="#nameid-avatar-result(innerHTML)" timeout="10000" loading="#nameid-form-busy(innerHTML)" onerror="#nameid-avatar-result(innerHTML)">Check picture</button>
+      <noscript><button class="button button-secondary" type="submit" formaction="/identity/name/avatar" formmethod="post" formnovalidate>Check picture</button></noscript>
+    </div>
+    <div id="nameid-avatar-result" class="nameid-avatar-result" role="status" aria-live="polite">{{template "nameid-avatar" .Picture}}</div>
+    {{if .Warn}}<p class="nameid-warn">{{.Warn}}</p>{{end}}
+    <div class="nameid-check">
+      <label><input id="nameid-understood" type="checkbox" name="understood" value="yes"{{if .Form.UnderstoodError}} aria-describedby="nameid-understood-error"{{end}}> <span>I understand: a published name is public, anyone can use the same name, and it proves only that my key signed it. Each provider accepts one change per day.</span></label>
+      {{if .Form.UnderstoodError}}<p id="nameid-understood-error" class="error-text" role="alert">{{.Form.UnderstoodError}}</p>{{end}}
+    </div>
+    <p id="nameid-form-error" class="error-text" role="alert"></p>
+    <p id="nameid-form-busy" class="help-text nameid-busy" role="status"></p>
+    <div class="nameid-actions">
+      <button class="button button-secondary js-only" type="button" post="/identity/name/local" source="#nameid-name,#nameid-avatar" target="#nameid-main(innerHTML)" timeout="5000" loading="#nameid-form-busy(innerHTML)" data-focus-after-swap="#nameid-status-title" onerror="#nameid-form-error(innerHTML)">Keep on this device</button>
+      <button class="button button-primary js-only" type="button" post="/identity/name/publish" source="#nameid-name,#nameid-avatar,#nameid-avatar-result input,#nameid-understood" target="#nameid-results(outerHTML)" timeout="10000" data-focus-after-swap="#nameid-results-title" loading="#nameid-form-busy(innerHTML)" onerror="#nameid-form-error(innerHTML)">Sign and publish</button>
+      <noscript>
+        <button class="button button-secondary" type="submit" formaction="/identity/name/local" formmethod="post" formnovalidate>Keep on this device</button>
+        <button class="button button-primary" type="submit" formaction="/identity/name/publish" formmethod="post" formnovalidate>Sign and publish</button>
+      </noscript>
+    </div>
+  </form>
+</section>{{end}}
+{{define "nameid-preview"}}{{if .Problem}}<p id="nameid-name-error" class="error-text" role="alert">{{.Problem}}</p>{{else if .Empty}}<p class="help-text">Enter a name to see how readers will see it.</p>{{else}}<p class="nameid-seen">Readers will see <bdi class="nameid-name">{{.Name}}</bdi> <span class="id-chip">{{.Fingerprint}}</span></p><p class="nameid-mark">Signed by this key</p>{{if .Changed}}<p class="help-text">Will be saved as <bdi class="nameid-name">{{.Name}}</bdi></p>{{end}}{{end}}{{end}}
+{{define "nameid-preview-update"}}{{template "nameid-preview" .Preview}}{{end}}
+{{define "nameid-avatar-update"}}{{template "nameid-avatar" .Picture}}{{end}}
+{{define "nameid-avatar"}}{{if .Error}}<p class="error-text" role="alert">{{.Error}}</p>{{else if .URL}}<div class="nameid-picture">{{if .Data}}<img src="{{.Data}}" alt="The picture you checked for your name" width="96" height="96"><p class="help-text">Checked picture, {{.Size}} bytes.{{else}}<p class="help-text">Signed picture, {{.Size}} bytes.{{end}} Digest <span class="id-chip">{{.SHA256}}</span></p></div><input type="hidden" name="avatar_checked" value="{{.URL}}"><input type="hidden" name="avatar_sha256" value="{{.SHA256}}"><input type="hidden" name="avatar_size" value="{{.Size}}">{{end}}{{end}}
+{{define "nameid-status"}}<section id="nameid-status" class="component-card nameid-card" aria-labelledby="nameid-status-title">
+  <h2 id="nameid-status-title" tabindex="-1">Status</h2>
+  <dl class="nameid-facts">
+    <div class="nameid-fact"><dt>Kept on this device</dt><dd>{{if .Local}}<bdi class="nameid-name">{{.Local}}</bdi> <span class="id-chip">{{.Fingerprint}}</span>{{else}}None{{end}}</dd></div>
+    <div class="nameid-fact"><dt>Last signed record</dt><dd>{{with .Published}}{{if .Withdrawn}}Withdrawn{{else}}<bdi class="nameid-name">{{.Name}}</bdi> <span class="id-chip">{{$.Fingerprint}}</span>{{end}}<br><time datetime="{{.IssuedAt.Format "2006-01-02T15:04:05Z"}}">{{.IssuedAt.Format "2 January 2006 15:04 UTC"}}</time> <span class="id-chip">{{.NameID}}</span>{{else}}None{{end}}</dd></div>
+  </dl>
+  {{if and (not .Local) (not .Published)}}<p class="help-text">You have no display name. Readers see your key fingerprint.</p>{{end}}
+  {{if .LastOutcomes}}<h3 class="nameid-subhead">Last publication</h3><ul class="nameid-lines">{{range .LastOutcomes}}<li><span class="nameid-provider">{{.Provider}}</span> <span>{{.Outcome}}</span></li>{{end}}</ul>{{end}}
+  {{if .Local}}<form class="nameid-inline" action="/identity/name/local/clear" method="post" post="/identity/name/local/clear" target="#nameid-main(innerHTML)" timeout="5000" data-focus-after-swap="#nameid-status-title"><button class="button button-secondary" type="submit">Remove local name</button></form>{{end}}
+  <div class="nameid-check-row">
+    <button class="button button-secondary js-only" type="button" get="/identity/name/status" target="#nameid-status(outerHTML)" timeout="10000" data-focus-after-swap="#nameid-status-title" loading="#nameid-status-busy(innerHTML)" onerror="#nameid-status-error(innerHTML)">Check published name</button>
+    <noscript><a class="button button-secondary" href="/identity/name?check=1">Check published name</a></noscript>
+  </div>
+  <p id="nameid-status-error" class="error-text" role="alert"></p>
+  <p id="nameid-status-busy" class="help-text nameid-busy" role="status"></p>
+  {{if .Checked}}<div class="nameid-checked">
+    {{if .CheckNote}}<p>{{.CheckNote}}</p>{{end}}
+    {{if .Lines}}<h3 class="nameid-subhead">Your providers</h3><ul class="nameid-lines">{{range .Lines}}<li><span class="nameid-provider">{{.Provider}}</span> <span>{{.Outcome}}</span></li>{{end}}</ul>{{end}}
+    {{with .Current}}<p>Selected record: {{if .Withdrawn}}Withdrawn{{else}}<bdi class="nameid-name">{{.Name}}</bdi> <span class="id-chip">{{$.Fingerprint}}</span>{{end}}<br><time datetime="{{.IssuedAt.Format "2006-01-02T15:04:05Z"}}">{{.IssuedAt.Format "2 January 2006 15:04 UTC"}}</time> <span class="id-chip">{{.NameID}}</span></p>{{else}}{{if .Lines}}<p>No provider holds a valid record for this key.</p>{{end}}{{end}}
+  </div>{{end}}
+</section>{{end}}
+{{define "nameid-results"}}<section id="nameid-results" class="nameid-results{{if .ResultsShown}} component-card nameid-card{{end}}" role="status" aria-live="polite">{{if .ResultsShown}}<h2 id="nameid-results-title" tabindex="-1">Publication results</h2>{{if .ResultError}}<p class="error-text" role="alert">{{.ResultError}}</p>{{end}}{{if .Results}}<ul class="nameid-lines">{{range .Results}}<li><span class="nameid-provider">{{.Provider}}</span> <span>{{.Outcome}}</span>{{if eq .Code "not_ready"}} <a href="/compose">Write a post</a>{{else if eq .Code "stale_state"}} <a href="/identity/name?check=1">Check published name</a>{{end}}</li>{{end}}</ul>{{end}}{{if .CanRetry}}<form class="nameid-inline" action="/identity/name/retry" method="post" post="/identity/name/retry" target="#nameid-results(outerHTML)" timeout="10000" loading="#nameid-results-busy(innerHTML)" data-focus-after-swap="#nameid-results-title"><button class="button button-secondary" type="submit">Retry unknown results</button></form>{{end}}{{end}}<p id="nameid-results-busy" class="help-text nameid-busy" role="status"></p></section>{{end}}
+{{define "nameid-results-update"}}<fragment target="#nameid-results(outerHTML)">{{template "nameid-results" .}}</fragment><fragment target="#nameid-status(outerHTML)">{{template "nameid-status" .}}</fragment><fragment target="#nameid-form(outerHTML)">{{template "nameid-form" .}}</fragment><fragment target="#nameid-withdraw(outerHTML)">{{template "nameid-withdraw" .}}</fragment>{{end}}
+{{define "nameid-withdraw"}}<div id="nameid-withdraw">{{if .CanWithdraw}}<section class="component-card nameid-card" aria-labelledby="nameid-withdraw-title">
+  <h2 id="nameid-withdraw-title">Withdraw published name</h2>
+  <form class="nameid-form" action="/identity/name/withdraw" method="post" post="/identity/name/withdraw" target="#nameid-results(outerHTML)" timeout="10000" loading="#nameid-results-busy(innerHTML)" data-focus-after-swap="#nameid-results-title">
+    <div class="nameid-check"><label><input type="checkbox" name="withdraw" value="yes"> <span>Withdraw my published name. Readers will see only my key fingerprint.</span></label></div>
+    <div class="nameid-actions"><button class="button button-secondary" type="submit">Withdraw name</button></div>
+  </form>
+</section>{{end}}</div>{{end}}
+{{define "nameid-identity-link"}}<section class="component-card identity-card" aria-labelledby="nameid-link-title">
+  <h2 id="nameid-link-title">Display name</h2>
+  <p>Add a name people see next to your key.</p>
+  <p><a class="button button-secondary" href="/identity/name">Set a display name</a></p>
+</section>{{end}}

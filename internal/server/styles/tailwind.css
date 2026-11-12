@@ -19,6 +19,7 @@
 @import "./markdown.css";
 @import "./media.css";
 @import "./identity.css";
+@import "./nameid.css";
 @import "./network.css";
 @import "./wallet.css";
 @import "./settings.css";
