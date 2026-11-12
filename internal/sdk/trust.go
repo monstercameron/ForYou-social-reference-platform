@@ -3,6 +3,7 @@ package sdk
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"sort"
 	"time"
 
@@ -274,6 +275,10 @@ func (t *TrustRoot) vfApproveSchedule(s wire.FeeSchedule, a wire.FeeScheduleAppr
 	var previous *wire.FeeSchedule
 	for i := range t.schedules {
 		if t.schedules[i].Network == s.Network && t.schedules[i].Revision == s.Revision {
+			if reflect.DeepEqual(t.schedules[i], s) {
+				// The Foundation lists a schedule the genesis already approved; that is not a rival.
+				return
+			}
 			t.rejected = append(t.rejected, RejectedObject{Kind: "fee_schedule", ID: s.ScheduleID, Reason: "duplicate network revision"})
 			return
 		}
@@ -348,6 +353,11 @@ func (t *TrustRoot) vfApprovePolicy(p wire.DistributionPolicy) {
 	if t.trust == nil {
 		t.rejected = append(t.rejected, RejectedObject{Kind: "distribution_policy", ID: p.PolicyID, Reason: "Foundation trust unavailable"})
 		return
+	}
+	for _, known := range t.policies {
+		if reflect.DeepEqual(known, p) {
+			return
+		}
 	}
 	if err := distribution.CheckPolicy(p, t.policies, t.trust); err != nil {
 		t.rejected = append(t.rejected, RejectedObject{Kind: "distribution_policy", ID: p.PolicyID, Reason: err.Error()})

@@ -2,7 +2,9 @@ package sdk
 
 import (
 	"testing"
+	"time"
 
+	"foryou.local/foryou/internal/devnet"
 	"foryou.local/foryou/internal/wire"
 )
 
@@ -26,4 +28,22 @@ func TestCheckAppliedUpdates(t *testing.T) {
 			t.Errorf("error = %v; want the later update accepted", err)
 		}
 	})
+}
+
+func TestRepublishedGenesisObjectsAreNotRejected(t *testing.T) {
+	genesis := devnet.Genesis()
+	now := time.Date(2026, 11, 11, 0, 0, 0, 0, time.UTC)
+	root, err := BuildTrustRoot(Pin{ReleaseKeyIDs: genesis.ReleaseKeyIDs, Threshold: int(genesis.ReleaseThreshold)}, Publications{
+		Genesis:      genesis,
+		Certificates: wire.FoundationCertificatesPage{Certificates: devnet.Certificates(now)},
+		FeeSchedules: wire.FeeSchedulesPage{Schedules: devnet.FeeSchedules()},
+		Distribution: wire.DistributionPage{Policies: devnet.Policies()},
+		FetchedAt:    now,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rejected := root.Rejected(); len(rejected) != 0 {
+		t.Errorf("rejected = %+v; a schedule or policy the genesis already approved is not a rival when the Foundation lists it again", rejected)
+	}
 }

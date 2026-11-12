@@ -1,7 +1,7 @@
 @layer components {
   .network-content { @apply flex flex-col gap-4; }
   .network-section { @apply flex min-w-0 flex-col gap-3; }
-  .network-section p { @apply [overflow-wrap:anywhere]; }
+  .network-section p { @apply m-0 [overflow-wrap:anywhere]; }
   .network-section > h2 { @apply text-lg font-bold; }
   .network-section > h2:focus-visible { @apply outline-2 outline-offset-2 outline-[var(--accent)]; }
   .network-notice { @apply m-0 text-[13px] text-[var(--muted)]; }
