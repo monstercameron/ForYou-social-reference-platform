@@ -1,6 +1,7 @@
 import { initHTMLeX } from './htmlex/htmlex.js';
 import './swap-focus.js';
 import './viewer.js';
+import './shortcuts.js';
 
 initHTMLeX();
 

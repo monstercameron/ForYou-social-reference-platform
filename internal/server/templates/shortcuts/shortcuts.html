@@ -1,0 +1,56 @@
+{{define "shortcuts-page"}}
+{{template "layout-open" .Layout}}
+  <div class="page-content sc-content">
+    <header class="page-heading"><h1>Keyboard shortcuts</h1><p>Single keys for moving around ForYou in this browser. They never fire while you type in a field.</p></header>
+    <noscript><p class="sc-note">Shortcuts need JavaScript. With scripts off this page is a reference, and every action is still a link or button on the page.</p></noscript>
+    {{template "shortcuts-state" .State}}
+    {{template "shortcuts-list"}}
+  </div>
+{{template "layout-close" .Layout}}
+{{end}}
+{{define "shortcuts-state"}}<section id="shortcuts-state" class="component-card settings-card" aria-labelledby="sc-state-title">
+  <h2 id="sc-state-title">Shortcuts on this browser</h2>
+  <p>{{if .On}}<span class="pill pill-ok">On</span>{{else}}<span class="pill pill-muted">Off</span>{{end}}</p>
+  <p>This choice is saved in a cookie on this server for this browser. It is not sent to the network.</p>
+  <form action="/shortcuts" method="post" post="/shortcuts/fragment" target="#shortcuts-state(outerHTML)" timeout="5000" onerror="#sc-state-status(innerHTML)"><input type="hidden" name="state" value="{{if .On}}off{{else}}on{{end}}"><input type="hidden" name="from" value="shortcuts"><button class="button {{if .On}}button-secondary{{else}}button-primary{{end}}" type="submit" data-focus-after-swap="#shortcuts-state button">{{if .On}}Turn off shortcuts{{else}}Turn on shortcuts{{end}}</button></form>
+  <p id="sc-state-status" class="sc-status" role="status" aria-live="polite">{{.Status}}</p>
+</section>{{end}}
+{{define "shortcuts-list"}}<section id="shortcuts-list" class="component-card settings-card" aria-labelledby="sc-list-title">
+  <h2 id="sc-list-title">All shortcuts</h2>
+  {{template "shortcuts-groups"}}
+</section>{{end}}
+{{define "shortcuts-groups"}}
+<h3>Move</h3>
+<dl class="sc-keys">
+  <div><dt><kbd class="sc-kbd">j</kbd></dt><dd>Next post or reply</dd></div>
+  <div><dt><kbd class="sc-kbd">k</kbd></dt><dd>Previous post or reply</dd></div>
+  <div><dt><kbd class="sc-kbd">o</kbd> or <kbd class="sc-kbd">Enter</kbd></dt><dd>Open the selected post</dd></div>
+  <div><dt><kbd class="sc-kbd">Escape</kbd></dt><dd>Close the open panel, then clear the selection</dd></div>
+</dl>
+<h3>Act on the selected post</h3>
+<dl class="sc-keys">
+  <div><dt><kbd class="sc-kbd">l</kbd></dt><dd>Like or unlike (saved on this server for this browser)</dd></div>
+  <div><dt><kbd class="sc-kbd">r</kbd></dt><dd>Reply</dd></div>
+  <div><dt><kbd class="sc-kbd">s</kbd></dt><dd>Save, where a post has a Save button</dd></div>
+</dl>
+<h3>Go to</h3>
+<dl class="sc-keys">
+  <div><dt><kbd class="sc-kbd">n</kbd></dt><dd>New post</dd></div>
+  <div><dt><kbd class="sc-kbd">/</kbd></dt><dd>Search</dd></div>
+  <div><dt><kbd class="sc-kbd">g</kbd> then <kbd class="sc-kbd">h</kbd></dt><dd>Home</dd></div>
+  <div><dt><kbd class="sc-kbd">g</kbd> then <kbd class="sc-kbd">e</kbd></dt><dd>Explore</dd></div>
+  <div><dt><kbd class="sc-kbd">g</kbd> then <kbd class="sc-kbd">w</kbd></dt><dd>Wallet</dd></div>
+  <div><dt><kbd class="sc-kbd">g</kbd> then <kbd class="sc-kbd">s</kbd></dt><dd>Settings</dd></div>
+</dl>
+<h3>Help</h3>
+<dl class="sc-keys">
+  <div><dt><kbd class="sc-kbd">?</kbd></dt><dd>Show this list</dd></div>
+</dl>
+{{end}}
+{{define "shortcuts-dialog"}}
+<h2 id="sc-help-title">Keyboard shortcuts</h2>
+<p>Shortcuts are on. Turn them off on the <a href="/shortcuts">shortcuts page</a>.</p>
+{{template "shortcuts-groups"}}
+<button type="button" class="button button-secondary" data-sc-close>Close</button>
+{{end}}
+{{define "shortcuts-settings-card"}}<section id="sc-settings" class="component-card settings-card" aria-labelledby="sc-settings-title"><h2 id="sc-settings-title">Keyboard shortcuts</h2><p>Press ? anywhere to see them. Use j and k to move between posts, l to like, r to reply. Turn them off if they get in the way of your screen reader or other tools.</p><a class="button button-secondary button-link" href="/shortcuts">Shortcuts and on/off</a></section>{{end}}

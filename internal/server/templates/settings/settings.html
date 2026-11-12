@@ -29,7 +29,7 @@
       <h2 id="connection-title">Connection</h2>
       {{if .Layout.NetworkConfigured}}<p>{{.Layout.Source}}</p><dl class="network-list">{{range .Layout.Network}}<div><dt><span>{{.Label}}</span></dt><dd>{{.Value}}</dd></div>{{end}}</dl>{{if .Layout.DefaultList}}<p>Default list: {{.Layout.DefaultList}}</p>{{end}}{{else}}<p>No provider is connected. Demo posts are stored on this client server until it restarts.</p>{{end}}
     </section>
-    {{template "install-settings" .}}
+    {{template "shortcuts-settings-card"}}{{template "install-settings" .}}
   </div>
 {{template "layout-close" .Layout}}
 {{end}}

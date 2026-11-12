@@ -1,0 +1,42 @@
+@layer components {
+  /* The outline follows the card's own radius; other items get the reply radius. */
+  [data-sc-current] { outline:3px solid var(--accent); outline-offset:2px; }
+  [data-sc-current]:not(.post) { border-radius:10px; }
+  [data-sc-current]:focus-visible { outline:3px solid var(--accent); outline-offset:2px; }
+  @media (forced-colors: active) {
+    [data-sc-current], [data-sc-current]:focus-visible { outline-color:Highlight; }
+  }
+
+  .sc-kbd { display:inline-flex; align-items:center; justify-content:center; min-width:24px; height:24px; padding:0 6px; border:1px solid var(--line); border-bottom-width:2px; border-radius:6px; background:var(--control); color:var(--text); font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:13px; line-height:1; }
+  .sc-keys { display:grid; margin:0 0 16px; }
+  .sc-keys > div { display:grid; grid-template-columns:160px minmax(0,1fr); gap:10px; padding:10px 0; border-top:1px solid var(--line); }
+  .sc-keys > div:first-child { border-top:0; }
+  .sc-keys dt { display:flex; flex-wrap:wrap; align-items:center; gap:4px; color:var(--text); }
+  .sc-keys dd { margin:0; color:var(--muted); }
+  .sc-status { min-height:1.5em; margin:8px 0 0; color:var(--muted); font-size:13px; }
+  .settings-card > .sc-status { margin:8px 0 0; }
+  .settings-card > .sc-status:empty { min-height:0; margin:0; }
+  .sc-note { margin:0 0 12px; color:var(--muted); font-size:13px; }
+  .sc-sr-only { position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
+  .sc-dialog { width:min(560px,calc(100% - 32px)); max-height:calc(100dvh - 64px); overflow-y:auto; padding:20px; border:1px solid var(--line); border-radius:12px; background:var(--panel); color:var(--text); }
+  .sc-dialog::backdrop { background:rgb(0 0 0 / .45); }
+  .sc-dialog[open] { animation:sc-dialog-in .12s ease-out both; }
+  .sc-dialog h2 { margin:0 0 8px; font-size:18px; }
+  .sc-dialog > p { margin:0 0 12px; color:var(--muted); font-size:13px; }
+  .sc-dialog a { color:var(--accent); text-decoration:underline; }
+
+  .sc-chord { position:fixed; left:16px; bottom:16px; z-index:20; max-width:calc(100% - 32px); padding:8px 12px; border:1px solid var(--line); border-radius:10px; background:var(--panel); color:var(--muted); font-size:13px; animation:sc-fade-in var(--dur-fast) ease-out both; }
+  .sc-chord[hidden] { display:none; }
+  .sc-chord .sc-kbd { height:20px; min-width:20px; padding:0 4px; font-size:12px; }
+  @media (max-width:540px) {
+    .sc-chord { bottom:calc(72px + env(safe-area-inset-bottom)); }
+    .sc-keys > div { grid-template-columns:minmax(0,1fr); gap:4px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sc-chord, .sc-dialog[open] { animation:none; }
+  }
+
+  @keyframes sc-fade-in { from { opacity:0; } to { opacity:1; } }
+  @keyframes sc-dialog-in { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
+}
