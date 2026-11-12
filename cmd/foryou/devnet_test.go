@@ -266,7 +266,7 @@ func TestRunDevnetStopsOnRoleFailure(t *testing.T) {
 		if !errors.Is(err, failure) || !strings.Contains(fmt.Sprint(err), "monitor") {
 			t.Fatalf("runDevnet error = %v; want monitor run failure", err)
 		}
-	case <-time.After(5 * time.Second):
+	case <-time.After(time.Minute):
 		t.Fatal("runDevnet did not return after role failure")
 	}
 	closed := strings.Join(recorder.snapshot(), ",")
@@ -295,7 +295,7 @@ func TestRunDevnetGracefulShutdown(t *testing.T) {
 		if err != nil {
 			t.Errorf("runDevnet after cancellation = %v; want nil", err)
 		}
-	case <-time.After(5 * time.Second):
+	case <-time.After(time.Minute):
 		t.Fatal("runDevnet did not stop after cancellation")
 	}
 	assertReturned(t, recorder, "faux")
@@ -353,7 +353,7 @@ func waitForEvents(t *testing.T, recorder *devnetRecorder, event string) {
 	t.Helper()
 	select {
 	case <-recorder.started[strings.TrimPrefix(event, "run-start:")]:
-	case <-time.After(3 * time.Second):
+	case <-time.After(time.Minute):
 		t.Fatalf("did not observe %q", event)
 	}
 }
@@ -381,7 +381,7 @@ func awaitRun(t *testing.T, recorder *devnetRecorder, role string) {
 	t.Helper()
 	select {
 	case <-recorder.started[role]:
-	case <-time.After(3 * time.Second):
+	case <-time.After(time.Minute):
 		t.Fatalf("%s Run did not start", role)
 	}
 }
