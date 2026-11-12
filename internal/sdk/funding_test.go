@@ -198,15 +198,15 @@ func TestACObserveDeposit(t *testing.T) {
 
 func TestACReconciliationAfterObserveTimeout(t *testing.T) {
 	gate := make(chan struct{})
-	p := acNewProvider(t, func(p *acProvider) { p.observeGate = gate })
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	p := acNewProvider(t, func(p *acProvider) { p.observeGate, p.observeArrived = gate, cancel })
 	t.Cleanup(func() { close(gate) })
 	log, dir := acFileLog(t)
 	invoice, _, err := p.client.RequestDeposit(context.Background(), acAuthorKey(), acPlan(t, "10000", "0"), log)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
-	defer cancel()
 	if _, err := p.client.ObserveDeposit(ctx, acAuthorKey(), invoice, acTransfer(), log); !IsAmbiguous(err) {
 		t.Fatalf("ObserveDeposit error = %v; want an ambiguous timeout", err)
 	}

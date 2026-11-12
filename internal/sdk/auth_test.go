@@ -61,6 +61,7 @@ type acProvider struct {
 	mutateCredit    func(*wire.DepositCredit)
 	pendingObserves int
 	observeGate     chan struct{}
+	observeArrived  func()
 	balanceSigner   ed25519.PrivateKey
 	insufficient    string
 	withdrawals     map[string]bool
@@ -233,6 +234,9 @@ func (p *acProvider) deposit(w http.ResponseWriter, author string, body []byte) 
 
 func (p *acProvider) observe(w http.ResponseWriter, author string, body []byte) {
 	if p.observeGate != nil {
+		if p.observeArrived != nil {
+			p.observeArrived()
+		}
 		<-p.observeGate
 		return
 	}
