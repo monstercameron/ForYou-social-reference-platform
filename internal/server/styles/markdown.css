@@ -1,1 +1,25 @@
-@layer components {}
+@layer components {
+  .md-body, .post-text.md-body, .posts > .post .post-text.md-body { white-space:normal; overflow-wrap:anywhere; }
+  .fy-literal { display:block; margin:0 0 .6em; padding:.6em .75em; background:var(--control); border-radius:8px; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:.9em; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .md-link { color:var(--accent); text-decoration:underline; text-underline-offset:2px; }
+  .md-host { color:var(--muted); font-size:.8em; margin-left:.25em; overflow-wrap:anywhere; }
+  .md-ref { color:var(--accent); text-decoration:underline dotted; text-underline-offset:2px; }
+  .md-target { display:inline-block; margin-left:.35em; padding:0 .4em; border:1px solid var(--line); border-radius:999px; color:var(--muted); font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:.75em; vertical-align:middle; }
+  .md-media { display:inline-block; margin:0 .15em; padding:0 .45em; border-radius:6px; background:var(--control); color:var(--muted); font-size:.9em; }
+  .md-note { color:var(--muted); font-size:.8em; margin:.3em 0 0; }
+  .md-ref-region { display:block; margin:8px 0 0; }
+  .md-ref-form { margin:0; }
+  .md-ref-open { font-size:13px; }
+  .md-ref-target { overflow-wrap:anywhere; }
+  .md-ref-panel { border:1px solid var(--line); border-radius:10px; padding:12px 14px; background:var(--subtle); }
+  .md-ref-title { margin:0 0 .4em; font-size:15px; font-weight:600; }
+  .md-ref-close { margin:.6em 0 0; }
+  .md-ref-note, .md-ref-label, .md-leave-facts { color:var(--muted); }
+  .md-ref-coverage { margin:.4em 0 0; padding-left:1.2em; }
+  .md-destination { margin:0; padding:12px; border:1px solid var(--line); border-radius:10px; background:var(--control); white-space:pre-wrap; overflow-wrap:anywhere; }
+  .md-leave-label { margin:0 0 12px; padding:0 0 0 12px; border-left:3px solid var(--line); overflow-wrap:anywhere; }
+  .md-leave-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; }
+  @media (max-width:540px) {
+    .md-leave-actions > a { width:100%; }
+  }
+}

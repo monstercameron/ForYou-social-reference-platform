@@ -426,7 +426,7 @@ func postFromRecord(record sdk.Record, now time.Time) post {
 	}
 	when, _ := wire.ParseTime(m.Timestamp)
 	p := post{
-		ID: m.MessageID, Text: m.Payload.Text, Format: m.Payload.ContentFormat, Kind: kind,
+		ID: m.MessageID, Text: m.Payload.Text, Format: m.Payload.ContentFormat, Payload: m.Payload, Kind: kind,
 		IsReply: m.Payload.ReplyTo != "", ReplyTo: m.Payload.ReplyTo, Supersedes: m.Payload.Supersedes, AuthorID: m.AuthorID, Receipt: shortReceipt(m.SubmissionReceipt.ReceiptID),
 		Time: relativeTime(when, now), Timestamp: m.Timestamp, Color: authorColor(m.AuthorID), Media: template.HTML(media.String()),
 		Settlement: string(record.Settlement), Class: string(record.Class), Verified: &record,

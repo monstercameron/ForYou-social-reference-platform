@@ -1,0 +1,18 @@
+{{define "markdown-ref"}}{{template "layout-open" .Layout}}
+<div class="page-content md-ref-page">
+  <header class="page-heading"><h1>Reference</h1><p>A reference in this post points to something else. Following it looks that target up now.</p></header>
+  <section class="component-card">{{template "markdown-ref-body" .}}<p><a class="btn-secondary" href="{{.Back}}">Back to the post</a></p></section>
+</div>
+{{template "layout-close" .Layout}}{{end}}
+
+{{define "markdown-ref-fragment"}}<div class="md-ref-panel"><h2 class="md-ref-title md-ref-focus" tabindex="-1">Reference</h2>{{template "markdown-ref-body" .}}<form class="md-ref-close" action="{{.Back}}" method="get" get="{{.CloseURL}}" target="#{{.RegionID}}(innerHTML)" data-focus-after-swap=".md-ref-open" timeout="5000"><button type="submit" class="btn-secondary">Close</button></form></div>{{end}}
+
+{{define "markdown-ref-closed"}}{{.}}{{end}}
+
+{{define "markdown-ref-body"}}{{if .Label}}<p class="md-ref-label">The author called it: <bdi>{{.Label}}</bdi> <span class="pill pill-muted">unverified</span></p>{{end}}
+<p class="md-ref-target">Target: <code>{{.Target}}</code></p>
+{{if .Author}}<p>This reference names a key. Nothing has been looked up.</p>
+<p><a class="btn-secondary" href="{{.ExploreURL}}">See posts by this key</a></p>
+{{else}}<p class="md-ref-note">Resolving a reference tells the providers you selected that you looked it up.</p>
+{{if .Found}}<div class="posts">{{template "card-post-list" .Posts}}</div>{{else}}<div role="status"><p>Not available from your sources.</p><ul class="md-ref-coverage">{{range .Coverage}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
+{{end}}{{end}}

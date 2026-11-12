@@ -1,0 +1,17 @@
+{{define "markdown-leave"}}{{template "layout-open" .Layout}}
+<div class="page-content md-leave">
+  <header class="page-heading"><h1>You are leaving ForYou</h1><p>ForYou has not visited this address. Check it before you go.</p></header>
+  <section class="component-card md-leave-card" aria-labelledby="md-leave-label">
+    <h2 id="md-leave-label">Link text written by the author</h2>
+    <blockquote class="md-leave-label"><bdi>{{.Label}}</bdi></blockquote>
+    {{if .Mismatch}}<p class="notice-warn" role="note">The link text looks like a different address than where it goes.</p>{{end}}
+    <h2 id="md-leave-destination">Where it goes</h2>
+    <p class="md-leave-facts"><span class="id-chip">Host: {{.Host}}</span>{{if .Port}} <span class="id-chip">Port: {{.Port}}</span>{{end}}</p>
+    <pre class="md-destination" aria-labelledby="md-leave-destination"><code>{{.URL}}</code></pre>
+    <div class="md-leave-actions">
+      <a class="btn-primary" href="{{.URL}}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">Open {{.Host}}</a>
+      <a class="btn-secondary" href="{{.Back}}">Back to the post</a>
+    </div>
+  </section>
+</div>
+{{template "layout-close" .Layout}}{{end}}
