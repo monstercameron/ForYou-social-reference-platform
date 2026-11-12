@@ -213,6 +213,10 @@ func (a *App) quoteHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "draft is too long or invalid", http.StatusBadRequest)
 		return
 	}
+	if strings.TrimSpace(text) == "" {
+		http.Error(w, "Write the post first. A post with no text and no media is not valid.", http.StatusBadRequest)
+		return
+	}
 	cost, err := costOf(text)
 	if err != nil {
 		http.Error(w, "No fee quote is available.", http.StatusServiceUnavailable)

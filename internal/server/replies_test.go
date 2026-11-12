@@ -237,13 +237,13 @@ func TestQuoteLifetime(t *testing.T) {
 	store := &demoStore{}
 	inTime, _ := store.quoteReply(replyDraft{PostID: "maya", Text: "in time"}, issued)
 	late, _ := store.quoteReply(replyDraft{PostID: "maya", Text: "late"}, issued)
-	if d, ok := store.takeQuote(inTime, issued.Add(replyQuoteLifetime-time.Second)); !ok || d.Text != "in time" {
+	if d, ok := store.takeQuote(inTime, "maya", issued.Add(replyQuoteLifetime-time.Second)); !ok || d.Text != "in time" {
 		t.Error("a quote should be usable one second before it expires")
 	}
-	if _, ok := store.takeQuote(inTime, issued.Add(time.Minute)); ok {
+	if _, ok := store.takeQuote(inTime, "maya", issued.Add(time.Minute)); ok {
 		t.Error("a quote must not be usable twice")
 	}
-	if _, ok := store.takeQuote(late, issued.Add(replyQuoteLifetime)); ok {
+	if _, ok := store.takeQuote(late, "maya", issued.Add(replyQuoteLifetime)); ok {
 		t.Error("a quote must not be usable at its expiry time")
 	}
 }
@@ -281,9 +281,13 @@ func TestAddReply(t *testing.T) {
 			t.Errorf("statuses %d then %d; the second confirmation of one quote should be refused", first.Code, second.Code)
 		}
 	})
-	t.Run("a quote belongs to its post", func(t *testing.T) {
-		if w := confirm("/reply/fragment", "elliot", quoteReplyForTest(t, h, "sofia", "", "Wrong post")); w.Code != http.StatusConflict {
+	t.Run("a quote belongs to its post and survives a confirm that names another", func(t *testing.T) {
+		quote := quoteReplyForTest(t, h, "sofia", "", "Wrong post")
+		if w := confirm("/reply/fragment", "elliot", quote); w.Code != http.StatusConflict {
 			t.Errorf("status %d; a quote for another post should be refused", w.Code)
+		}
+		if w := confirm("/reply/fragment", "sofia", quote); w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "Wrong post") {
+			t.Errorf("status %d; the refused confirm must leave the quote usable for its own post", w.Code)
 		}
 	})
 	t.Run("text without a quote is not posted", func(t *testing.T) {

@@ -354,8 +354,8 @@ func (a *App) replyHandler(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	d, quoted, err := a.records().AddReply(r.Context(), r, form.Get("quote"), a.config.Now())
-	if !quoted || d.PostID != form.Get("id") {
+	d, quoted, err := a.records().AddReply(r.Context(), r, form.Get("quote"), form.Get("id"), a.config.Now())
+	if !quoted {
 		http.Error(w, "This quote has expired or was already used. Review the cost again.", http.StatusConflict)
 		return
 	}

@@ -387,13 +387,17 @@ func publishNetwork(a *App, profile string) string {
 	return wire.BitcoinMainnet
 }
 
-func (s *networkRecordSource) AddReply(ctx context.Context, r *http.Request, token string, now time.Time) (replyDraft, bool, error) {
+func (s *networkRecordSource) AddReply(ctx context.Context, r *http.Request, token, postID string, now time.Time) (replyDraft, bool, error) {
 	s.mu.Lock()
 	kept, ok := s.quotes[token]
+	if ok && kept.draft.PostID != postID {
+		s.mu.Unlock()
+		return replyDraft{}, false, nil
+	}
 	delete(s.quotes, token)
 	s.mu.Unlock()
 	if !ok {
-		return s.demo.AddReply(ctx, r, token, now)
+		return s.demo.AddReply(ctx, r, token, postID, now)
 	}
 	if kept.profile != requestProfile(r) || !now.Before(kept.expires) {
 		return replyDraft{}, false, nil

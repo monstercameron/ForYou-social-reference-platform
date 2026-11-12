@@ -70,7 +70,9 @@ type recordSource interface {
 	// QuoteReply prices and stores a reply draft for confirmation.
 	QuoteReply(ctx context.Context, w http.ResponseWriter, r *http.Request, draft replyDraft, now time.Time) (replyDraft, error)
 	// AddReply consumes a confirmed quote once.
-	AddReply(ctx context.Context, r *http.Request, token string, now time.Time) (replyDraft, bool, error)
+	// AddReply publishes the quoted reply. A token that is unknown, expired or quoted for
+	// another post answers false, and a quote for another post stays usable.
+	AddReply(ctx context.Context, r *http.Request, token, postID string, now time.Time) (replyDraft, bool, error)
 	// Get returns one record by ID, trying the local copy, then the selected
 	// providers in order, then mirrors, then the vault, with each source's answer.
 	Get(ctx context.Context, r *http.Request, id string) (post, Coverage, bool, error)
@@ -172,8 +174,8 @@ func (s *demoRecordSource) QuoteReply(_ context.Context, _ http.ResponseWriter, 
 	return d, nil
 }
 
-func (s *demoRecordSource) AddReply(_ context.Context, _ *http.Request, token string, now time.Time) (replyDraft, bool, error) {
-	d, ok := s.app.store.takeQuote(token, now)
+func (s *demoRecordSource) AddReply(_ context.Context, _ *http.Request, token, postID string, now time.Time) (replyDraft, bool, error) {
+	d, ok := s.app.store.takeQuote(token, postID, now)
 	if !ok {
 		return replyDraft{}, false, nil
 	}

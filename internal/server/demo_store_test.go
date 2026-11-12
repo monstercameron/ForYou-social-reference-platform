@@ -415,3 +415,17 @@ func TestPaginationAnchorSurvivesLaterPost(t *testing.T) {
 		t.Errorf("anchored continuation changed after insertion: status %d", w.Code)
 	}
 }
+
+func TestQuoteRefusesAnEmptyDraft(t *testing.T) {
+	check := func(t *testing.T, target string) {
+		t.Helper()
+		w := httptest.NewRecorder()
+		testClientHandler(t).ServeHTTP(w, httptest.NewRequest(http.MethodGet, target, nil))
+		if w.Code != http.StatusBadRequest || !strings.Contains(w.Body.String(), "Write the post first.") {
+			t.Errorf("%s = %d %q; want 400 naming the missing text", target, w.Code, w.Body.String())
+		}
+	}
+	t.Run("no text parameter", func(t *testing.T) { check(t, "/quote") })
+	t.Run("empty text", func(t *testing.T) { check(t, "/quote?text=") })
+	t.Run("only spaces", func(t *testing.T) { check(t, "/quote/fragment?text=%20%20") })
+}

@@ -119,10 +119,13 @@ func (s *demoStore) quoteReply(d replyDraft, now time.Time) (string, error) {
 
 // takeQuote returns a quoted draft once. A second confirmation of the same
 // quote finds nothing, so one quote never posts twice.
-func (s *demoStore) takeQuote(token string, now time.Time) (replyDraft, bool) {
+func (s *demoStore) takeQuote(token, postID string, now time.Time) (replyDraft, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	quoted, ok := s.quotes[token]
+	if ok && quoted.draft.PostID != postID {
+		return replyDraft{}, false
+	}
 	delete(s.quotes, token)
 	if !ok || !now.Before(quoted.expires) {
 		return replyDraft{}, false
