@@ -114,26 +114,26 @@ func TestControlRestartKeepsStateAndReconcilesBackup(t *testing.T) {
 
 func TestControlRecoveryFailsClosed(t *testing.T) {
 	t.Run("deleted checkpoint with nonempty log", func(t *testing.T) {
-		controlCheckRecoveryFailure(t, func(t *testing.T, dir string, _ *Service) {
-			if err := os.Remove(filepath.Join(dir, "control-checkpoint.json")); err != nil {
+		controlCheckRecoveryFailure(t, func(t *testing.T, _ string, s *Service) {
+			if err := os.Remove(filepath.Join(s.cfg.ControlCheckpointDir, controlCheckpointName)); err != nil {
 				t.Fatal(err)
 			}
 		})
 	})
 	t.Run("altered digest", func(t *testing.T) {
-		controlCheckRecoveryFailure(t, func(t *testing.T, dir string, s *Service) {
-			controlAlterCheckpoint(t, dir, s.Key(), func(checkpoint *controlCheckpoint) { checkpoint.Digest = strings.Repeat("0", 64) })
+		controlCheckRecoveryFailure(t, func(t *testing.T, _ string, s *Service) {
+			controlAlterCheckpoint(t, s, s.Key(), func(checkpoint *signedCheckpoint) { checkpoint.Digest = strings.Repeat("0", 64) })
 		})
 	})
 	t.Run("checkpoint names another operator", func(t *testing.T) {
-		controlCheckRecoveryFailure(t, func(t *testing.T, dir string, _ *Service) {
+		controlCheckRecoveryFailure(t, func(t *testing.T, _ string, s *Service) {
 			otherKey := controlOtherProviderKey()
-			controlAlterCheckpoint(t, dir, otherKey, func(checkpoint *controlCheckpoint) { checkpoint.Operator = keys.DIDOf(otherKey) })
+			controlAlterCheckpoint(t, s, otherKey, func(checkpoint *signedCheckpoint) { checkpoint.Operator = keys.DIDOf(otherKey) })
 		})
 	})
 	t.Run("checkpoint has another generation", func(t *testing.T) {
-		controlCheckRecoveryFailure(t, func(t *testing.T, dir string, s *Service) {
-			controlAlterCheckpoint(t, dir, s.Key(), func(checkpoint *controlCheckpoint) { checkpoint.Generation = 2 })
+		controlCheckRecoveryFailure(t, func(t *testing.T, _ string, s *Service) {
+			controlAlterCheckpoint(t, s, s.Key(), func(checkpoint *signedCheckpoint) { checkpoint.Generation = 2 })
 		})
 	})
 	t.Run("control journal is truncated", func(t *testing.T) {
@@ -186,11 +186,11 @@ func TestControlAcceptsCommittedTail(t *testing.T) {
 		if got, err := restarted.Restriction(controlTestMessageID); err != nil || got != Restricted {
 			t.Fatalf("recovered tail restriction = %q, %v", got, err)
 		}
-		encoded, err := os.ReadFile(filepath.Join(dir, "control-checkpoint.json"))
+		encoded, err := os.ReadFile(filepath.Join(restarted.cfg.ControlCheckpointDir, controlCheckpointName))
 		if err != nil {
 			t.Fatal(err)
 		}
-		var checkpoint controlCheckpoint
+		var checkpoint signedCheckpoint
 		if err = json.Unmarshal(encoded, &checkpoint); err != nil || checkpoint.Sequence != 2 {
 			t.Fatalf("checkpoint sequence = %d, %v", checkpoint.Sequence, err)
 		}
@@ -280,19 +280,19 @@ func controlCheckRecoveryFailure(t *testing.T, alter func(*testing.T, string, *S
 	}
 }
 
-func controlAlterCheckpoint(t *testing.T, dir string, key keys.PrivateKey, change func(*controlCheckpoint)) {
+func controlAlterCheckpoint(t *testing.T, s *Service, key keys.PrivateKey, change func(*signedCheckpoint)) {
 	t.Helper()
-	path := filepath.Join(dir, "control-checkpoint.json")
+	path := filepath.Join(s.cfg.ControlCheckpointDir, controlCheckpointName)
 	encoded, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	var checkpoint controlCheckpoint
+	var checkpoint signedCheckpoint
 	if err = json.Unmarshal(encoded, &checkpoint); err != nil {
 		t.Fatal(err)
 	}
 	change(&checkpoint)
-	unsigned := controlCheckpointUnsigned{Operator: checkpoint.Operator, Generation: checkpoint.Generation, Sequence: checkpoint.Sequence, Digest: checkpoint.Digest}
+	unsigned := signedCheckpointBody{Operator: checkpoint.Operator, Generation: checkpoint.Generation, Sequence: checkpoint.Sequence, Digest: checkpoint.Digest}
 	canonical, err := canon.Encode(unsigned)
 	if err != nil {
 		t.Fatal(err)
@@ -334,6 +334,7 @@ func controlNewFileService(t *testing.T, dir string) *Service {
 		t.Fatal(err)
 	}
 	cfg.DataDir = dir
+	cfg.ControlCheckpointDir = dir + "-checkpoint"
 	cfg.ContentStore = nil
 	cfg.ControlStore = nil
 	s, err := New(cfg)

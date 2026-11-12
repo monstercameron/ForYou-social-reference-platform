@@ -121,6 +121,13 @@ func controlRecover(s *Service) (*controlState, error) {
 		return nil, err
 	}
 	if len(events) == 0 && checkpoint == nil {
+		initialized, err := s.initialized(controlInitializedName)
+		if err != nil {
+			return nil, err
+		}
+		if initialized {
+			return nil, errors.New("provider: control state missing after initialization")
+		}
 		initial, err := controlInitialDigest(s.ProviderID(), controlCheckpointGeneration)
 		if err != nil {
 			return nil, err
@@ -129,12 +136,21 @@ func controlRecover(s *Service) (*controlState, error) {
 		if err = controlPersistCurrent(s, empty); err != nil {
 			return nil, err
 		}
+		if err = s.writeControlCheckpoint(0, initial); err != nil {
+			return nil, err
+		}
+		if err = s.markInitialized(controlInitializedName); err != nil {
+			return nil, err
+		}
 		return &controlState{digest: initial, records: empty}, nil
 	}
 	if checkpoint == nil {
 		return nil, errors.New("provider: control checkpoint missing")
 	}
-	if err = controlVerifyCheckpoint(s, *checkpoint); err != nil {
+	if err = s.verifyControlCheckpoint(*checkpoint); err != nil {
+		return nil, err
+	}
+	if err = s.markInitialized(controlInitializedName); err != nil {
 		return nil, err
 	}
 	if checkpoint.Sequence > uint64(len(events)) {

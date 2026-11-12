@@ -76,6 +76,9 @@ func New(cfg Config) (*Service, error) {
 		return nil, err
 	}
 	cfg = cloneConfig(cfg)
+	if err := checkpointLocation(&cfg); err != nil {
+		return nil, err
+	}
 	s := &Service{cfg: cfg, Chain: cfg.Faux, controlsState: allowControls{}, stop: make(chan struct{})}
 	if cfg.ContentStore != nil {
 		s.content = cfg.ContentStore

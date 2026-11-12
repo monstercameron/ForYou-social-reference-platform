@@ -93,7 +93,7 @@ func intakeTestStored(t *testing.T, service *Service, requestID string) (intakeS
 	t.Helper()
 	var result intakeStored
 	var found bool
-	err := service.Store().View(func(tx store.Tx) error {
+	err := service.ControlStore().View(func(tx store.Tx) error {
 		var err error
 		result, found, err = intakeRequests.Get(tx, requestID)
 		return err

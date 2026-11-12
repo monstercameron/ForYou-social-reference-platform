@@ -5,9 +5,13 @@ import (
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"io"
+	"log"
 	"net/http"
+	"sort"
+	"sync"
 	"time"
 
 	"foryou.local/foryou/internal/apierr"
@@ -32,6 +36,7 @@ type intakeStored struct {
 	Route        string             `json:"route"`
 	ReceivedAt   string             `json:"received_at"`
 	Receipt      wire.IntakeReceipt `json:"receipt"`
+	Sequence     uint64             `json:"sequence"`
 }
 
 type intakeFormRecord struct {
@@ -40,11 +45,22 @@ type intakeFormRecord struct {
 	intakeDigest string
 }
 
+// intakeLedger holds the sequence and digest of the last intake acknowledged under the independent checkpoint.
+// A failure is set when recovery finds the intake store behind or unverifiable, or when a checkpoint write fails; intake
+// then answers 503 until restart re-reconciles it.
+type intakeLedger struct {
+	mu       sync.Mutex
+	sequence uint64
+	digest   [32]byte
+	failure  error
+}
+
 func init() {
 	routeGroups = append(routeGroups, intakeRegister)
 }
 
 func intakeRegister(service *Service, mux *http.ServeMux) {
+	ledger := intakeRecover(service)
 	forms := make(map[string]intakeFormRecord, 3)
 	for _, definition := range []struct {
 		id           string
@@ -71,15 +87,17 @@ func intakeRegister(service *Service, mux *http.ServeMux) {
 		forms[definition.id+"/1"] = intakeFormRecord{intakeForm: form, intakeBody: body, intakeDigest: hex.EncodeToString(digest[:])}
 	}
 	mux.HandleFunc("POST /v1/notices", func(w http.ResponseWriter, r *http.Request) {
-		service.intakeSubmitRoute(forms, "notice", w, r)
+		service.intakeSubmitRoute(forms, ledger, "notice", w, r)
 	})
 	mux.HandleFunc("POST /v1/rights-requests", func(w http.ResponseWriter, r *http.Request) {
-		service.intakeSubmitRoute(forms, "rights_request", w, r)
+		service.intakeSubmitRoute(forms, ledger, "rights_request", w, r)
 	})
 	mux.HandleFunc("POST /v1/appeals", func(w http.ResponseWriter, r *http.Request) {
-		service.intakeSubmitRoute(forms, "appeal", w, r)
+		service.intakeSubmitRoute(forms, ledger, "appeal", w, r)
 	})
-	mux.HandleFunc("GET /v1/intake/{request_id}", service.intakeRecoveryRoute)
+	mux.HandleFunc("GET /v1/intake/{request_id}", func(w http.ResponseWriter, r *http.Request) {
+		service.intakeRecoveryRoute(ledger, w, r)
+	})
 	mux.HandleFunc("GET /v1/intake-forms/{form_id}/{form_version}", func(w http.ResponseWriter, r *http.Request) {
 		service.intakeFormRoute(forms, w, r)
 	})
@@ -96,7 +114,7 @@ func (s *Service) intakeFormRoute(forms map[string]intakeFormRecord, w http.Resp
 	writeCanonical(w, http.StatusOK, form.intakeBody, "no-store")
 }
 
-func (s *Service) intakeSubmitRoute(forms map[string]intakeFormRecord, kind string, w http.ResponseWriter, r *http.Request) {
+func (s *Service) intakeSubmitRoute(forms map[string]intakeFormRecord, ledger *intakeLedger, kind string, w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	if !s.LimitRead(w, r, ReadListing) {
 		return
@@ -134,10 +152,16 @@ func (s *Service) intakeSubmitRoute(forms map[string]intakeFormRecord, kind stri
 		writeError(w, http.StatusUnauthorized, "unauthenticated")
 		return
 	}
+	ledger.mu.Lock()
+	defer ledger.mu.Unlock()
+	if ledger.failure != nil {
+		writeRetry(w, http.StatusServiceUnavailable, "unavailable", apierr.DefaultRetryAfterSeconds)
+		return
+	}
 	requestDigest := sha256.Sum256(body)
 	var receipt wire.IntakeReceipt
 	var outcome int
-	err = s.Store().Update(func(tx store.Tx) error {
+	err = s.ControlStore().Update(func(tx store.Tx) error {
 		existing, found, err := intakeRequests.Get(tx, request.RequestID)
 		if err != nil {
 			return err
@@ -187,7 +211,8 @@ func (s *Service) intakeSubmitRoute(forms map[string]intakeFormRecord, kind stri
 			OperatorID: unsigned.OperatorID, RequestID: unsigned.RequestID, RequestDigest: unsigned.RequestDigest,
 			ReceivedAt: unsigned.ReceivedAt, Status: unsigned.Status, Signature: signature,
 		}
-		if err := intakeRequests.Put(tx, request.RequestID, intakeStored{RequestBytes: append([]byte(nil), body...), Route: r.URL.Path, ReceivedAt: receivedAt, Receipt: receipt}); err != nil {
+		sequence := ledger.sequence + 1
+		if err := intakeRequests.Put(tx, request.RequestID, intakeStored{RequestBytes: append([]byte(nil), body...), Route: r.URL.Path, ReceivedAt: receivedAt, Receipt: receipt, Sequence: sequence}); err != nil {
 			return err
 		}
 		outcome = http.StatusCreated
@@ -206,6 +231,12 @@ func (s *Service) intakeSubmitRoute(forms map[string]intakeFormRecord, kind stri
 		}
 		return
 	}
+	if outcome == http.StatusCreated {
+		if err := s.intakeAdvance(ledger, receipt); err != nil {
+			writeRetry(w, http.StatusServiceUnavailable, "unavailable", apierr.DefaultRetryAfterSeconds)
+			return
+		}
+	}
 	encoded, err := wire.Encode("IntakeReceipt", receipt)
 	if err != nil {
 		writeRetry(w, http.StatusServiceUnavailable, "unavailable", apierr.DefaultRetryAfterSeconds)
@@ -214,9 +245,16 @@ func (s *Service) intakeSubmitRoute(forms map[string]intakeFormRecord, kind stri
 	writeCanonical(w, outcome, encoded, "no-store")
 }
 
-func (s *Service) intakeRecoveryRoute(w http.ResponseWriter, r *http.Request) {
+func (s *Service) intakeRecoveryRoute(ledger *intakeLedger, w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	if !s.LimitRead(w, r, ReadDirect) {
+		return
+	}
+	ledger.mu.Lock()
+	failure := ledger.failure
+	ledger.mu.Unlock()
+	if failure != nil {
+		writeRetry(w, http.StatusServiceUnavailable, "unavailable", apierr.DefaultRetryAfterSeconds)
 		return
 	}
 	requestID := r.PathValue("request_id")
@@ -231,7 +269,7 @@ func (s *Service) intakeRecoveryRoute(w http.ResponseWriter, r *http.Request) {
 	}
 	var record intakeStored
 	var found bool
-	err = s.Store().View(func(tx store.Tx) error {
+	err = s.ControlStore().View(func(tx store.Tx) error {
 		var err error
 		record, found, err = intakeRequests.Get(tx, requestID)
 		return err
@@ -256,6 +294,140 @@ func (s *Service) intakeRecoveryRoute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeCanonical(w, http.StatusOK, encoded, "no-store")
+}
+
+func intakeRecover(s *Service) *intakeLedger {
+	ledger, err := intakeRecoverLedger(s)
+	if err != nil {
+		log.Printf("provider intake recovery: %v", err)
+		return &intakeLedger{failure: err}
+	}
+	return ledger
+}
+
+func intakeRecoverLedger(s *Service) (*intakeLedger, error) {
+	records, err := intakeReadRecords(s)
+	if err != nil {
+		return nil, err
+	}
+	initial, err := intakeInitialDigest(s.ProviderID())
+	if err != nil {
+		return nil, err
+	}
+	checkpoint, err := s.readCheckpoint(intakeCheckpointName)
+	if err != nil {
+		return nil, err
+	}
+	if checkpoint == nil {
+		initialized, err := s.initialized(intakeInitializedName)
+		if err != nil {
+			return nil, err
+		}
+		if initialized || len(records) > 0 {
+			return nil, errors.New("provider: intake checkpoint missing")
+		}
+		if err = s.writeCheckpoint(intakeCheckpointName, "intake-checkpoint", intakeCheckpointGeneration, 0, initial); err != nil {
+			return nil, err
+		}
+		if err = s.markInitialized(intakeInitializedName); err != nil {
+			return nil, err
+		}
+		return &intakeLedger{digest: initial}, nil
+	}
+	if err = s.verifyCheckpoint("intake-checkpoint", intakeCheckpointGeneration, *checkpoint); err != nil {
+		return nil, err
+	}
+	if err = s.markInitialized(intakeInitializedName); err != nil {
+		return nil, err
+	}
+	if checkpoint.Sequence > uint64(len(records)) {
+		return nil, errors.New("provider: intake store behind checkpoint")
+	}
+	digest := initial
+	matched := checkpoint.Sequence == 0 && hex.EncodeToString(initial[:]) == checkpoint.Digest
+	for _, record := range records {
+		if digest, err = intakeNextDigest(digest, record); err != nil {
+			return nil, err
+		}
+		if record.Sequence == checkpoint.Sequence && hex.EncodeToString(digest[:]) == checkpoint.Digest {
+			matched = true
+		}
+	}
+	if !matched {
+		return nil, errors.New("provider: intake checkpoint digest mismatch")
+	}
+	ledger := &intakeLedger{sequence: uint64(len(records)), digest: digest}
+	if ledger.sequence > checkpoint.Sequence {
+		if err = s.writeCheckpoint(intakeCheckpointName, "intake-checkpoint", intakeCheckpointGeneration, ledger.sequence, ledger.digest); err != nil {
+			return nil, err
+		}
+	}
+	return ledger, nil
+}
+
+func intakeReadRecords(s *Service) ([]intakeStored, error) {
+	records := make([]intakeStored, 0)
+	err := s.ControlStore().View(func(tx store.Tx) error {
+		return tx.Scan(intakeRequests.Name, store.Range{}, func(key string, value []byte) (bool, error) {
+			var record intakeStored
+			if err := json.Unmarshal(value, &record); err != nil {
+				return false, err
+			}
+			if record.Receipt.RequestID != key || record.Sequence == 0 {
+				return false, errors.New("provider: invalid intake record")
+			}
+			records = append(records, record)
+			return true, nil
+		})
+	})
+	if err != nil {
+		return nil, err
+	}
+	sort.Slice(records, func(i, j int) bool { return records[i].Sequence < records[j].Sequence })
+	for i, record := range records {
+		if record.Sequence != uint64(i+1) {
+			return nil, errors.New("provider: intake sequence gap")
+		}
+	}
+	return records, nil
+}
+
+func intakeInitialDigest(operator string) ([32]byte, error) {
+	encoded, err := canon.Encode(map[string]any{"generation": intakeCheckpointGeneration, "operator": operator, "store": "intake"})
+	if err != nil {
+		return [32]byte{}, err
+	}
+	return sha256.Sum256(encoded), nil
+}
+
+func intakeNextDigest(previous [32]byte, record intakeStored) ([32]byte, error) {
+	encoded, err := canon.Encode(map[string]any{
+		"previous":       hex.EncodeToString(previous[:]),
+		"request_digest": record.Receipt.RequestDigest,
+		"request_id":     record.Receipt.RequestID,
+		"sequence":       record.Sequence,
+	})
+	if err != nil {
+		return [32]byte{}, err
+	}
+	return sha256.Sum256(encoded), nil
+}
+
+// intakeAdvance commits the checkpoint for a newly stored intake. It runs before the receipt is returned, and a failure
+// stops intake until restart.
+func (s *Service) intakeAdvance(ledger *intakeLedger, receipt wire.IntakeReceipt) error {
+	sequence := ledger.sequence + 1
+	digest, err := intakeNextDigest(ledger.digest, intakeStored{Sequence: sequence, Receipt: receipt})
+	if err == nil {
+		err = s.writeCheckpoint(intakeCheckpointName, "intake-checkpoint", intakeCheckpointGeneration, sequence, digest)
+	}
+	if err != nil {
+		ledger.failure = err
+		return err
+	}
+	ledger.sequence = sequence
+	ledger.digest = digest
+	return nil
 }
 
 func intakeRequestIDMatches(requestID, operatorID string, recoveryKey []byte) bool {

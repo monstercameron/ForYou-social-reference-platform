@@ -57,6 +57,10 @@ type OperatorConfig struct {
 type Config struct {
 	// DataDir is the role data directory; empty selects in-memory stores.
 	DataDir string
+	// ControlCheckpointDir holds the signed control and intake checkpoints and their first-start markers. It must lie
+	// outside DataDir and is required when DataDir is set. Dev mode defaults it to a sibling of DataDir named after it
+	// with a "-checkpoint" suffix.
+	ControlCheckpointDir string
 	// Key is the provider's single signing key for this release.
 	Key keys.PrivateKey
 	// Genesis is the release trust root.
