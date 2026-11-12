@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"math/big"
 	"sort"
 	"time"
@@ -28,7 +29,9 @@ func distLoop(ctx context.Context, s *Service) {
 	ticker := time.NewTicker(time.Minute)
 	defer ticker.Stop()
 	for {
-		_ = s.distRunDue(ctx, s.Clock())
+		if err := s.distRunDue(ctx, s.Clock()); err != nil {
+			log.Printf("foundation distribution: %v", err)
+		}
 		select {
 		case <-ctx.Done():
 			return
@@ -436,7 +439,12 @@ func (s *Service) distFetchProvider(ctx context.Context, client *sdk.Client, net
 		for _, providerKey := range providerKeys {
 			reports, _, err := client.QualityReports(ctx, providerKey, wire.FormatTime(end))
 			if err != nil {
-				return data, err
+				if ctx.Err() != nil {
+					return data, ctx.Err()
+				}
+				// The specification gives a monitor without reports for a provider no score for it, so the statement continues without them.
+				log.Printf("foundation distribution: quality reports for provider %s from monitor %s: %v", providerKey, monitor, err)
+				continue
 			}
 			for _, report := range reports.Reports {
 				if report.MonitorID != monitor || report.ProviderID != providerKey || quality.CheckReport(report) != nil {

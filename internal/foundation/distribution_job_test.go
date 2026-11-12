@@ -40,86 +40,11 @@ func TestDistSettledUsesOneCommitteeQuorumAndInclusiveCutoff(t *testing.T) {
 }
 
 func TestDistQuarterPublishesVerifiedStatementsAndReports(t *testing.T) {
-	calendar, err := devnet.Calendar(30 * time.Second)
-	if err != nil {
-		t.Fatal(err)
-	}
-	quarterStart, _ := calendar.Quarter(time.Date(2027, 1, 1, 0, 0, 0, 0, time.UTC))
-	quarterEnd := quarterStart.Add(90 * calendar.Day())
-	cutoff := calendar.CutOff(quarterEnd)
-	now := quarterStart
-	providerKey := devnet.ProviderKey(0)
-	providerID := keys.DIDOf(providerKey)
-	declaration, err := retention.Declare(providerKey, 10*31536000, wire.PayoutRecipients{BitcoinMainnet: devnet.Recipient("provider", wire.BitcoinMainnet)}, quarterStart)
-	if err != nil {
-		t.Fatal(err)
-	}
-	claim, err := settlement.BuildClaim(providerKey, settlement.ClaimInput{Network: wire.BitcoinMainnet, PeriodStart: quarterStart.Add(3 * calendar.Day()), PeriodEnd: quarterStart.Add(4 * calendar.Day()), DeclarationID: declaration.DeclarationID, ReceiptCount: 1, Total: big.NewInt(10_000_000), ReceiptsRoot: strings.Repeat("a", 64)})
-	if err != nil {
-		t.Fatal(err)
-	}
-	witnessAt := quarterStart.Add(5 * calendar.Day())
-	witness0, err := settlement.SignWitness(devnet.MonitorKey(0), claim, big.NewInt(0), witnessAt)
-	if err != nil {
-		t.Fatal(err)
-	}
-	witness1, err := settlement.SignWitness(devnet.MonitorKey(1), claim, big.NewInt(0), witnessAt)
-	if err != nil {
-		t.Fatal(err)
-	}
-	witness2, err := settlement.SignWitness(devnet.MonitorKey(2), claim, big.NewInt(0), witnessAt)
-	if err != nil {
-		t.Fatal(err)
-	}
-	witness3, err := settlement.SignWitness(devnet.MonitorKey(3), claim, big.NewInt(0), witnessAt)
-	if err != nil {
-		t.Fatal(err)
-	}
-	monitor0ID := keys.DIDOf(devnet.MonitorKey(0))
-	monitor1ID := keys.DIDOf(devnet.MonitorKey(1))
-	monitor2ID := keys.DIDOf(devnet.MonitorKey(2))
-	monitor3ID := keys.DIDOf(devnet.MonitorKey(3))
-	monitor4ID := keys.DIDOf(devnet.MonitorKey(4))
-	reports0 := distTestQualityReports(t, monitor0ID, providerID, quarterStart, cutoff, devnet.MonitorKey(0))
-	reports1 := distTestQualityReports(t, monitor1ID, providerID, quarterStart, cutoff, devnet.MonitorKey(1))
-	reports2 := distTestQualityReports(t, monitor2ID, providerID, quarterStart, cutoff, devnet.MonitorKey(2))
-	reports3 := distTestQualityReports(t, monitor3ID, providerID, quarterStart, cutoff, devnet.MonitorKey(3))
-	reports4 := distTestQualityReports(t, monitor4ID, providerID, quarterStart, cutoff, devnet.MonitorKey(4))
-	monitor0 := httptest.NewServer(distTestMonitorHandler(t, witness0, reports0))
-	defer monitor0.Close()
-	monitor1 := httptest.NewServer(distTestMonitorHandler(t, witness1, reports1))
-	defer monitor1.Close()
-	monitor2 := httptest.NewServer(distTestMonitorHandler(t, witness2, reports2))
-	defer monitor2.Close()
-	monitor3 := httptest.NewServer(distTestMonitorHandler(t, witness3, reports3))
-	defer monitor3.Close()
-	monitor4 := httptest.NewServer(distTestMutableMonitorHandler(t, func() *wire.SettlementWitness { return nil }, reports4))
-	defer monitor4.Close()
-	provider := httptest.NewServer(distTestProviderHandler(t, claim, declaration))
-	defer provider.Close()
-	fauxLedger, err := faux.Open(faux.Config{Now: func() time.Time { return now }})
-	if err != nil {
-		t.Fatal(err)
-	}
-	cfg := testConfig(t, &now)
-	cfg.Calendar = calendar
-	cfg.Providers = []string{provider.URL}
-	cfg.Monitors = map[string]string{monitor0ID: monitor0.URL, monitor1ID: monitor1.URL, monitor2ID: monitor2.URL, monitor3ID: monitor3.URL, monitor4ID: monitor4.URL}
-	cfg.MonitorPayouts = map[string]map[string]string{
-		monitor0ID: {wire.BitcoinMainnet: devnet.Recipient("monitor/0", wire.BitcoinMainnet)},
-		monitor1ID: {wire.BitcoinMainnet: devnet.Recipient("monitor/1", wire.BitcoinMainnet)},
-		monitor2ID: {wire.BitcoinMainnet: devnet.Recipient("monitor/2", wire.BitcoinMainnet)},
-		monitor3ID: {wire.BitcoinMainnet: devnet.Recipient("monitor/3", wire.BitcoinMainnet)},
-		monitor4ID: {wire.BitcoinMainnet: devnet.Recipient("monitor/4", wire.BitcoinMainnet)},
-	}
-	cfg.Faux = fauxLedger
-	service, err := New(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer service.Close()
-	now = cutoff
-	if err := service.distRunDue(context.Background(), now); err != nil {
+	fixture := distTestQuarterFixture(t, -1, false)
+	service, quarterEnd, providerID := fixture.service, fixture.quarterEnd, fixture.providerID
+	reports0, reports1, reports2, reports3, reports4 := fixture.reports[0], fixture.reports[1], fixture.reports[2], fixture.reports[3], fixture.reports[4]
+	*fixture.now = fixture.cutoff
+	if err := service.distRunDue(context.Background(), fixture.cutoff); err != nil {
 		t.Fatal(err)
 	}
 	btcRaw, exists := service.DistributionStatement(wire.BitcoinMainnet, wire.FormatTime(quarterEnd))
@@ -168,6 +93,174 @@ func TestDistQuarterPublishesVerifiedStatementsAndReports(t *testing.T) {
 	if !reflect.DeepEqual(stored, served) {
 		t.Fatalf("stored quality reports = %d reports; want the 15 served reports used by the statement", len(stored))
 	}
+}
+
+func TestDistUnreadableMonitorDoesNotStopStatement(t *testing.T) {
+	t.Run("monitor whose quality reports answer 404 counts as having no score", func(t *testing.T) {
+		fixture := distTestQuarterFixture(t, 4, false)
+		*fixture.now = fixture.cutoff
+		if err := fixture.service.distRunDue(context.Background(), fixture.cutoff); err != nil {
+			t.Fatalf("distRunDue() error = %v; want the statement published", err)
+		}
+		raw, exists := fixture.service.DistributionStatement(wire.BitcoinMainnet, wire.FormatTime(fixture.quarterEnd))
+		if !exists {
+			t.Fatal("Bitcoin distribution statement was not published")
+		}
+		var statement wire.DistributionStatement
+		if err := json.Unmarshal(raw, &statement); err != nil {
+			t.Fatal(err)
+		}
+		reportIDs := []string{
+			fixture.reports[0][0].ReportID, fixture.reports[0][1].ReportID, fixture.reports[0][2].ReportID,
+			fixture.reports[1][0].ReportID, fixture.reports[1][1].ReportID, fixture.reports[1][2].ReportID,
+			fixture.reports[2][0].ReportID, fixture.reports[2][1].ReportID, fixture.reports[2][2].ReportID,
+			fixture.reports[3][0].ReportID, fixture.reports[3][1].ReportID, fixture.reports[3][2].ReportID,
+		}
+		sort.Strings(reportIDs)
+		if len(statement.Entries) != 1 || statement.Entries[0].QualityBP != 9000 || statement.Entries[0].AmountBaseUnits != "2475000" || !reflect.DeepEqual(statement.Entries[0].ReportIDs, reportIDs) {
+			t.Fatalf("statement entries = %+v; want quality 9000, 2,475,000 base units and the 12 reports of the four readable monitors", statement.Entries)
+		}
+	})
+	t.Run("unreadable settlement claims publish nothing and fail the run", func(t *testing.T) {
+		fixture := distTestQuarterFixture(t, -1, true)
+		*fixture.now = fixture.cutoff
+		if err := fixture.service.distRunDue(context.Background(), fixture.cutoff); err == nil {
+			t.Fatal("distribution succeeded without the provider's settlement claims")
+		}
+		if _, exists := fixture.service.DistributionStatement(wire.BitcoinMainnet, wire.FormatTime(fixture.quarterEnd)); exists {
+			t.Fatal("Bitcoin distribution statement was published without the provider's settlement claims")
+		}
+		if _, exists := fixture.service.DistributionStatement(wire.EthereumMainnet, wire.FormatTime(fixture.quarterEnd)); exists {
+			t.Fatal("Ethereum distribution statement was published without the provider's settlement claims")
+		}
+	})
+}
+
+// distTestQuarterFixture serves the devnet quarter from five committee monitors and one provider. reportsUnreadable names the monitor whose quality-reports route answers 404, or -1 for none; claimsUnreadable fails the provider's settlement claims route.
+func distTestQuarterFixture(t *testing.T, reportsUnreadable int, claimsUnreadable bool) distTestFixture {
+	t.Helper()
+	calendar, err := devnet.Calendar(30 * time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	quarterStart, _ := calendar.Quarter(time.Date(2027, 1, 1, 0, 0, 0, 0, time.UTC))
+	quarterEnd := quarterStart.Add(90 * calendar.Day())
+	cutoff := calendar.CutOff(quarterEnd)
+	now := quarterStart
+	providerKey := devnet.ProviderKey(0)
+	providerID := keys.DIDOf(providerKey)
+	declaration, err := retention.Declare(providerKey, 10*31536000, wire.PayoutRecipients{BitcoinMainnet: devnet.Recipient("provider", wire.BitcoinMainnet)}, quarterStart)
+	if err != nil {
+		t.Fatal(err)
+	}
+	claim, err := settlement.BuildClaim(providerKey, settlement.ClaimInput{Network: wire.BitcoinMainnet, PeriodStart: quarterStart.Add(3 * calendar.Day()), PeriodEnd: quarterStart.Add(4 * calendar.Day()), DeclarationID: declaration.DeclarationID, ReceiptCount: 1, Total: big.NewInt(10_000_000), ReceiptsRoot: strings.Repeat("a", 64)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	witnessAt := quarterStart.Add(5 * calendar.Day())
+	witness0, err := settlement.SignWitness(devnet.MonitorKey(0), claim, big.NewInt(0), witnessAt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	witness1, err := settlement.SignWitness(devnet.MonitorKey(1), claim, big.NewInt(0), witnessAt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	witness2, err := settlement.SignWitness(devnet.MonitorKey(2), claim, big.NewInt(0), witnessAt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	witness3, err := settlement.SignWitness(devnet.MonitorKey(3), claim, big.NewInt(0), witnessAt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	monitor0ID := keys.DIDOf(devnet.MonitorKey(0))
+	monitor1ID := keys.DIDOf(devnet.MonitorKey(1))
+	monitor2ID := keys.DIDOf(devnet.MonitorKey(2))
+	monitor3ID := keys.DIDOf(devnet.MonitorKey(3))
+	monitor4ID := keys.DIDOf(devnet.MonitorKey(4))
+	reports0 := distTestQualityReports(t, monitor0ID, providerID, quarterStart, cutoff, devnet.MonitorKey(0))
+	reports1 := distTestQualityReports(t, monitor1ID, providerID, quarterStart, cutoff, devnet.MonitorKey(1))
+	reports2 := distTestQualityReports(t, monitor2ID, providerID, quarterStart, cutoff, devnet.MonitorKey(2))
+	reports3 := distTestQualityReports(t, monitor3ID, providerID, quarterStart, cutoff, devnet.MonitorKey(3))
+	reports4 := distTestQualityReports(t, monitor4ID, providerID, quarterStart, cutoff, devnet.MonitorKey(4))
+	monitor0Handler := distTestMonitorHandler(t, witness0, reports0)
+	if reportsUnreadable == 0 {
+		monitor0Handler = distTestRouteStatus(monitor0Handler, "/v1/quality-reports", http.StatusNotFound)
+	}
+	monitor1Handler := distTestMonitorHandler(t, witness1, reports1)
+	if reportsUnreadable == 1 {
+		monitor1Handler = distTestRouteStatus(monitor1Handler, "/v1/quality-reports", http.StatusNotFound)
+	}
+	monitor2Handler := distTestMonitorHandler(t, witness2, reports2)
+	if reportsUnreadable == 2 {
+		monitor2Handler = distTestRouteStatus(monitor2Handler, "/v1/quality-reports", http.StatusNotFound)
+	}
+	monitor3Handler := distTestMonitorHandler(t, witness3, reports3)
+	if reportsUnreadable == 3 {
+		monitor3Handler = distTestRouteStatus(monitor3Handler, "/v1/quality-reports", http.StatusNotFound)
+	}
+	monitor4Handler := distTestMutableMonitorHandler(t, func() *wire.SettlementWitness { return nil }, reports4)
+	if reportsUnreadable == 4 {
+		monitor4Handler = distTestRouteStatus(monitor4Handler, "/v1/quality-reports", http.StatusNotFound)
+	}
+	monitor0 := httptest.NewServer(monitor0Handler)
+	t.Cleanup(monitor0.Close)
+	monitor1 := httptest.NewServer(monitor1Handler)
+	t.Cleanup(monitor1.Close)
+	monitor2 := httptest.NewServer(monitor2Handler)
+	t.Cleanup(monitor2.Close)
+	monitor3 := httptest.NewServer(monitor3Handler)
+	t.Cleanup(monitor3.Close)
+	monitor4 := httptest.NewServer(monitor4Handler)
+	t.Cleanup(monitor4.Close)
+	providerHandler := distTestProviderHandler(t, claim, declaration)
+	if claimsUnreadable {
+		providerHandler = distTestRouteStatus(providerHandler, "/v1/settlement-claims", http.StatusInternalServerError)
+	}
+	provider := httptest.NewServer(providerHandler)
+	t.Cleanup(provider.Close)
+	fauxLedger, err := faux.Open(faux.Config{Now: func() time.Time { return now }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg := testConfig(t, &now)
+	cfg.Calendar = calendar
+	cfg.Providers = []string{provider.URL}
+	cfg.Monitors = map[string]string{monitor0ID: monitor0.URL, monitor1ID: monitor1.URL, monitor2ID: monitor2.URL, monitor3ID: monitor3.URL, monitor4ID: monitor4.URL}
+	cfg.MonitorPayouts = map[string]map[string]string{
+		monitor0ID: {wire.BitcoinMainnet: devnet.Recipient("monitor/0", wire.BitcoinMainnet)},
+		monitor1ID: {wire.BitcoinMainnet: devnet.Recipient("monitor/1", wire.BitcoinMainnet)},
+		monitor2ID: {wire.BitcoinMainnet: devnet.Recipient("monitor/2", wire.BitcoinMainnet)},
+		monitor3ID: {wire.BitcoinMainnet: devnet.Recipient("monitor/3", wire.BitcoinMainnet)},
+		monitor4ID: {wire.BitcoinMainnet: devnet.Recipient("monitor/4", wire.BitcoinMainnet)},
+	}
+	cfg.Faux = fauxLedger
+	service, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { service.Close() })
+	return distTestFixture{service: service, now: &now, quarterEnd: quarterEnd, cutoff: cutoff, providerID: providerID, reports: [][]wire.QualityReport{reports0, reports1, reports2, reports3, reports4}}
+}
+
+type distTestFixture struct {
+	service    *Service
+	now        *time.Time
+	quarterEnd time.Time
+	cutoff     time.Time
+	providerID string
+	reports    [][]wire.QualityReport
+}
+
+func distTestRouteStatus(handler http.Handler, path string, status int) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == path {
+			w.WriteHeader(status)
+			return
+		}
+		handler.ServeHTTP(w, r)
+	})
 }
 
 func TestDistLateQuorumCountsClaimNextQuarter(t *testing.T) {
