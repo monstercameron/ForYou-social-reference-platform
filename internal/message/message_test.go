@@ -181,6 +181,27 @@ func TestVerify(t *testing.T) {
 			t.Fatal(err)
 		}
 	})
+	t.Run("copied receipt after message ID recompute", func(t *testing.T) {
+		m, _ := msgVector(t)
+		m.Payload.Text = "changed after the receipt was issued"
+		id, err := ID(IntentOf(m))
+		if err != nil {
+			t.Fatal(err)
+		}
+		m.MessageID = id
+		author, err := keys.NewKeyFromSeed([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := Sign(&m, author); err != nil {
+			t.Fatal(err)
+		}
+		err = Verify(m, VerifyOptions{Now: msgNowTime(t)})
+		msgStatus(t, err, apierr.InvalidMessage)
+		if !strings.Contains(err.Error(), "receipt message ID binding") {
+			t.Fatalf("error %q does not identify the receipt message ID rule", err)
+		}
+	})
 }
 
 func TestValidateIntent(t *testing.T) {

@@ -136,6 +136,24 @@ func TestHTTPClassificationConsistency(t *testing.T) {
 	})
 }
 
+func TestRetrievalNeedsMessageIDForPass(t *testing.T) {
+	r, set, method, monitorKey, _ := fixture(t)
+	t.Run("retrieval pass without message ID", func(t *testing.T) {
+		changed := withObservation(set, 20, func(observation *wire.QualityObservation) {
+			observation.MessageID = nil
+		})
+		assertResealedRejected(t, r, changed, method, monitorKey, ErrObservation)
+	})
+	t.Run("retrieval fail without message ID stays accepted", func(t *testing.T) {
+		changed := withObservation(set, 38, func(observation *wire.QualityObservation) {
+			observation.MessageID, observation.Outcome, observation.HTTPStatus = nil, string(OutcomeFail), int64Pointer(404)
+		})
+		if err := Verify(reseal(t, r, changed, monitorKey), changed, method); err != nil {
+			t.Fatalf("Verify() error = %v; want nil", err)
+		}
+	})
+}
+
 func TestMethodologyValidation(t *testing.T) {
 	r, set, _, monitorKey, _ := fixture(t)
 	t.Run("NUL byte is rejected after matching digest", func(t *testing.T) {
@@ -396,8 +414,12 @@ func reseal(t *testing.T, report wire.QualityReport, set wire.QualityObservation
 
 func withFirstObservation(t *testing.T, set wire.QualityObservationSet, modify func(*wire.QualityObservation)) wire.QualityObservationSet {
 	t.Helper()
+	return withObservation(set, 0, modify)
+}
+
+func withObservation(set wire.QualityObservationSet, index int, modify func(*wire.QualityObservation)) wire.QualityObservationSet {
 	set.Observations = append([]wire.QualityObservation(nil), set.Observations...)
-	modify(&set.Observations[0])
+	modify(&set.Observations[index])
 	return set
 }
 

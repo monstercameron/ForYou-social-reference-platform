@@ -191,6 +191,12 @@ func TestSchemaCheck(t *testing.T) {
 		schedule["denomination"] = "wei"
 		schemaExpect(t, "FeeSchedule", schedule, "/denomination", "const")
 	})
+	t.Run("fee schedule rejects protocol-defined split", func(t *testing.T) {
+		schedule := schemaFixture(t, "fee-schedule.example.json")["schedule"].(map[string]any)
+		schemaExpect(t, "FeeSchedule", schedule, "")
+		schedule["split"] = []any{map[string]any{"role": "replica", "basis_points": json.Number("2000")}}
+		schemaExpect(t, "FeeSchedule", schedule, "", "additionalProperties")
+	})
 	t.Run("unregistered authorization state has no epoch", func(t *testing.T) {
 		did := schemaMessage(t)["author_id"]
 		epoch := map[string]any{"epoch_id": "fye1:" + strings.Repeat("a", 64), "provider_id": did, "author_id": did, "epoch_sequence": json.Number("1"), "activated_at": "2026-11-11T00:00:00Z", "nonce": strings.Repeat("a", 43), "provider_signature": strings.Repeat("a", 86)}
