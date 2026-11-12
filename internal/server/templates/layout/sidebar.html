@@ -8,7 +8,7 @@
     <a class="nav-link {{if eq .Section "identity"}}is-current{{end}}" href="/identity" {{if eq .Section "identity"}}aria-current="page"{{end}} aria-label="Identity" title="Identity">{{template "layout-icon-nav-identity" .}}<span>Identity</span></a>
     <a class="nav-link {{if eq .Section "network"}}is-current{{end}}" href="/network" {{if eq .Section "network"}}aria-current="page"{{end}} aria-label="Network" title="Network">{{template "layout-icon-nav-network" .}}<span>Network</span></a>
     {{template "ledger-nav-link" .}}
-    <a class="nav-link {{if eq .Section "settings"}}is-current{{end}}" href="/settings" {{if eq .Section "settings"}}aria-current="page"{{end}} aria-label="Settings"><a class="nav-link {{if eq .Section "settings"}}is-current{{end}}" href="/settings" {{if eq .Section "settings"}}aria-current="page"{{end}} aria-label="Settings" title="Settings">{{template "layout-icon-nav-settings" .}}<span>Settings</span></a>
+    <a class="nav-link {{if eq .Section "settings"}}is-current{{end}}" href="/settings" {{if eq .Section "settings"}}aria-current="page"{{end}} aria-label="Settings" title="Settings">{{template "layout-icon-nav-settings" .}}<span>Settings</span></a>
   </nav>
   <a href="/compose" class="nav-compose {{if eq .Section "compose"}}is-current{{end}}" {{if eq .Section "compose"}}aria-current="page"{{end}} aria-label="New post" title="New post">{{template "layout-icon-nav-compose" .}}<span>New post</span></a>
   <div class="account-block"><span class="identicon violet" aria-hidden="true"></span><div><strong>Your space</strong><small>{{.Identity}}</small>{{if .Custody}}<small>{{.Custody}}</small>{{end}}</div></div>
