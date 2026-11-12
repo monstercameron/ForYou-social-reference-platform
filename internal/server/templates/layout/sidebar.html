@@ -4,8 +4,8 @@
   <nav class="sidebar-nav" aria-label="Primary">
     <a class="nav-link {{if eq .Section "home"}}is-current{{end}}" href="/" {{if eq .Section "home"}}aria-current="page"{{end}} aria-label="Home" title="Home">{{template "layout-icon-nav-home" .}}<span>Home</span></a>
     <a class="nav-link {{if eq .Section "explore"}}is-current{{end}}" href="/explore" {{if eq .Section "explore"}}aria-current="page"{{end}} aria-label="Explore" title="Explore">{{template "layout-icon-nav-explore" .}}<span>Explore</span></a>
-    <a class="nav-link {{if eq .Section "following"}}is-current{{end}}" href="/following" {{if eq .Section "following"}}aria-current="page"{{end}} aria-label="Following">{{template "following-icon-nav" .}}<span>Following</span></a>
-    <a class="nav-link {{if eq .Section "wallet"}}is-current{{end}}" href="/wallet" {{if eq .Section "wallet"}}aria-current="page"{{end}} aria-label="Wallet"><a class="nav-link {{if eq .Section "wallet"}}is-current{{end}}" href="/wallet" {{if eq .Section "wallet"}}aria-current="page"{{end}} aria-label="Wallet" title="Wallet">{{template "layout-icon-nav-wallet" .}}<span>Wallet</span></a>
+    <a class="nav-link {{if eq .Section "following"}}is-current{{end}}" href="/following" {{if eq .Section "following"}}aria-current="page"{{end}} aria-label="Following" title="Following">{{template "following-icon-nav" .}}<span>Following</span></a>
+    <a class="nav-link {{if eq .Section "wallet"}}is-current{{end}}" href="/wallet" {{if eq .Section "wallet"}}aria-current="page"{{end}} aria-label="Wallet" title="Wallet">{{template "layout-icon-nav-wallet" .}}<span>Wallet</span></a>
     <a class="nav-link {{if eq .Section "identity"}}is-current{{end}}" href="/identity" {{if eq .Section "identity"}}aria-current="page"{{end}} aria-label="Identity" title="Identity">{{template "layout-icon-nav-identity" .}}<span>Identity</span></a>
     <a class="nav-link {{if eq .Section "network"}}is-current{{end}}" href="/network" {{if eq .Section "network"}}aria-current="page"{{end}} aria-label="Network" title="Network">{{template "layout-icon-nav-network" .}}<span>Network</span></a>
     {{template "ledger-nav-link" .}}
