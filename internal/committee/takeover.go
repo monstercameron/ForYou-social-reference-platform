@@ -25,13 +25,18 @@ type TakeoverResult struct {
 
 // Takeover decides one sequence at a committee handover: it adopts a claim with an outgoing quorum (registering the
 // successions and following the ancestors given for it), witnesses the only valid claim when every other known claim
-// is proven invalid, or signs and records a hold naming every known claim.
+// is proven invalid, or signs and records a hold naming every known claim. A monitor that already witnessed a claim at
+// the sequence returns that witness and decides nothing more there.
 func (m *Monitor) Takeover(cs []Candidate, outgoing []string, at time.Time, holds []wire.SettlementHold, pastMembers []string, ancestors map[string][]wire.SettlementClaim, successions []wire.KeySuccession) (TakeoverResult, error) {
 	if len(cs) == 0 {
 		return TakeoverResult{}, nil
 	}
 	first := cs[0].Claim
 	slot := slotKey(m.Line(first.ProviderID), first.Network, first.Sequence)
+	// A witness is final: the monitor keeps it and neither holds nor witnesses another claim at its sequence.
+	if kept, ok := m.state.Witnessed[slot]; ok {
+		return TakeoverResult{Witness: &kept}, nil
+	}
 	members := append(append([]string(nil), outgoing...), pastMembers...)
 	memberSet := make(map[string]bool, len(members))
 	for _, id := range members {

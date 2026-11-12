@@ -316,6 +316,45 @@ func TestABlockSurvivesASecondCommitteeChange(t *testing.T) {
 	})
 }
 
+func TestTakeoverKeepsAnEarlierWitness(t *testing.T) {
+	w := primed(t)
+	a, la := w.fork(t, "claim A", "2027-01-12T06:00:00Z")
+	b, lb := w.fork(t, "claim B", "2027-01-12T07:00:00Z")
+	wa := []wire.SettlementWitness{
+		*audit(t, w.monitors[0], a, la, "2027-01-13T12:00:00Z").Witness,
+		*audit(t, w.monitors[1], a, la, "2027-01-13T12:00:00Z").Witness,
+	}
+	wb := []wire.SettlementWitness{
+		*audit(t, w.monitors[3], b, lb, "2027-01-13T12:00:00Z").Witness,
+		*audit(t, w.monitors[4], b, lb, "2027-01-13T12:00:00Z").Witness,
+	}
+	t.Run("two valid known claims give no hold and the witness stays", func(t *testing.T) {
+		rejoining := w.newcomer(t, "rejoining-both")
+		kept := *audit(t, rejoining, a, la, "2027-01-13T12:00:00Z").Witness
+		got, err := rejoining.Takeover([]Candidate{{Claim: a, Leaves: la, Witnesses: wa}, {Claim: b, Leaves: lb, Witnesses: wb}}, w.committee(),
+			at(t, "2027-02-01T00:00:00Z"), nil, nil, nil, nil)
+		if err != nil || got.Hold != nil || got.Witness == nil || *got.Witness != kept {
+			t.Fatalf("Takeover() = %+v, %v; want only the kept witness", got, err)
+		}
+		page := rejoining.Page(a.ProviderID, btc, 1, 10)
+		if len(page.Holds) != 0 || len(page.Refusals) != 0 || len(page.Witnesses) != 1 || page.Witnesses[0] != kept {
+			t.Fatalf("page = %d witnesses, %d refusals, %d holds; want only the witness for A", len(page.Witnesses), len(page.Refusals), len(page.Holds))
+		}
+	})
+	t.Run("the only valid other claim is not witnessed", func(t *testing.T) {
+		rejoining := w.newcomer(t, "rejoining-other")
+		kept := *audit(t, rejoining, a, la, "2027-01-13T12:00:00Z").Witness
+		got, err := rejoining.Takeover([]Candidate{{Claim: b, Leaves: lb, Witnesses: wb}}, w.committee(), at(t, "2027-02-01T00:00:00Z"), nil, nil, nil, nil)
+		if err != nil || got.Hold != nil || got.Witness == nil || *got.Witness != kept {
+			t.Fatalf("Takeover() = %+v, %v; want only the kept witness", got, err)
+		}
+		page := rejoining.Page(a.ProviderID, btc, 1, 10)
+		if len(page.Holds) != 0 || len(page.Refusals) != 0 || len(page.Witnesses) != 1 || page.Witnesses[0] != kept {
+			t.Fatalf("page = %d witnesses, %d refusals, %d holds; want only the witness for A", len(page.Witnesses), len(page.Refusals), len(page.Holds))
+		}
+	})
+}
+
 func TestAHoldOnASingleClaimEndsWhenItPassesAudit(t *testing.T) {
 	w := primed(t)
 	claim, leaves := w.second(t, "hold-cleared")
