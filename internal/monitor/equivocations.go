@@ -37,11 +37,15 @@ func monitorEquivocations(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	member := MemberFrom(r)
+	if member == nil {
+		monitorUnavailable(w)
+		return
+	}
 	page := wire.EquivocationsPage{Proofs: []wire.EquivocationProof{}}
-	if member == nil || member.Do(func(m *committee.Monitor) error {
+	member.read(func(m *committee.Monitor) {
 		page.Proofs = m.EquivocationProofs(providerID)
-		return nil
-	}) != nil || len(page.Proofs) > 1000 {
+	})
+	if len(page.Proofs) > 1000 {
 		monitorUnavailable(w)
 		return
 	}

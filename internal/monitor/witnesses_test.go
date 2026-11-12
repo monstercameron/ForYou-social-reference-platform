@@ -163,6 +163,40 @@ func TestMonitorWitnessAndEquivocationRoutes(t *testing.T) {
 	t.Run("malformed percent escape", func(t *testing.T) { checkInvalid(t, "provider_id=%2g&network=bitcoin-mainnet") })
 }
 
+func TestMonitorPublicReadsLeaveJournalUnchanged(t *testing.T) {
+	root := t.TempDir()
+	svc := testService(t, root, &testChain{})
+	defer svc.Close()
+	journal := filepath.Join(root, "0", "journal.jsonl")
+	stat, err := os.Stat(journal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	before := stat.Size()
+	did := keys.DIDOf(devnet.ProviderKey(1))
+	get := func(path string) {
+		t.Helper()
+		response := httptest.NewRecorder()
+		svc.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodGet, path, nil))
+		if response.Code != http.StatusOK {
+			t.Fatalf("GET %s = %d %q", path, response.Code, response.Body.String())
+		}
+	}
+	witnesses := "/monitors/0/v1/witnesses?provider_id=" + monitorEncodeValue(did) + "&network=bitcoin-mainnet"
+	equivocations := "/monitors/0/v1/equivocations?provider_id=" + monitorEncodeValue(did)
+	get(witnesses)
+	get(witnesses)
+	get(equivocations)
+	get(equivocations)
+	stat, err = os.Stat(journal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stat.Size() != before {
+		t.Errorf("journal size after public reads = %d; want unchanged %d", stat.Size(), before)
+	}
+}
+
 func monitorWantQueryError(t *testing.T, response *httptest.ResponseRecorder) {
 	t.Helper()
 	var body struct {

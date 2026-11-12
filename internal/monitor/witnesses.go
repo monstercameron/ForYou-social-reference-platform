@@ -57,14 +57,14 @@ func monitorWitnesses(w http.ResponseWriter, r *http.Request) {
 		afterSequence = value
 	}
 	member := MemberFrom(r)
-	var page wire.MonitorWitnessesPage
-	if member == nil || member.Do(func(m *committee.Monitor) error {
-		page = m.Page(providerID, network, afterSequence, 1000)
-		return nil
-	}) != nil {
+	if member == nil {
 		monitorUnavailable(w)
 		return
 	}
+	var page wire.MonitorWitnessesPage
+	member.read(func(m *committee.Monitor) {
+		page = m.Page(providerID, network, afterSequence, 1000)
+	})
 	if len(page.Witnesses) > 1000 || len(page.Refusals) > 1000 || len(page.Holds) > 1000 || len(page.Claims) > 1000 {
 		monitorUnavailable(w)
 		return

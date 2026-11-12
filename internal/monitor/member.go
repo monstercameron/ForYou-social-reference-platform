@@ -1,6 +1,7 @@
 package monitor
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -78,7 +79,7 @@ func (m *Member) DID() string { return m.did }
 // DB returns this member's typed-collection database.
 func (m *Member) DB() *store.DB { return m.db }
 
-// Do serializes a committee state change and journals it before returning.
+// Do serializes a committee state change and journals it before returning when the state changed.
 func (m *Member) Do(fn func(*committee.Monitor) error) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -89,9 +90,13 @@ func (m *Member) Do(fn func(*committee.Monitor) error) error {
 		return errors.Join(err, m.restoreSnapshot())
 	}
 	data, err := m.monitor.Snapshot()
-	if err == nil {
-		err = m.db.Update(func(tx store.Tx) error { return tx.Put(monitorSnapshotCollection, monitorSnapshotKey, data) })
+	if err != nil {
+		return errors.Join(err, m.restoreSnapshot())
 	}
+	if bytes.Equal(data, m.snapshot) {
+		return nil
+	}
+	err = m.db.Update(func(tx store.Tx) error { return tx.Put(monitorSnapshotCollection, monitorSnapshotKey, data) })
 	if err != nil {
 		return errors.Join(err, m.restoreSnapshot())
 	}
@@ -112,6 +117,13 @@ func (m *Member) View(fn func(*committee.Monitor) error) error {
 		return fmt.Errorf("monitor: restore member %d for view: %w", m.index, err)
 	}
 	return fn(monitor)
+}
+
+// read runs fn on the live monitor under the member lock. fn must not change state; nothing is journaled.
+func (m *Member) read(fn func(*committee.Monitor)) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	fn(m.monitor)
 }
 
 func (m *Member) restoreSnapshot() error {

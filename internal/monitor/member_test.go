@@ -2,6 +2,8 @@ package monitor
 
 import (
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
@@ -104,6 +106,29 @@ func TestMemberViewDoesNotJournalOrPersistChanges(t *testing.T) {
 	}
 }
 
+func TestMemberDoSkipsJournalWhenStateUnchanged(t *testing.T) {
+	root := t.TempDir()
+	svc := testService(t, root, &testChain{})
+	defer svc.Close()
+	member := svc.Members()[0]
+	journal := filepath.Join(root, "0", "journal.jsonl")
+	stat, err := os.Stat(journal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	before := stat.Size()
+	if err := member.Do(func(*committee.Monitor) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+	stat, err = os.Stat(journal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stat.Size() != before {
+		t.Errorf("journal size after unchanged Do = %d; want %d", stat.Size(), before)
+	}
+}
+
 func TestMemberViewReturnsCallbackErrorUnchanged(t *testing.T) {
 	svc := testService(t, t.TempDir(), &testChain{})
 	defer svc.Close()
@@ -111,5 +136,60 @@ func TestMemberViewReturnsCallbackErrorUnchanged(t *testing.T) {
 	err := svc.Members()[0].View(func(*committee.Monitor) error { return want })
 	if err != want {
 		t.Errorf("View error = %v; want identical error %v", err, want)
+	}
+}
+
+func TestMemberPublicReadsNeitherRestoreNorJournal(t *testing.T) {
+	svc := testService(t, t.TempDir(), &testChain{})
+	defer svc.Close()
+	member := svc.Members()[0]
+	member.snapshot = []byte("not a snapshot")
+	if err := member.DB().Close(); err != nil {
+		t.Fatal(err)
+	}
+	did := keys.DIDOf(devnet.ProviderKey(1))
+	t.Run("witnesses", func(t *testing.T) {
+		response := httptest.NewRecorder()
+		svc.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/monitors/0/v1/witnesses?provider_id="+monitorEncodeValue(did)+"&network=bitcoin-mainnet", nil))
+		if response.Code != http.StatusOK {
+			t.Fatalf("witness read with corrupt snapshot and closed journal = %d %q; want 200", response.Code, response.Body.String())
+		}
+	})
+	t.Run("equivocations", func(t *testing.T) {
+		response := httptest.NewRecorder()
+		svc.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/monitors/0/v1/equivocations?provider_id="+monitorEncodeValue(did), nil))
+		if response.Code != http.StatusOK {
+			t.Fatalf("equivocation read with corrupt snapshot and closed journal = %d %q; want 200", response.Code, response.Body.String())
+		}
+	})
+}
+
+func TestMemberDoJournalsChangeAfterPublicReads(t *testing.T) {
+	root := t.TempDir()
+	svc := testService(t, root, &testChain{})
+	defer svc.Close()
+	member := svc.Members()[0]
+	did := keys.DIDOf(devnet.ProviderKey(1))
+	response := httptest.NewRecorder()
+	svc.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/monitors/0/v1/witnesses?provider_id="+monitorEncodeValue(did)+"&network=bitcoin-mainnet", nil))
+	if response.Code != http.StatusOK {
+		t.Fatalf("witness read = %d %q; want 200", response.Code, response.Body.String())
+	}
+	journal := filepath.Join(root, "0", "journal.jsonl")
+	stat, err := os.Stat(journal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	before := stat.Size()
+	stamp := time.Date(2027, 1, 2, 3, 4, 5, 0, time.UTC)
+	if err := member.Do(func(state *committee.Monitor) error { state.Observe("claim", stamp); return nil }); err != nil {
+		t.Fatal(err)
+	}
+	stat, err = os.Stat(journal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stat.Size() <= before {
+		t.Errorf("journal size after signed change = %d; want more than %d", stat.Size(), before)
 	}
 }
