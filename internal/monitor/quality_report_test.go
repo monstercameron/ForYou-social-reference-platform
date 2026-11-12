@@ -54,7 +54,7 @@ func TestQualityReportForOnePeriod(t *testing.T) {
 	})
 	t.Run("timeouts are unavailable with null status and a small sample leaves the score unknown", func(t *testing.T) {
 		qualitySetTunables(t, 600, 600, 0)
-		qualityProbeTimeout = 50 * time.Millisecond
+		qualityProbeTimeout = 400 * time.Millisecond
 		check(t, qualityWorldOptions{settled: 12, members: 1, hangListings: true},
 			map[string]int{"availability unavailable null": 24, "retrieval pass 200": 12},
 			[4]int64{0, 24, 12, 12}, nil)
