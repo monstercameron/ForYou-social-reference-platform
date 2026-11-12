@@ -18,6 +18,7 @@ import (
 	"sync"
 	"time"
 
+	"foryou.local/foryou/internal/apierr"
 	"foryou.local/foryou/internal/canon"
 	"foryou.local/foryou/internal/devnet"
 	"foryou.local/foryou/internal/discovery"
@@ -140,6 +141,7 @@ func New(cfg Config) (*Service, error) {
 		_ = db.Close()
 		return nil, fmt.Errorf("replica: restore records: %w", err)
 	}
+	records.recoverControls()
 	snapshots, err := discovery.NewSnapshots(cfg.Snapshots, cfg.Now, nil)
 	if err != nil {
 		_ = db.Close()
@@ -260,8 +262,61 @@ func isLoopbackHost(host string) bool {
 	return ip != nil && ip.IsLoopback()
 }
 
-// Handler returns the mux built during construction.
-func (s *Service) Handler() http.Handler { return s.mux }
+// Handler returns the public handler: controls are applied before any route serves a read.
+func (s *Service) Handler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if s.answerControlled(w, r) {
+			return
+		}
+		s.mux.ServeHTTP(w, r)
+	})
+}
+
+// Restrict commits a local restriction of one record. The signed record and its message ID are unchanged,
+// and the returned generation is the control's position in the replica's control order.
+func (s *Service) Restrict(messageID string, status ControlStatus) (uint64, error) {
+	return s.records.commitControl(messageID, status, false)
+}
+
+// Remove commits a legally required removal of one record. The stored copy is deleted in the same
+// commit and the record is never restored by sync, repair or recovery from ordinary backups.
+func (s *Service) Remove(messageID string, status ControlStatus) (uint64, error) {
+	return s.records.commitControl(messageID, status, true)
+}
+
+// answerControlled answers a public read that a committed control or an uncertain control state
+// forbids, and reports whether it did. Every other request continues to the mux unchanged.
+func (s *Service) answerControlled(w http.ResponseWriter, r *http.Request) bool {
+	escaped := r.URL.EscapedPath()
+	if !strings.HasPrefix(escaped, "/v1/") {
+		return false
+	}
+	if err := s.records.controls.failure(); err != nil {
+		writeRetry(w, http.StatusServiceUnavailable, "unavailable", 5)
+		return true
+	}
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		return false
+	}
+	messageEscaped := strings.TrimPrefix(escaped, "/v1/messages/")
+	if messageEscaped == escaped || !readValidMessagePath(messageEscaped) {
+		return false
+	}
+	record, controlled, err := s.records.controls.lookup(strings.Replace(messageEscaped, "%3A", ":", 1))
+	if err != nil {
+		writeRetry(w, http.StatusServiceUnavailable, "unavailable", 5)
+		return true
+	}
+	if !controlled {
+		return false
+	}
+	if retry, ok := s.AllowRead(ReadDirect, r); !ok {
+		writeRetry(w, http.StatusTooManyRequests, "rate_limited", retry)
+		return true
+	}
+	apierr.Write(w, apierr.PublicReadError{Status: apierr.Status(record.Status)})
+	return true
+}
 
 // Every registers a periodic service loop during route-group construction.
 func (s *Service) Every(name string, interval time.Duration, fn func(context.Context, time.Time) error) {
