@@ -24,7 +24,7 @@ import (
 const (
 	mydataFormat      = "foryou-client-data"
 	mydataVersion     = 1
-	mydataFileLimit   = 64 << 10
+	mydataFileLimit   = 256 << 10
 	mydataUploadLimit = 1 << 20
 	mydataApplyLimit  = 32768
 	mydataNotFile     = "This is not a ForYou data file."
@@ -49,6 +49,7 @@ type mydataFile struct {
 	MediaOrigins      *[]string             `json:"media_origins,omitempty"`
 	Network           *mydataNetwork        `json:"network,omitempty"`
 	Acknowledgements  *map[string]time.Time `json:"acknowledgements,omitempty"`
+	Other             *mydataOther          `json:"other,omitempty"`
 	SettingsFileError string                `json:"settings_file_error,omitempty"`
 }
 
@@ -120,6 +121,7 @@ func mydataExportFile(s mydataState, exportedAt string) mydataFile {
 		},
 		Feedback: &feedback,
 		Follows:  &follows,
+		Other:    mydataOtherFor(s.More),
 	}
 	if s.SettingsBad {
 		file.SettingsFileError = "could not be read"
@@ -427,6 +429,9 @@ func mydataIgnoredNotes(file mydataFile) []string {
 	if file.Acknowledgements != nil {
 		notes = append(notes, "Confirmed warnings are not imported. You confirm them again on this browser.")
 	}
+	if file.Other != nil {
+		notes = append(notes, "Display choices, feed order, saved posts, mutes, names and report receipts in the file are for reference only and are not imported.")
+	}
 	if file.SettingsFileError != "" {
 		notes = append(notes, "The settings file was damaged when this file was exported, so its media, network and warning choices are not in it.")
 	}
@@ -474,7 +479,7 @@ func (a *App) mydataRefused(w http.ResponseWriter, r *http.Request, message stri
 func mydataFormProblem(err error) string {
 	var tooLarge *http.MaxBytesError
 	if errors.As(err, &tooLarge) {
-		return "The file is larger than 64 KiB."
+		return "The file is larger than 256 KiB."
 	}
 	return "invalid form"
 }
@@ -508,7 +513,7 @@ func mydataReadUpload(form *multipart.Form) ([]byte, string) {
 		return nil, "Choose a file to import."
 	}
 	if len(data) > mydataFileLimit {
-		return nil, "The file is larger than 64 KiB."
+		return nil, "The file is larger than 256 KiB."
 	}
 	if len(data) == 0 {
 		return nil, "Choose a file to import."

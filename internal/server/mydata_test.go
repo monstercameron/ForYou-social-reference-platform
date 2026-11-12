@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strings"
 	"testing"
@@ -200,10 +201,10 @@ func TestMydataImport(t *testing.T) {
 			t.Errorf("unknown field status %d", w.Code)
 		}
 	})
-	t.Run("refuses a file over 64 KiB", func(t *testing.T) {
+	t.Run("refuses a file over 256 KiB", func(t *testing.T) {
 		client := newTestClient(t, false)
-		w := mydataServe(client.Handler(), mydataUploadRequest(t, bytes.Repeat([]byte(" "), 65537)))
-		if w.Code != http.StatusBadRequest || !strings.Contains(w.Body.String(), "The file is larger than 64 KiB.") {
+		w := mydataServe(client.Handler(), mydataUploadRequest(t, bytes.Repeat([]byte(" "), 262145)))
+		if w.Code != http.StatusBadRequest || !strings.Contains(w.Body.String(), "The file is larger than 256 KiB.") {
 			t.Errorf("large file status %d", w.Code)
 		}
 	})
@@ -275,6 +276,94 @@ func TestMydataErase(t *testing.T) {
 		}
 		if w.Code != http.StatusSeeOther || w.Header().Get("Location") != "/mydata?erased=everything#mydata-kinds-title" || !forgotten {
 			t.Errorf("erase everything status %d location %q; want the profile cookie expired", w.Code, w.Header().Get("Location"))
+		}
+	})
+}
+
+// mydataTestSaveAndMute saves one post and mutes one word for the test profile.
+func mydataTestSaveAndMute(t *testing.T, client *Client) {
+	t.Helper()
+	if _, status := client.app.bmApply(setTestProfile, "garden", "save"); status != http.StatusOK {
+		t.Fatalf("saving a post answered %d", status)
+	}
+	err := client.app.muteWrite(setTestProfile, func(list *muteList) error {
+		return list.addWord("spoiler", time.Date(2026, 11, 12, 0, 0, 0, 0, time.UTC))
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestMydataOtherKinds(t *testing.T) {
+	profile := &http.Cookie{Name: profileCookie, Value: setTestProfile}
+	t.Run("the page lists saved posts, mutes and the feed order", func(t *testing.T) {
+		client := newTestClient(t, false)
+		mydataTestSaveAndMute(t, client)
+		body := getWith(client.Handler(), "/mydata", profile, &http.Cookie{Name: fyoOrderCookie, Value: fyoForYou})
+		if !strings.Contains(body, "1 post saved (up to 500).") {
+			t.Error("Your data page does not count the saved post")
+		}
+		if !strings.Contains(body, "0 keys and 1 word or phrase muted.") {
+			t.Error("Your data page does not count the muted word")
+		}
+		if !strings.Contains(body, "For you, ordered on this server from your likes and dislikes") {
+			t.Error("Your data page does not show the chosen feed order")
+		}
+	})
+	t.Run("erasing saved posts removes the file and nothing else", func(t *testing.T) {
+		client := newTestClient(t, false)
+		mydataTestSaveAndMute(t, client)
+		w := postForm(client.Handler(), "/mydata/erase", url.Values{"kind": {"saved"}}, profile)
+		dir := filepath.Join(client.app.profiles.root, setTestProfile)
+		_, saved := os.Stat(filepath.Join(dir, "saved.json"))
+		_, mutes := os.Stat(filepath.Join(dir, "mutes.json"))
+		if w.Code != http.StatusSeeOther || w.Header().Get("Location") != "/mydata?erased=saved#mydata-kinds-title" || !os.IsNotExist(saved) || mutes != nil {
+			t.Errorf("erase saved: status %d, location %q, saved.json error %v, mutes.json error %v; want 303, saved.json gone and mutes.json kept", w.Code, w.Header().Get("Location"), saved, mutes)
+		}
+	})
+	t.Run("erasing the feed order expires its cookie", func(t *testing.T) {
+		client := newTestClient(t, false)
+		w := postForm(client.Handler(), "/mydata/erase/fragment", url.Values{"kind": {"order"}}, &http.Cookie{Name: fyoOrderCookie, Value: fyoForYou})
+		expired := false
+		for _, c := range w.Result().Cookies() {
+			expired = expired || (c.Name == fyoOrderCookie && c.MaxAge < 0)
+		}
+		if w.Code != http.StatusOK || !expired || !strings.Contains(w.Body.String(), "Newest first (no cookie)") {
+			t.Errorf("erase order: status %d, cookie expired %v; want 200, the cookie expired and the row back to Newest first", w.Code, expired)
+		}
+	})
+	t.Run("erase everything empties the profile folder", func(t *testing.T) {
+		client := newTestClient(t, false)
+		mydataTestSaveAndMute(t, client)
+		mydataTestFollow(t, client, mydataTestDID(t))
+		w := postForm(client.Handler(), "/mydata/erase", url.Values{"kind": {"everything"}, "confirm": {"yes"}}, profile)
+		_, err := os.Stat(filepath.Join(client.app.profiles.root, setTestProfile))
+		if w.Code != http.StatusSeeOther || !os.IsNotExist(err) {
+			t.Errorf("erase everything: status %d, profile folder error %v; want 303 and no folder left", w.Code, err)
+		}
+	})
+	t.Run("the download carries them for reference", func(t *testing.T) {
+		client := newTestClient(t, false)
+		mydataTestSaveAndMute(t, client)
+		r := httptest.NewRequest(http.MethodGet, "/mydata/export", nil)
+		r.AddCookie(profile)
+		var file mydataFile
+		if err := json.Unmarshal(mydataServe(client.Handler(), r).Body.Bytes(), &file); err != nil {
+			t.Fatal(err)
+		}
+		if file.Other == nil || !reflect.DeepEqual(file.Other.SavedPosts, []string{"garden"}) || !reflect.DeepEqual(file.Other.MutedWords, []string{"spoiler"}) || file.Other.FeedOrder != "newest" {
+			t.Errorf("download other part = %+v; want the saved post garden, the muted word spoiler and the newest order", file.Other)
+		}
+	})
+	t.Run("a downloaded file is accepted by import", func(t *testing.T) {
+		client := newTestClient(t, false)
+		mydataTestSaveAndMute(t, client)
+		r := httptest.NewRequest(http.MethodGet, "/mydata/export", nil)
+		r.AddCookie(profile)
+		exported := mydataServe(client.Handler(), r).Body.Bytes()
+		w := mydataServe(client.Handler(), mydataUploadRequest(t, exported, profile))
+		if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "for reference only and are not imported") {
+			t.Errorf("import of a downloaded file answered %d; want the preview with the reference-only note", w.Code)
 		}
 	})
 }

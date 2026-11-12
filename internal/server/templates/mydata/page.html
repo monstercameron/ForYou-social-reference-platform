@@ -7,11 +7,11 @@
       <div class="mydata-where-lists">
         <div>
           <h3>In this browser</h3>
-          <ul class="mydata-list"><li>Appearance</li><li>Content filters</li><li>Likes and dislikes</li><li>Follows</li></ul>
+          <ul class="mydata-list"><li>Appearance, accent, text size and motion</li><li>Content filters</li><li>Likes and dislikes</li><li>Home feed order</li><li>Keyboard shortcuts and the getting started panel</li></ul>
         </div>
         <div>
           <h3>On this server</h3>
-          <ul class="mydata-list"><li><code>settings.json</code> in your profile folder</li><li>Your identity entries and publishing journal</li></ul>
+          <ul class="mydata-list"><li>Follows, saved posts and mutes</li><li>Names you gave to keys and your own display name</li><li>Media origins, network choices and confirmed warnings</li><li>Report receipts and provider manifests you have seen</li><li>Your identity entries and publishing journal</li></ul>
         </div>
       </div>
     </section>
@@ -26,14 +26,14 @@
     </section>
     <section id="mydata-download" class="component-card settings-card" aria-labelledby="mydata-download-title">
       <h2 id="mydata-download-title">Download</h2>
-      <p>One JSON file with everything in What is saved, plus your profile ID and public key. It holds no private key. It is not an owner export of your posts and not a key backup.</p>
+      <p>One JSON file with everything in What is saved, plus your profile ID and public key. Saved posts, mutes, names and report receipts are in it for your records; Import does not bring them back. It holds no private key. It is not an owner export of your posts and not a key backup.</p>
       <a class="button button-primary button-link" href="/mydata/export" download>Download my data</a>
     </section>
     {{template "mydata-import-card" .}}
     <section id="mydata-erase-all" class="component-card settings-card" aria-labelledby="mydata-erase-all-title">
       <h2 id="mydata-erase-all-title">Erase everything</h2>
       <div class="notice-bad mydata-danger-note">
-        <p>Erases every cookie and the settings file listed above for this browser. Your identity key and publishing journal stay.</p>
+        <p>Erases every cookie and every file listed above for this browser and profile. Your identity key and publishing journal stay. Posts, name records and reports you already sent are not withdrawn.</p>
       </div>
       <form class="mydata-erase-all" action="/mydata/erase" method="post" post="/mydata/erase/fragment" target="#mydata-kinds(outerHTML)" timeout="5000" onerror="#mydata-status(innerHTML)" data-focus-after-swap="#mydata-kinds-title">
         <label class="mydata-confirm"><input type="checkbox" name="confirm" value="yes" required> <span>I understand this cannot be undone</span></label>
@@ -49,7 +49,7 @@
   <h2 id="mydata-import-title">Import</h2>
   <p>Bring a file downloaded from Your data on another browser or server. You see what will change before anything is saved, and you choose which parts to apply. Each part you apply replaces what is saved here.</p>
   <form class="mydata-import-form" action="/mydata/import" method="post" enctype="multipart/form-data">
-    <label for="mydata-file">Data file (JSON, up to 64 KiB)</label>
+    <label for="mydata-file">Data file (JSON, up to 256 KiB)</label>
     <input id="mydata-file" class="mydata-file" type="file" name="file" accept="application/json,.json" required aria-describedby="mydata-import-error"{{if .ImportError}} autofocus{{end}}>
     <button class="button button-secondary" type="submit">Check file</button>
   </form>

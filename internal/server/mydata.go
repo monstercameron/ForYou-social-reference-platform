@@ -1,7 +1,6 @@
 package server
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -68,6 +67,7 @@ type mydataState struct {
 	Settings      ProfileSettings
 	DID           string
 	Journal       int
+	More          mydataMore
 }
 
 func (a *App) mydataReadState(r *http.Request) mydataState {
@@ -77,6 +77,7 @@ func (a *App) mydataReadState(r *http.Request) mydataState {
 	s.FeedbackSaved = mydataFeedbackSaved(r)
 	s.Feedback = feedbackEntries(r)
 	s.Follows, s.FollowsSaved, s.FollowsBad = a.mydataFollowsFrom(s.Profile)
+	s.More = a.mydataReadMore(r, s.Profile)
 	if s.Profile == "" {
 		return s
 	}
@@ -216,9 +217,11 @@ type mydataRow struct {
 func mydataRows(s mydataState) []mydataRow {
 	rows := []mydataRow{mydataAppearanceRow(s), mydataFiltersRow(s), mydataFeedbackRow(s), mydataFollowsRow(s)}
 	if s.SettingsBad {
-		return append(rows, mydataRow{Key: "media", Title: "Settings file", Where: mydataOnServer, Code: "settings.json", Suffix: " for this profile", Notice: mydataSettingsDamaged, Saved: true, Damaged: true})
+		rows = append(rows, mydataRow{Key: "media", Title: "Settings file", Where: mydataOnServer, Code: "settings.json", Suffix: " for this profile", Notice: mydataSettingsDamaged, Saved: true, Damaged: true})
+	} else {
+		rows = append(rows, mydataMediaRow(s), mydataNetworkRow(s), mydataAcknowledgementsRow(s))
 	}
-	return append(rows, mydataMediaRow(s), mydataNetworkRow(s), mydataAcknowledgementsRow(s))
+	return append(rows, mydataMoreRows(s.Profile, s.More)...)
 }
 
 func mydataAppearanceRow(s mydataState) mydataRow {
@@ -433,9 +436,9 @@ func mydataCookieErased(kind, name string) bool {
 	case "follows":
 		return name == followCookie
 	case "everything":
-		return name == themeCookie || name == filterCookie || name == followCookie || name == feedbackCookie || strings.HasPrefix(name, feedbackPrefix)
+		return name == themeCookie || name == filterCookie || name == followCookie || name == feedbackCookie || strings.HasPrefix(name, feedbackPrefix) || mydataMoreCookieErased(kind, name)
 	}
-	return false
+	return mydataMoreCookieErased(kind, name)
 }
 
 // mydataWithout copies a request with the cookies that drop selects removed.
@@ -516,11 +519,15 @@ func (a *App) mydataEraseHandler(w http.ResponseWriter, r *http.Request) {
 		a.mydataEraseEverything(w, r, form.Get("confirm") == "yes", fragment, profile)
 		return
 	}
-	if !slices.Contains(mydataKinds, kind) {
+	erase := a.mydataEraseKind
+	switch {
+	case slices.Contains(mydataMoreKinds, kind):
+		erase = a.mydataEraseMore
+	case !slices.Contains(mydataKinds, kind):
 		http.Error(w, "invalid form", http.StatusBadRequest)
 		return
 	}
-	if err := a.mydataEraseKind(w, r, kind, profile); err != nil {
+	if err := erase(w, r, kind, profile); err != nil {
 		a.fail(w, r, http.StatusInternalServerError, mydataEraseFailed)
 		return
 	}
@@ -572,7 +579,7 @@ func (a *App) mydataEraseSettings(kind, profile string) error {
 		return nil
 	}
 	if _, err := a.settings(profile); err != nil {
-		return a.mydataRemoveProfileFiles(profile)
+		return a.mydataRemoveProfileFiles(profile, "settings.json")
 	}
 	return a.updateSettings(profile, func(settings *ProfileSettings) error {
 		switch kind {
@@ -587,14 +594,16 @@ func (a *App) mydataEraseSettings(kind, profile string) error {
 	})
 }
 
-// mydataRemoveProfileFiles deletes the settings file of a profile and its folder when nothing else is in it.
-func (a *App) mydataRemoveProfileFiles(profile string) error {
+// mydataRemoveProfileFiles deletes the named files of a profile and its folder when nothing else is in it.
+func (a *App) mydataRemoveProfileFiles(profile string, files ...string) error {
 	lock := a.profiles.lock(profile)
 	lock.Lock()
 	defer lock.Unlock()
 	dir := filepath.Join(a.profiles.root, profile)
-	if err := os.Remove(filepath.Join(dir, "settings.json")); err != nil && !errors.Is(err, os.ErrNotExist) {
-		return err
+	for _, file := range files {
+		if err := mydataRemove(filepath.Join(dir, file)); err != nil {
+			return err
+		}
 	}
 	_ = os.Remove(dir)
 	return nil
@@ -625,8 +634,13 @@ func (a *App) mydataEraseEverything(w http.ResponseWriter, r *http.Request, conf
 	mydataExpireCookie(w, r, filterCookie, http.SameSiteStrictMode)
 	mydataExpireCookie(w, r, followCookie, http.SameSiteStrictMode)
 	mydataExpireFeedback(w, r)
+	for _, kind := range mydataMoreKinds {
+		if name, sameSite, ok := mydataMoreCookie(kind); ok {
+			mydataExpireCookie(w, r, name, sameSite)
+		}
+	}
 	if profile != "" {
-		if err := a.mydataRemoveProfileFiles(profile); err != nil {
+		if err := a.mydataRemoveProfileFiles(profile, mydataProfileFiles...); err != nil {
 			a.fail(w, r, http.StatusInternalServerError, mydataEraseFailed)
 			return
 		}
