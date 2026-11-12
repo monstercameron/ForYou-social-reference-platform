@@ -132,6 +132,15 @@ func (s *Snapshots) Limits() SnapshotLimits {
 
 // Start freezes matching visible entries and serves the first page.
 func (s *Snapshots) Start(binding string, limit int, vis Visibility, produce func() ([]Entry, error)) ([]byte, error) {
+	if produce == nil {
+		return nil, ErrUnavailable
+	}
+	return s.StartBudgeted(binding, limit, vis, func(int64) ([]Entry, error) { return produce() })
+}
+
+// StartBudgeted is Start for a producer that stops early. produce receives the snapshot bytes still available
+// and returns ErrBusy once its matches would exceed them, so a range is never materialized past the cap.
+func (s *Snapshots) StartBudgeted(binding string, limit int, vis Visibility, produce func(budget int64) ([]Entry, error)) ([]byte, error) {
 	s.mu.Lock()
 	now := s.now().UTC()
 	s.evictExpired(now)
@@ -143,13 +152,17 @@ func (s *Snapshots) Start(binding string, limit int, vis Visibility, produce fun
 		s.mu.Unlock()
 		return nil, ErrBusy
 	}
+	budget := s.limits.MaxBytes - s.heldByte
 	s.pending++
 	s.mu.Unlock()
 
 	created := vis.Generation()
-	produced, err := produce()
+	produced, err := produce(budget)
 	if err != nil {
 		s.releasePending()
+		if errors.Is(err, ErrBusy) {
+			return nil, ErrBusy
+		}
 		return nil, ErrUnavailable
 	}
 	frozen := make([]Entry, 0, len(produced))

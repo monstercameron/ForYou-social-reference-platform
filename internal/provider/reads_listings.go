@@ -65,8 +65,11 @@ func rdList(w http.ResponseWriter, r *http.Request, s *Service, route discovery.
 	}
 	var body []byte
 	if cursor == "" {
-		body, err = s.Snapshots().Start(query.Binding(), query.Limit, s.Visibility(), func() ([]discovery.Entry, error) {
-			records := s.Records().Select(query)
+		body, err = s.Snapshots().StartBudgeted(query.Binding(), query.Limit, s.Visibility(), func(budget int64) ([]discovery.Entry, error) {
+			records, err := s.Records().index.SelectWithin(query, budget)
+			if err != nil {
+				return nil, err
+			}
 			entries := make([]discovery.Entry, 0, len(records))
 			for _, record := range records {
 				entries = append(entries, discovery.Entry{MessageID: record.MessageID, Bytes: record.Bytes})

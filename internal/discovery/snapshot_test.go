@@ -364,3 +364,36 @@ func TestSnapshotRestrictionsAndErrors(t *testing.T) {
 		}
 	})
 }
+
+func TestSnapshotBudget(t *testing.T) {
+	t.Run("producer receives the bytes still available", func(t *testing.T) {
+		now := time.Date(2026, 11, 11, 0, 0, 0, 0, time.UTC)
+		snapshots := newTestSnapshots(t, SnapshotLimits{MaxBytes: 100}, &now)
+		vis := &testVisibility{}
+		if _, err := snapshots.StartBudgeted("first", 1, vis, func(int64) ([]Entry, error) {
+			return []Entry{{MessageID: "fy1:first", Bytes: []byte("012345678901234567890123456789")}}, nil
+		}); err != nil {
+			t.Fatalf("first StartBudgeted() error = %v", err)
+		}
+		var budget int64
+		if _, err := snapshots.StartBudgeted("second", 1, vis, func(available int64) ([]Entry, error) {
+			budget = available
+			return nil, nil
+		}); err != nil {
+			t.Fatalf("second StartBudgeted() error = %v", err)
+		}
+		if budget != 70 {
+			t.Fatalf("produce budget = %d; want 70", budget)
+		}
+	})
+	t.Run("busy from the producer is not reported as unavailable", func(t *testing.T) {
+		now := time.Date(2026, 11, 11, 0, 0, 0, 0, time.UTC)
+		snapshots := newTestSnapshots(t, SnapshotLimits{MaxBytes: 100}, &now)
+		_, err := snapshots.StartBudgeted("large", 10, &testVisibility{}, func(int64) ([]Entry, error) {
+			return nil, ErrBusy
+		})
+		if !errors.Is(err, ErrBusy) {
+			t.Fatalf("StartBudgeted() error = %v; want ErrBusy", err)
+		}
+	})
+}

@@ -1,6 +1,7 @@
 package discovery
 
 import (
+	"math"
 	"sort"
 	"sync"
 	"time"
@@ -118,30 +119,47 @@ func (x *Index) Get(messageID string) (Record, bool) {
 
 // Select returns every matching record in listing order.
 func (x *Index) Select(query Query) []Record {
+	records, _ := x.SelectWithin(query, math.MaxInt64)
+	return records
+}
+
+// SelectWithin returns every matching record in listing order. It stops scanning and returns ErrBusy as soon
+// as the matches would total more than budget bytes, so the result is never truncated.
+func (x *Index) SelectWithin(query Query, budget int64) ([]Record, error) {
 	x.mu.RLock()
 	defer x.mu.RUnlock()
-	view := x.ordered
+	view := x.view(query)
+	start, end := timestampRange(view, query.From, query.hasFrom(), query.Until, query.hasUntil())
+	var held int64
+	var result []Record
+	for _, record := range view[start:end] {
+		if !query.Match(record) {
+			continue
+		}
+		held += int64(len(record.Bytes))
+		if held > budget {
+			return nil, ErrBusy
+		}
+		result = append(result, cloneRecord(record))
+	}
+	return result, nil
+}
+
+func (x *Index) view(query Query) []Record {
 	switch query.Route {
 	case AuthorMessages:
-		view = x.authors[query.AuthorID]
+		return x.authors[query.AuthorID]
 	case Replies:
-		view = x.replies[query.Target]
+		return x.replies[query.Target]
 	case References:
-		view = x.references[query.Target]
+		return x.references[query.Target]
 	case Versions:
-		view = x.supersedes[query.Target]
+		return x.supersedes[query.Target]
 	case Messages:
+		return x.ordered
 	default:
 		return nil
 	}
-	start, end := timestampRange(view, query.From, query.hasFrom(), query.Until, query.hasUntil())
-	result := make([]Record, 0, end-start)
-	for _, record := range view[start:end] {
-		if query.Match(record) {
-			result = append(result, cloneRecord(record))
-		}
-	}
-	return result
 }
 
 // After returns up to max present records whose sequence is greater than after.

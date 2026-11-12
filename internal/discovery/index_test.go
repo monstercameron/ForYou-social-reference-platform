@@ -2,9 +2,11 @@ package discovery
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"reflect"
 	"testing"
+	"time"
 
 	"foryou.local/foryou/internal/canon"
 )
@@ -157,6 +159,33 @@ func TestIndexAfterSequenceOrder(t *testing.T) {
 	if got := index.After(1, 5); len(got) != 1 || got[0].Sequence != 2 {
 		t.Fatalf("After(1, 5) = %+v; want sequence 2", got)
 	}
+}
+
+func TestIndexSelectWithinBudget(t *testing.T) {
+	index := NewIndex()
+	newer := Record{MessageID: "m3", AuthorID: "author", Timestamp: time.Date(2026, 11, 11, 0, 0, 3, 0, time.UTC), Sequence: 3, Bytes: []byte("0123456789")}
+	middle := Record{MessageID: "m2", AuthorID: "author", Timestamp: time.Date(2026, 11, 11, 0, 0, 2, 0, time.UTC), Sequence: 2, Bytes: []byte("0123456789")}
+	older := Record{MessageID: "m1", AuthorID: "author", Timestamp: time.Date(2026, 11, 11, 0, 0, 1, 0, time.UTC), Sequence: 1, Bytes: []byte("0123456789")}
+	if !index.Add(older) || !index.Add(newer) || !index.Add(middle) {
+		t.Fatal("Add returned false")
+	}
+	query, _, err := ParseListQuery(Messages, "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Run("matches within the budget are returned in full", func(t *testing.T) {
+		records, err := index.SelectWithin(query, 30)
+		if err != nil {
+			t.Fatalf("SelectWithin(30) error = %v", err)
+		}
+		assertRecordIDs(t, records, "m3", "m2", "m1")
+	})
+	t.Run("matches beyond the budget are busy rather than truncated", func(t *testing.T) {
+		records, err := index.SelectWithin(query, 29)
+		if !errors.Is(err, ErrBusy) || records != nil {
+			t.Fatalf("SelectWithin(29) = %d records, error %v; want nil and ErrBusy", len(records), err)
+		}
+	})
 }
 
 func TestParseRecordUsesExactFieldNames(t *testing.T) {
