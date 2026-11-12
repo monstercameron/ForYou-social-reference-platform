@@ -10,14 +10,14 @@ import (
 func TestPlannedPageFallbackCanBeReplaced(t *testing.T) {
 	previous := routeGroups
 	routeGroups = append(routeGroups, func(a *App, mux *http.ServeMux) {
-		mux.HandleFunc("GET /wallet", func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte("wallet feature")) })
+		mux.HandleFunc("GET /network", func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte("network feature")) })
 	})
 	t.Cleanup(func() { routeGroups = previous })
 	client := newTestClient(t, false)
 	w := httptest.NewRecorder()
-	client.Handler().ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/wallet", nil))
-	if w.Code != http.StatusOK || strings.Contains(w.Body.String(), "not available yet") || !strings.Contains(w.Body.String(), "wallet feature") {
-		t.Errorf("feature wallet response = %d %q", w.Code, w.Body.String())
+	client.Handler().ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/network", nil))
+	if w.Code != http.StatusOK || strings.Contains(w.Body.String(), "not available yet") || !strings.Contains(w.Body.String(), "network feature") {
+		t.Errorf("feature network response = %d %q", w.Code, w.Body.String())
 	}
 }
 

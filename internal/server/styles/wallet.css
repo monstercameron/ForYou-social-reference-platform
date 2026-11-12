@@ -1,1 +1,47 @@
-@layer components {}
+@layer components {
+  .wallet-content { display:grid; gap:16px; }
+  .wallet-grid { display:grid; gap:16px; grid-template-columns:minmax(0,1fr); }
+  .wallet-grid > * { min-width:0; }
+  .wallet-panel, .wallet-empty, .wallet-provider { display:grid; gap:12px; min-width:0; overflow-wrap:anywhere; }
+  .wallet-panel h2, .wallet-panel h3 { font-size:17px; font-weight:700; }
+  .wallet-panel p { max-width:64ch; }
+  .wallet-invoices { display:grid; gap:16px; min-width:0; }
+  .wallet-invoices-title { font-size:17px; font-weight:700; }
+  .wallet-invoice { display:grid; gap:12px; }
+  .wallet-invoice h3:focus, .wallet-panel h2:focus { outline:2px solid var(--accent); outline-offset:3px; }
+  .wallet-balance + .wallet-balance { border-top:1px solid var(--line); padding-top:12px; }
+  .wallet-balance h3 { font-size:15px; font-weight:600; margin-bottom:6px; }
+  .wallet-rows { display:grid; gap:10px; margin:0; }
+  .wallet-rows > div { display:grid; gap:2px; min-width:0; }
+  .wallet-rows dt { color:var(--muted); font-size:13px; }
+  .wallet-rows dd { margin:0; padding:0; min-width:0; overflow-wrap:anywhere; }
+  .wallet-rows dt { padding:0; }
+  .wallet-mono { font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:13px; overflow-wrap:anywhere; }
+  .wallet-stated { color:var(--muted); font-size:13px; }
+  .wallet-error { color:var(--bad); font-size:14px; }
+  .wallet-form { display:grid; gap:14px; }
+  .wallet-form .button { justify-self:start; }
+  .wallet-amount-row { display:flex; align-items:stretch; min-width:0; }
+  .wallet-amount-row input { flex:1 1 auto; min-width:0; border-top-right-radius:0; border-bottom-right-radius:0; }
+  .wallet-suffix { display:inline-flex; align-items:center; padding:0 12px; border:1px solid var(--line); border-left:0; border-radius:0 8px 8px 0; background:var(--control); color:var(--muted); font-size:14px; white-space:nowrap; }
+  .wallet-checks { display:grid; grid-template-columns:minmax(0,1fr); gap:10px; border:0; margin:0; padding:0; min-width:0; }
+  .wallet-check { width:100%; }
+  .wallet-checks legend { font-weight:600; margin-bottom:6px; }
+  .wallet-check { display:flex; align-items:flex-start; gap:10px; min-height:44px; font-size:15px; }
+  .wallet-check input { width:20px; height:20px; margin-top:2px; flex:none; accent-color:var(--accent); }
+  .wallet-alert:empty { display:none; }
+  .wallet-alert { color:var(--bad); font-size:14px; }
+  .wallet-notice, .wallet-paid { color:var(--muted); font-size:14px; }
+  .wallet-observe { display:grid; gap:8px; padding:12px; border-radius:10px; background:var(--control); }
+  .wallet-observe p { margin:0; }
+  .wallet-observe form { justify-self:start; }
+  .wallet-list { display:grid; gap:10px; margin:0; padding:0; list-style:none; }
+  .wallet-attempt { display:grid; gap:8px; justify-items:start; }
+  .wallet-status-card { display:grid; gap:6px; padding:12px; border-radius:10px; background:var(--control); }
+  .wallet-status-card p { margin:0; overflow-wrap:anywhere; }
+  .wallet-empty .button { justify-self:start; }
+  .wallet-funding { min-width:0; }
+  .wallet-content .id-chip { white-space:normal; overflow-wrap:anywhere; }
+  .wallet-observe, .wallet-observe > * { min-width:0; }
+  .wallet-provider a, .wallet-error a { display:inline-flex; align-items:center; min-height:44px; }
+}

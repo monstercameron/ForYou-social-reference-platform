@@ -69,9 +69,6 @@ func TestClientNavigationAndLandingPages(t *testing.T) {
 	t.Run("network landing renders active navigation", func(t *testing.T) {
 		checkLanding(t, "/network", "Network")
 	})
-	t.Run("wallet landing renders active navigation", func(t *testing.T) {
-		checkLanding(t, "/wallet", "Wallet")
-	})
 }
 
 func TestStateChangingRouteGuards(t *testing.T) {
