@@ -3,3 +3,5 @@
 *.png binary
 *.mp4 binary
 *.exe binary
+# Feature branches each append one import line; take both sides instead of conflicting.
+internal/server/styles/tailwind.css merge=union
