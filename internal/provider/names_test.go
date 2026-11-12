@@ -272,6 +272,20 @@ func TestNamesLookup(t *testing.T) {
 		namesAssertResponse(t, namesPublish(t, service, withdrawal), http.StatusCreated, withdrawal)
 		namesAssertResponse(t, namesRequest(t, service, http.MethodGet, "/v1/names?display_name=zo%C3%AB%20example", nil, ""), http.StatusOK, []byte(`{"names":[],"next_cursor":null}`))
 	})
+	t.Run("plus sign matches only when escaped as %2B", func(t *testing.T) {
+		now := time.Date(2026, 11, 11, 0, 0, 0, 0, time.UTC)
+		service := namesService(t, &now, "")
+		namesAcceptPost(t, service, now)
+		displayName := "x+y"
+		record, err := names.Build(namesAuthorKey(t), &displayName, nil, now, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		body := namesRecordBody(t, record)
+		namesAssertResponse(t, namesPublish(t, service, body), http.StatusCreated, body)
+		page := []byte(fmt.Sprintf(`{"names":[%s],"next_cursor":null}`, body))
+		namesAssertResponse(t, namesRequest(t, service, http.MethodGet, "/v1/names?display_name=x%2By", nil, ""), http.StatusOK, page)
+	})
 }
 
 func TestNamesLookupValidation(t *testing.T) {
@@ -284,7 +298,7 @@ func TestNamesLookupValidation(t *testing.T) {
 		namesAssertResponse(t, namesRequestFrom(t, service, http.MethodGet, "/v1/names?display_name=", nil, "", "192.0.2.4:1"), http.StatusBadRequest, []byte(`{"status":"invalid_query"}`))
 		namesAssertResponse(t, namesRequestFrom(t, service, http.MethodGet, "/v1/names?display_name=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", nil, "", "192.0.2.5:1"), http.StatusBadRequest, []byte(`{"status":"invalid_query"}`))
 		namesAssertResponse(t, namesRequestFrom(t, service, http.MethodGet, "/v1/names?display_name=x&cursor=abc", nil, "", "192.0.2.6:1"), http.StatusBadRequest, []byte(`{"status":"invalid_cursor"}`))
-		namesAssertResponse(t, namesRequestFrom(t, service, http.MethodGet, "/v1/names?display_name=x+y", nil, "", "192.0.2.7:1"), http.StatusOK, []byte(`{"names":[],"next_cursor":null}`))
+		namesAssertResponse(t, namesRequestFrom(t, service, http.MethodGet, "/v1/names?display_name=x+y", nil, "", "192.0.2.7:1"), http.StatusBadRequest, []byte(`{"status":"invalid_query"}`))
 		namesAssertResponse(t, namesRequestFrom(t, service, http.MethodGet, "/v1/names?display_name=%252F", nil, "", "192.0.2.8:1"), http.StatusBadRequest, []byte(`{"status":"invalid_query"}`))
 	})
 }

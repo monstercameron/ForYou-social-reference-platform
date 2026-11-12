@@ -20,6 +20,10 @@ const (
 	// vaultLateAfter is when an outstanding delivery is logged, a day before the
 	// seven-day delivery deadline after settlement.
 	vaultLateAfter = 6 * 24 * time.Hour
+	// vaultRetryInitial is the wait after the vault's first 422 refusal of a delivery;
+	// each further refusal doubles it up to vaultRetryMax.
+	vaultRetryInitial = time.Minute
+	vaultRetryMax     = time.Hour
 )
 
 var vaultClients = struct {
@@ -29,10 +33,15 @@ var vaultClients = struct {
 
 // vaultDeliveryJournal records a settled message's delivery. SettledAt is when this
 // provider first observed the receipt settled; State is pending, delivered or failed.
+// Only a 403 legal refusal marks a delivery failed. A 422 keeps it pending: Refusals
+// counts those answers and RetryAt is the earliest time the next attempt may be made,
+// because the proof and witnesses the vault rejects can change.
 type vaultDeliveryJournal struct {
 	State         string `json:"state"`
 	SettledAt     string `json:"settled_at,omitempty"`
 	LateWarningAt string `json:"late_warning_at,omitempty"`
+	Refusals      int    `json:"refusals,omitempty"`
+	RetryAt       string `json:"retry_at,omitempty"`
 }
 
 func init() {
@@ -150,12 +159,29 @@ func vaultDeliverRecord(ctx context.Context, s *Service, vault *sdk.Client, mess
 			return err
 		}
 	}
+	if journal.RetryAt != "" {
+		retryAt, err := wire.ParseTime(journal.RetryAt)
+		if err != nil {
+			return err
+		}
+		if now.Before(retryAt) {
+			return nil
+		}
+	}
 	delivery := wire.VaultDelivery{Message: append(json.RawMessage(nil), messageBytes...), Proof: proof}
 	receipt, _, status, err := vault.DeliverToVault(ctx, delivery)
 	if err != nil {
 		var public *sdk.Error
-		if errors.As(err, &public) && (public.HTTPStatus == http.StatusUnprocessableEntity || public.HTTPStatus == http.StatusForbidden) {
-			journal.State = "failed"
+		if errors.As(err, &public) {
+			switch public.HTTPStatus {
+			case http.StatusForbidden:
+				journal.State = "failed"
+			case http.StatusUnprocessableEntity:
+				journal.Refusals++
+				journal.RetryAt = wire.FormatTime(now.Add(vaultRetryDelay(journal.Refusals)))
+			default:
+				return err
+			}
 			if err := vaultWriteJournal(s, message.MessageID, journal); err != nil {
 				return err
 			}
@@ -177,6 +203,17 @@ func vaultDeliverRecord(ctx context.Context, s *Service, vault *sdk.Client, mess
 	}
 	journal.State = "delivered"
 	return vaultWriteJournal(s, message.MessageID, journal)
+}
+
+func vaultRetryDelay(refusals int) time.Duration {
+	delay := vaultRetryInitial
+	for i := 1; i < refusals && delay < vaultRetryMax; i++ {
+		delay *= 2
+	}
+	if delay > vaultRetryMax {
+		return vaultRetryMax
+	}
+	return delay
 }
 
 func vaultReadJournal(s *Service, messageID string) (vaultDeliveryJournal, bool, error) {

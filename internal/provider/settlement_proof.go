@@ -43,6 +43,23 @@ func settleProofRoute(w http.ResponseWriter, r *http.Request, s *Service) {
 		writeRetry(w, http.StatusServiceUnavailable, "unavailable", apierr.DefaultRetryAfterSeconds)
 		return
 	}
+	restriction, err := s.Restriction(receipt.MessageID)
+	if err != nil {
+		writeRetry(w, http.StatusServiceUnavailable, "unavailable", apierr.DefaultRetryAfterSeconds)
+		return
+	}
+	switch restriction {
+	case Unrestricted:
+	case Concealed:
+		writeError(w, http.StatusNotFound, "not_found")
+		return
+	case PolicyRestricted, LegalRestricted, Restricted:
+		writeError(w, http.StatusForbidden, string(restriction))
+		return
+	default:
+		writeRetry(w, http.StatusServiceUnavailable, "unavailable", apierr.DefaultRetryAfterSeconds)
+		return
+	}
 	proof, err := settleBuildProof(s, receipt)
 	if errors.Is(err, errSettleNotLocated) {
 		writeError(w, http.StatusNotFound, "not_found")

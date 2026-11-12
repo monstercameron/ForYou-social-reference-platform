@@ -151,7 +151,7 @@ func namesDecodeQueryValue(value string) (string, bool) {
 	decoded := make([]byte, 0, len(value))
 	for i := 0; i < len(value); i++ {
 		if value[i] != '%' {
-			if value[i] > 0x7f || value[i] != '+' && !namesUnreserved(value[i]) {
+			if value[i] > 0x7f || !namesUnreserved(value[i]) {
 				return "", false
 			}
 			decoded = append(decoded, value[i])
