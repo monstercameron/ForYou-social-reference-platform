@@ -82,6 +82,8 @@ type manifestRights struct {
 	ThirdPartyPayersMayUse      bool     `json:"third_party_payers_may_use"`
 	DescribedPeopleMayUse       bool     `json:"people_described_in_another_authors_record_may_use"`
 	OptionalHTTPIntakeAvailable bool     `json:"optional_http_intake_available"`
+	IntakeMaxRequestBytes       int      `json:"intake_max_request_bytes"`
+	IntakeRecoveryRetention     string   `json:"intake_recovery_retention"`
 	AlternativeContacts         []string `json:"alternative_contacts"`
 	Claims                      string   `json:"claims"`
 }
@@ -344,11 +346,13 @@ func (s *Service) manifestPolicy() ([]byte, error) {
 		Peering:             manifestPeering{Policy: "no peering", DefaultAllowlist: false, TrustRelationships: "none"},
 		Rights: manifestRights{
 			Free:                       true,
-			Channel:                    "Submit notices, data-rights requests, appeals and funding claims at no cost through the legal, abuse or privacy contact. The optional HTTP intake routes are not offered, so these contacts are the channel and the alternative that does not depend on those routes.",
+			Channel:                    "Submit notices, data-rights requests, appeals and funding claims at no cost through the legal, abuse or privacy contact. Notices, data-rights requests and appeals can also be submitted at no cost through the optional HTTP intake routes; the legal, abuse and privacy contacts remain the alternative that does not depend on those routes. Intake form definitions are fetched from GET /v1/intake-forms/{form_id}/{form_version}.",
 			NoFeeMembershipBalanceOrTx: true, NoRootKeyOrAccountRequired: true,
-			ThirdPartyPayersMayUse: true, DescribedPeopleMayUse: true, OptionalHTTPIntakeAvailable: false,
-			AlternativeContacts: []string{cfg.Operator.LegalContact, cfg.Operator.AbuseContact, cfg.Operator.PrivacyContact},
-			Claims:              "Underpaid, overpaid, late and duplicate transfers are never forfeited; they enter the free confidential claims process through the rights channel.",
+			ThirdPartyPayersMayUse: true, DescribedPeopleMayUse: true, OptionalHTTPIntakeAvailable: true,
+			IntakeMaxRequestBytes:   intakeMaxRequestBytes,
+			IntakeRecoveryRetention: "Accepted intake requests and their receipts are kept with no automatic deletion for at least 30 days and for as long as the submission remains pending. Losing the recovery secret does not end the rights, which remain available through the alternative contacts.",
+			AlternativeContacts:     []string{cfg.Operator.LegalContact, cfg.Operator.AbuseContact, cfg.Operator.PrivacyContact},
+			Claims:                  "Underpaid, overpaid, late and duplicate transfers are never forfeited; they enter the free confidential claims process through the rights channel.",
 		},
 		Preparation: manifestPreparation{
 			Deadline: "An unpublished prepared intent is held until the exclusive preparation deadline after the receipt issued_at.",

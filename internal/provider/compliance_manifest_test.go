@@ -166,6 +166,43 @@ func TestOperatorManifestPolicyLimits(t *testing.T) {
 	}
 }
 
+func TestOperatorManifestAdvertisesIntake(t *testing.T) {
+	now := time.Date(2026, 11, 11, 0, 0, 0, 0, time.UTC)
+	s := manifestTestService(t, func() time.Time { return now }, "abuse@example.invalid")
+	t.Run("served manifest verifies under the provider key", func(t *testing.T) {
+		body := manifestGet(t, s.Handler(), "/.well-known/foryou-operator.json")
+		manifest := manifestReadValue(t, body)
+		if got := sdk.NewManifestPins().Check(s.ProviderID(), body, manifest, now); got != sdk.ManifestCurrent {
+			t.Fatalf("manifest pin status under provider key = %s; want current", got)
+		}
+	})
+	t.Run("policy advertises the optional HTTP intake routes", func(t *testing.T) {
+		value, err := canon.Parse(manifestGet(t, s.Handler(), "/policy"), canon.Limits{MaxDepth: 32})
+		if err != nil {
+			t.Fatal(err)
+		}
+		rights := value.(map[string]any)["rights"].(map[string]any)
+		if rights["optional_http_intake_available"] != true {
+			t.Fatalf("optional_http_intake_available = %v; want true", rights["optional_http_intake_available"])
+		}
+		wantChannel := "Submit notices, data-rights requests, appeals and funding claims at no cost through the legal, abuse or privacy contact. Notices, data-rights requests and appeals can also be submitted at no cost through the optional HTTP intake routes; the legal, abuse and privacy contacts remain the alternative that does not depend on those routes. Intake form definitions are fetched from GET /v1/intake-forms/{form_id}/{form_version}."
+		if rights["channel"] != wantChannel {
+			t.Fatalf("rights channel = %q; want %q", rights["channel"], wantChannel)
+		}
+		t.Run("intake request bound is published", func(t *testing.T) {
+			if rights["intake_max_request_bytes"] != json.Number("262144") {
+				t.Fatalf("intake_max_request_bytes = %v; want 262144", rights["intake_max_request_bytes"])
+			}
+		})
+		t.Run("recovery retention is published", func(t *testing.T) {
+			want := "Accepted intake requests and their receipts are kept with no automatic deletion for at least 30 days and for as long as the submission remains pending. Losing the recovery secret does not end the rights, which remain available through the alternative contacts."
+			if rights["intake_recovery_retention"] != want {
+				t.Fatalf("intake_recovery_retention = %q; want %q", rights["intake_recovery_retention"], want)
+			}
+		})
+	})
+}
+
 func manifestTestService(t *testing.T, now func() time.Time, abuseContact string) *Service {
 	t.Helper()
 	cfg := manifestTestConfig(t, now, abuseContact)
