@@ -1,0 +1,38 @@
+{{define "appearance-page"}}
+{{template "layout-open" .Layout}}
+  <div class="page-content settings-content apr-content">
+    <link rel="stylesheet" href="/appearance/swatches.css">
+    <header class="page-heading"><h1>Appearance</h1><p>Color, text size, spacing and motion for this browser. Saved in a cookie in this browser and read only by this server; never sent to the network.</p></header>
+    {{template "appearance-status" .Notice}}
+    <div class="apr-layout">
+      <section class="component-card settings-card apr-preview-card" aria-labelledby="apr-preview-title">
+        <h2 id="apr-preview-title">Preview</h2>
+        <p>Unsaved choices show here first. Other pages change only after you save.</p>
+        <div id="apr-preview-slot" aria-live="polite">{{template "appearance-preview" .Preview}}</div>
+      </section>
+      <section class="component-card settings-card apr-choices" aria-labelledby="apr-choices-title">
+        <h2 id="apr-choices-title">Your choices</h2>
+        <form id="apr-form" class="filter-form" action="/appearance" method="post" post="/appearance/preview" trigger="change" target="#apr-preview-slot(innerHTML)" timeout="5000" onerror="#apr-status(innerHTML)">
+          {{range .Rows}}{{$row := .}}<fieldset class="filter-row"><legend>{{.Name}}</legend><p>{{.About}}</p><div class="filter-options">{{range .Choices}}<label class="filter-option"><input type="radio" name="{{$row.Key}}" value="{{.Value}}"{{if .Checked}} checked{{end}}><span>{{if $row.Swatches}}<span class="apr-swatch apr-swatch-{{.Value}}" aria-hidden="true"></span>{{end}}{{.Label}}</span></label>{{end}}</div></fieldset>{{end}}
+          <div class="filter-actions"><button class="button button-primary" type="submit">Save appearance</button><button class="button button-secondary" type="submit" name="preview" value="1">Preview</button></div>
+        </form>
+        <form class="filter-reset" action="/appearance/reset" method="post"><button class="button button-secondary" type="submit">Reset to defaults</button></form>
+        <p class="settings-meta">Light or dark theme is chosen in <a href="/settings">Settings</a>.</p>
+      </section>
+    </div>
+  </div>
+{{template "layout-close" .Layout}}
+{{end}}
+
+{{define "appearance-status"}}<p id="apr-status" class="apr-status{{with .Class}} {{.}}{{end}}" role="{{.Role}}" aria-live="polite"{{if .Focus}} tabindex="-1" autofocus{{end}}>{{.Text}}</p>{{end}}
+
+{{define "appearance-preview"}}<div class="apr-preview" data-apr-accent="{{.Accent}}" data-apr-size="{{.Size}}" data-apr-density="{{.Density}}" data-apr-motion="{{.Motion}}">
+  <article class="apr-sample">
+    <div class="apr-sample-top"><span class="identicon small violet" aria-hidden="true"></span><strong>Sample author</strong><span class="apr-sample-time">just now</span></div>
+    <p class="apr-sample-text">This is how post text reads with these choices. Links like <span class="apr-sample-link">this one</span> use the accent color.</p>
+    <div class="apr-sample-buttons"><span class="button button-primary" aria-hidden="true">Primary</span><span class="button button-secondary" aria-hidden="true">Secondary</span></div>
+  </article>
+  <p class="apr-preview-summary">{{.Summary}}</p>
+</div>{{end}}
+
+{{define "appearance-settings-link"}}<p class="apr-settings-link"><a class="button button-secondary button-link" href="/appearance">Accent, text size, density and motion</a></p>{{end}}

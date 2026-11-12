@@ -1,0 +1,45 @@
+@layer components {
+  /* Appearance page: the preview sits beside the choices from 1100px and above it, and first on a phone. */
+  .page-content.apr-content { max-width:1040px; }
+  .apr-layout { display:grid; gap:16px; min-width:0; }
+  .apr-preview-card, .apr-choices { min-width:0; }
+  .apr-status { min-height:0; margin:0 0 12px; color:var(--muted); font-size:13px; }
+  .apr-status:empty { margin:0; }
+  .apr-status.notice { margin:0 0 12px; }
+  @media (min-width:1100px) {
+    .apr-layout { grid-template-columns:minmax(0,1fr) 320px; align-items:start; }
+    .apr-choices { grid-column:1; grid-row:1; }
+    .apr-preview-card { grid-column:2; grid-row:1; position:sticky; top:20px; }
+  }
+
+  /* A narrow choices card, such as at large text, stacks each row as it does on a phone. */
+  .apr-choices { container-type:inline-size; }
+  @container (max-width:560px) {
+    .apr-choices .filter-row { grid-template-columns:minmax(0,1fr); }
+    .apr-choices .filter-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); grid-column:1; grid-row:auto; margin-top:6px; }
+    .apr-choices .filter-option span { width:100%; min-height:44px; justify-content:center; padding:0 8px; white-space:normal; text-align:center; }
+  }
+
+  /* The swatch sits inside the option's label; the option rules size the label, so the swatch is reset here. */
+  .filter-option span.apr-swatch { display:inline-block; flex:none; width:14px; height:14px; min-height:0; margin-right:8px; padding:0; border:1px solid var(--line); border-radius:9999px; background:var(--accent); }
+  .apr-settings-link { margin:12px 0 0; }
+  .apr-choices .settings-meta a { color:var(--accent); font-weight:600; }
+  .apr-choices .settings-meta a:hover { text-decoration:underline; }
+
+  .apr-preview { display:grid; gap:12px; }
+  .apr-sample { display:grid; gap:12px; padding:16px; border:1px solid var(--line); border-radius:12px; background:var(--panel); animation:spawn-fade var(--dur) ease-out both; }
+  .apr-sample-top { display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; min-width:0; }
+  .apr-sample-top strong, .apr-sample-time { white-space:nowrap; }
+  .apr-sample-time { color:var(--muted); font-size:13px; }
+  .apr-sample-text { margin:0; color:var(--text); font-size:15px; line-height:1.55; overflow-wrap:anywhere; }
+  .apr-sample-link { color:var(--accent); font-weight:600; text-decoration:underline; }
+  .apr-sample-buttons { display:flex; flex-wrap:wrap; gap:8px; }
+  .apr-preview-summary { margin:0; color:var(--muted); font-size:13px; }
+  .apr-preview[data-apr-size=large] .apr-sample { zoom:1.125; }
+  .apr-preview[data-apr-size=larger] .apr-sample { zoom:1.25; }
+  .apr-preview[data-apr-density=compact] .apr-sample { padding:12px; gap:8px; }
+  .apr-preview[data-apr-motion=reduce] * { animation:none!important; transition:none!important; }
+}
+
+/* Unlayered so it beats the compact reader rule that gives stacked settings cards a top margin. */
+.apr-layout > .settings-card + .settings-card { margin-top:0; }
