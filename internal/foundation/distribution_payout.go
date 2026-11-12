@@ -24,7 +24,58 @@ type distRecordedTransfer struct {
 	Transfer  faux.Transfer `json:"transfer"`
 }
 
+// distFrozenPlan is everything a quarter's statement for one network is computed
+// from, recorded before the first transfer.
+type distFrozenPlan struct {
+	Input   distribution.Input `json:"input"`
+	Reports []QualityReportSet `json:"reports"`
+	Claims  []distClaimRecord  `json:"claims"`
+}
+
+func (s *Service) distFrozen(network, quarterEnd string) (distFrozenPlan, bool, error) {
+	raw, ok := s.FrozenPlan(network, quarterEnd)
+	if !ok {
+		return distFrozenPlan{}, false, nil
+	}
+	var plan distFrozenPlan
+	if err := json.Unmarshal(raw, &plan); err != nil {
+		return distFrozenPlan{}, false, fmt.Errorf("foundation: invalid frozen plan for %s %s: %w", network, quarterEnd, err)
+	}
+	return plan, true, nil
+}
+
+// distFreeze records the collected inputs unless the quarter already has a frozen
+// plan, and returns the recorded one as it will be read back after a restart.
+func (s *Service) distFreeze(input distribution.Input, reports []QualityReportSet, claims []distClaimRecord) (distFrozenPlan, error) {
+	data, err := json.Marshal(distFrozenPlan{Input: input, Reports: reports, Claims: claims})
+	if err != nil {
+		return distFrozenPlan{}, err
+	}
+	kept, err := s.FreezePlan(input.Network, wire.FormatTime(input.End), data)
+	if err != nil {
+		return distFrozenPlan{}, err
+	}
+	var plan distFrozenPlan
+	if err := json.Unmarshal(kept, &plan); err != nil {
+		return distFrozenPlan{}, err
+	}
+	return plan, nil
+}
+
+// distPublish freezes the inputs for the network and quarter, or takes the plan
+// already frozen, then pays it and publishes the statement.
 func (s *Service) distPublish(ctx context.Context, input distribution.Input, reports []QualityReportSet, claims []distClaimRecord) error {
+	plan, err := s.distFreeze(input, reports, claims)
+	if err != nil {
+		return err
+	}
+	return s.distPay(ctx, plan)
+}
+
+// distPay makes the transfers of a frozen plan that are not yet recorded and
+// publishes its statement.
+func (s *Service) distPay(ctx context.Context, frozen distFrozenPlan) error {
+	input, reports, claims := frozen.Input, frozen.Reports, frozen.Claims
 	for _, record := range claims {
 		data, err := json.Marshal(record)
 		if err != nil {
@@ -120,8 +171,9 @@ func (s *Service) distMakeTransfer(ctx context.Context, network, quarterEnd, kin
 		if err := json.Unmarshal(raw, &saved); err != nil {
 			return faux.Transfer{}, err
 		}
-		if saved.Network != network || saved.Recipient != recipient || saved.Amount != wantAmount || !distTransferMatches(saved.Transfer, network, recipient, wantAmount) {
-			return faux.Transfer{}, errors.New("foundation: recorded payout differs from recomputed plan")
+		// A recorded transfer was paid and stands, even if the payout address changed since.
+		if saved.Network != network || saved.Amount != wantAmount || !distTransferMatches(saved.Transfer, network, saved.Recipient, wantAmount) {
+			return faux.Transfer{}, errors.New("foundation: recorded payout differs from the frozen plan")
 		}
 		return saved.Transfer, nil
 	}

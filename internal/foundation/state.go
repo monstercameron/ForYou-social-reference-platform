@@ -22,6 +22,7 @@ const (
 	reportsCollection    = "foundation.reports"
 	claimsCollection     = "foundation.claims"
 	payoutsCollection    = "foundation.payouts"
+	plansCollection      = "foundation.plans"
 	metaCollection       = "foundation.meta"
 	sequenceCounter      = "foundation.vault_sequence"
 	firstStartedKey      = "first_started"
@@ -67,6 +68,7 @@ type state struct {
 	reports        map[string]QualityReportSet
 	claims         map[string]json.RawMessage
 	payouts        map[string]json.RawMessage
+	plans          map[string]json.RawMessage
 	firstStarted   time.Time
 }
 
@@ -76,6 +78,7 @@ func openState(db *store.DB, now time.Time) (*state, error) {
 		vaultByReceipt: make(map[string]string), statements: make(map[string][]byte),
 		statuses: make(map[string][]byte), reports: make(map[string]QualityReportSet),
 		claims: make(map[string]json.RawMessage), payouts: make(map[string]json.RawMessage),
+		plans: make(map[string]json.RawMessage),
 	}
 	err := db.Update(func(tx store.Tx) error {
 		data, ok, err := tx.Get(metaCollection, firstStartedKey)
@@ -172,6 +175,12 @@ func (s *state) load() error {
 		}
 		if err := tx.Scan(payoutsCollection, store.Prefix(""), func(key string, value []byte) (bool, error) {
 			s.payouts[key] = append(json.RawMessage(nil), value...)
+			return true, nil
+		}); err != nil {
+			return err
+		}
+		if err := tx.Scan(plansCollection, store.Prefix(""), func(key string, value []byte) (bool, error) {
+			s.plans[key] = append(json.RawMessage(nil), value...)
 			return true, nil
 		}); err != nil {
 			return err
@@ -424,6 +433,42 @@ func (s *Service) MarkPayoutMade(id DistributionTransferID, transfer json.RawMes
 		s.state.mu.Unlock()
 	}
 	return added, nil
+}
+
+// FrozenPlan returns the distribution inputs frozen for one network and quarter.
+func (s *Service) FrozenPlan(network, quarterEnd string) (json.RawMessage, bool) {
+	s.state.mu.RLock()
+	defer s.state.mu.RUnlock()
+	value, ok := s.state.plans[network+"|"+quarterEnd]
+	return append(json.RawMessage(nil), value...), ok
+}
+
+// FreezePlan records the distribution inputs for one network and quarter exactly
+// once and returns the recorded inputs, which are the first ones frozen.
+func (s *Service) FreezePlan(network, quarterEnd string, plan json.RawMessage) (json.RawMessage, error) {
+	if len(plan) == 0 || !json.Valid(plan) {
+		return nil, fmt.Errorf("foundation: invalid plan JSON")
+	}
+	key := network + "|" + quarterEnd
+	kept := append(json.RawMessage(nil), plan...)
+	err := s.db.Update(func(tx store.Tx) error {
+		existing, ok, err := tx.Get(plansCollection, key)
+		if err != nil {
+			return err
+		}
+		if ok {
+			kept = append(json.RawMessage(nil), existing...)
+			return nil
+		}
+		return tx.Put(plansCollection, key, plan)
+	})
+	if err != nil {
+		return nil, err
+	}
+	s.state.mu.Lock()
+	s.state.plans[key] = append(json.RawMessage(nil), kept...)
+	s.state.mu.Unlock()
+	return kept, nil
 }
 
 func payoutKey(id DistributionTransferID) string {

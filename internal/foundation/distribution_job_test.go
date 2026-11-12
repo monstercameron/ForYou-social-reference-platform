@@ -236,21 +236,24 @@ func distTestQuarterFixture(t *testing.T, reportsUnreadable int, claimsUnreadabl
 		monitor4Handler = distTestRouteStatus(monitor4Handler, "/v1/quality-reports", http.StatusNotFound)
 	}
 	monitor0 := httptest.NewServer(monitor0Handler)
-	t.Cleanup(monitor0.Close)
 	monitor1 := httptest.NewServer(monitor1Handler)
-	t.Cleanup(monitor1.Close)
 	monitor2 := httptest.NewServer(monitor2Handler)
-	t.Cleanup(monitor2.Close)
 	monitor3 := httptest.NewServer(monitor3Handler)
-	t.Cleanup(monitor3.Close)
 	monitor4 := httptest.NewServer(monitor4Handler)
-	t.Cleanup(monitor4.Close)
 	providerHandler := distTestProviderHandler(t, claim, declaration)
 	if claimsUnreadable {
 		providerHandler = distTestRouteStatus(providerHandler, "/v1/settlement-claims", http.StatusInternalServerError)
 	}
 	provider := httptest.NewServer(providerHandler)
-	t.Cleanup(provider.Close)
+	stopServers := func() {
+		monitor0.Close()
+		monitor1.Close()
+		monitor2.Close()
+		monitor3.Close()
+		monitor4.Close()
+		provider.Close()
+	}
+	t.Cleanup(stopServers)
 	fauxLedger, err := faux.Open(faux.Config{Now: func() time.Time { return now }})
 	if err != nil {
 		t.Fatal(err)
@@ -272,16 +275,19 @@ func distTestQuarterFixture(t *testing.T, reportsUnreadable int, claimsUnreadabl
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { service.Close() })
-	return distTestFixture{service: service, now: &now, quarterEnd: quarterEnd, cutoff: cutoff, providerID: providerID, reports: [][]wire.QualityReport{reports0, reports1, reports2, reports3, reports4}}
+	return distTestFixture{service: service, chain: fauxLedger, stopServers: stopServers, now: &now, quarterEnd: quarterEnd, cutoff: cutoff, providerID: providerID, reports: [][]wire.QualityReport{reports0, reports1, reports2, reports3, reports4}}
 }
 
 type distTestFixture struct {
-	service    *Service
-	now        *time.Time
-	quarterEnd time.Time
-	cutoff     time.Time
-	providerID string
-	reports    [][]wire.QualityReport
+	service *Service
+	chain   *faux.Ledger
+	// stopServers takes the provider and every monitor offline.
+	stopServers func()
+	now         *time.Time
+	quarterEnd  time.Time
+	cutoff      time.Time
+	providerID  string
+	reports     [][]wire.QualityReport
 }
 
 func distTestRouteStatus(handler http.Handler, path string, status int) http.Handler {

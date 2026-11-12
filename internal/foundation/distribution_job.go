@@ -96,15 +96,30 @@ func (s *Service) distRunQuarter(ctx context.Context, end time.Time) error {
 	if !ok {
 		return fmt.Errorf("foundation: no distribution policy for %s", end)
 	}
+	// Every network's inputs are frozen before the first transfer, so a rerun after a
+	// partial payout pays the plan it started and needs no evidence fetched again.
+	plans := make([]distFrozenPlan, 0, 2)
 	for _, network := range []string{wire.BitcoinMainnet, wire.EthereumMainnet} {
 		if _, exists := s.DistributionStatement(network, wire.FormatTime(end)); exists {
 			continue
 		}
-		input, sets, claims, err := s.distCollect(ctx, network, start, end, policy)
+		plan, frozen, err := s.distFrozen(network, wire.FormatTime(end))
 		if err != nil {
 			return err
 		}
-		if err := s.distPublish(ctx, input, sets, claims); err != nil {
+		if !frozen {
+			input, sets, claims, err := s.distCollect(ctx, network, start, end, policy)
+			if err != nil {
+				return err
+			}
+			if plan, err = s.distFreeze(input, sets, claims); err != nil {
+				return err
+			}
+		}
+		plans = append(plans, plan)
+	}
+	for _, plan := range plans {
+		if err := s.distPay(ctx, plan); err != nil {
 			return err
 		}
 	}
