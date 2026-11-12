@@ -2,8 +2,11 @@ package foundation
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
@@ -14,6 +17,7 @@ import (
 	"testing"
 	"time"
 
+	"foryou.local/foryou/internal/canon"
 	"foryou.local/foryou/internal/devnet"
 	"foryou.local/foryou/internal/distribution"
 	"foryou.local/foryou/internal/faux"
@@ -119,6 +123,33 @@ func TestDistUnreadableMonitorDoesNotStopStatement(t *testing.T) {
 		sort.Strings(reportIDs)
 		if len(statement.Entries) != 1 || statement.Entries[0].QualityBP != 9000 || statement.Entries[0].AmountBaseUnits != "2475000" || !reflect.DeepEqual(statement.Entries[0].ReportIDs, reportIDs) {
 			t.Fatalf("statement entries = %+v; want quality 9000, 2,475,000 base units and the 12 reports of the four readable monitors", statement.Entries)
+		}
+	})
+	t.Run("reports whose evidence is not served are not used", func(t *testing.T) {
+		distTestWithheldEvidence = keys.DIDOf(devnet.MonitorKey(0))
+		t.Cleanup(func() { distTestWithheldEvidence = "" })
+		fixture := distTestQuarterFixture(t, -1, false)
+		*fixture.now = fixture.cutoff
+		if err := fixture.service.distRunDue(context.Background(), fixture.cutoff); err != nil {
+			t.Fatalf("distRunDue() error = %v; want the statement published", err)
+		}
+		raw, exists := fixture.service.DistributionStatement(wire.BitcoinMainnet, wire.FormatTime(fixture.quarterEnd))
+		if !exists {
+			t.Fatal("Bitcoin distribution statement was not published")
+		}
+		var statement wire.DistributionStatement
+		if err := json.Unmarshal(raw, &statement); err != nil {
+			t.Fatal(err)
+		}
+		reportIDs := []string{
+			fixture.reports[1][0].ReportID, fixture.reports[1][1].ReportID, fixture.reports[1][2].ReportID,
+			fixture.reports[2][0].ReportID, fixture.reports[2][1].ReportID, fixture.reports[2][2].ReportID,
+			fixture.reports[3][0].ReportID, fixture.reports[3][1].ReportID, fixture.reports[3][2].ReportID,
+			fixture.reports[4][0].ReportID, fixture.reports[4][1].ReportID, fixture.reports[4][2].ReportID,
+		}
+		sort.Strings(reportIDs)
+		if len(statement.Entries) != 1 || statement.Entries[0].QualityBP != 9000 || !reflect.DeepEqual(statement.Entries[0].ReportIDs, reportIDs) {
+			t.Fatalf("statement entries = %+v; want quality 9000 from the 12 reports of the four monitors that serve their evidence", statement.Entries)
 		}
 	})
 	t.Run("unreadable settlement claims publish nothing and fail the run", func(t *testing.T) {
@@ -414,35 +445,92 @@ func distTestMutableMonitorHandler(t *testing.T, getWitness func() *wire.Settlem
 		case "/v1/quality-reports":
 			_ = json.NewEncoder(w).Encode(wire.QualityReportsPage{Reports: reports})
 		default:
-			http.NotFound(w, r)
+			distTestServeEvidence(w, r, reports)
 		}
 	})
 }
 
-func distTestQualityReports(t *testing.T, monitorID, providerID string, start, created time.Time, key keys.PrivateKey) []wire.QualityReport {
+// distTestEvidence is the methodology and observation set behind a fixture report:
+// 20 availability probes and 20 retrievals in its period, 18 of each passing in 100 ms.
+func distTestEvidence(monitorID, providerID string, start, end time.Time) (string, wire.QualityObservationSet) {
+	ok, failed, latency := int64(200), int64(500), int64(100)
+	set := wire.QualityObservationSet{ProviderID: providerID, MonitorID: monitorID, PeriodStart: wire.FormatTime(start), PeriodEnd: wire.FormatTime(end)}
+	for i := range 20 {
+		status, outcome := &ok, "pass"
+		if i >= 18 {
+			status, outcome = &failed, "fail"
+		}
+		messageID := "fy1:" + strings.Repeat("0", 62) + fmt.Sprintf("%02d", i)
+		at := wire.FormatTime(start.Add(time.Duration(i) * time.Second))
+		set.Observations = append(set.Observations,
+			wire.QualityObservation{Kind: "availability", StartedAt: at, DurationMs: latency, Outcome: outcome, HTTPStatus: status, WithinLimits: true},
+			wire.QualityObservation{Kind: "retrieval", MessageID: &messageID, StartedAt: at, DurationMs: latency, Outcome: outcome, HTTPStatus: status, WithinLimits: true})
+	}
+	return "Fixture methodology: 20 availability probes and 20 retrievals, one pair a second from the period start.", set
+}
+
+func distTestReport(t *testing.T, monitorID, providerID string, start, end, created time.Time, key keys.PrivateKey) wire.QualityReport {
 	t.Helper()
 	seed := keys.EncodeB64URL(make([]byte, 32))
 	commitment, err := quality.SeedCommitment(seed)
 	if err != nil {
 		t.Fatal(err)
 	}
+	methodology, set := distTestEvidence(monitorID, providerID, start, end)
+	observationsDigest, err := quality.ObservationsDigest(set)
+	if err != nil {
+		t.Fatal(err)
+	}
+	methodologyDigest := sha256.Sum256([]byte(methodology))
+	latency := int64(100)
+	report, err := quality.Sign(wire.QualityReport{MonitorID: monitorID, ProviderID: providerID, PeriodStart: wire.FormatTime(start), PeriodEnd: wire.FormatTime(end), CreatedAt: wire.FormatTime(created), MethodologyDigest: hex.EncodeToString(methodologyDigest[:]), ObservationsDigest: observationsDigest, SampleSeed: seed, SampleSeedCommitment: commitment, SampleCoverage: "complete", AvailabilityAttempts: 20, AvailabilitySuccesses: 18, RetrievalAttempts: 20, RetrievalPasses: 18, RestoreAttempts: 0, RestorePasses: 0, LatencyP50Ms: &latency, LatencyP95Ms: &latency, LatencyP99Ms: &latency, Sponsors: []string{keys.DIDOf(devnet.ReplicaKey())}, Conflicts: "none", SampleFrameDigest: strings.Repeat("c", 64)}, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := quality.Verify(report, set, []byte(methodology)); err != nil {
+		t.Fatalf("fixture report does not verify against its own evidence: %v", err)
+	}
+	return report
+}
+
+// distTestWithheldEvidence names the monitor whose fake does not serve the evidence of its reports.
+var distTestWithheldEvidence string
+
+// distTestServeEvidence answers the two evidence routes for the reports a fake monitor lists.
+func distTestServeEvidence(w http.ResponseWriter, r *http.Request, reports []wire.QualityReport) {
+	for _, report := range reports {
+		if report.MonitorID == distTestWithheldEvidence {
+			break
+		}
+		base := "/v1/quality-reports/" + report.ReportID
+		start, _ := wire.ParseTime(report.PeriodStart)
+		end, _ := wire.ParseTime(report.PeriodEnd)
+		methodology, set := distTestEvidence(report.MonitorID, report.ProviderID, start, end)
+		switch r.URL.Path {
+		case base + "/methodology":
+			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+			_, _ = w.Write([]byte(methodology))
+			return
+		case base + "/observations":
+			body, _ := canon.Encode(set)
+			_, _ = w.Write(body)
+			return
+		}
+	}
+	http.NotFound(w, r)
+}
+
+func distTestQualityReports(t *testing.T, monitorID, providerID string, start, created time.Time, key keys.PrivateKey) []wire.QualityReport {
+	t.Helper()
 	firstStart := start.Add(30 * time.Second)
 	firstEnd := firstStart.Add(20 * 30 * time.Second)
 	secondEnd := firstEnd.Add(20 * 30 * time.Second)
 	thirdEnd := secondEnd.Add(20 * 30 * time.Second)
-	first, err := quality.Sign(wire.QualityReport{MonitorID: monitorID, ProviderID: providerID, PeriodStart: wire.FormatTime(firstStart), PeriodEnd: wire.FormatTime(firstEnd), CreatedAt: wire.FormatTime(created), MethodologyDigest: strings.Repeat("a", 64), ObservationsDigest: strings.Repeat("b", 64), SampleSeed: seed, SampleSeedCommitment: commitment, SampleCoverage: "complete", AvailabilityAttempts: 20, AvailabilitySuccesses: 18, RetrievalAttempts: 20, RetrievalPasses: 18, RestoreAttempts: 0, RestorePasses: 0, Sponsors: []string{keys.DIDOf(devnet.ReplicaKey())}, Conflicts: "none", SampleFrameDigest: strings.Repeat("c", 64)}, key)
-	if err != nil {
-		t.Fatal(err)
+	return []wire.QualityReport{
+		distTestReport(t, monitorID, providerID, firstStart, firstEnd, created, key),
+		distTestReport(t, monitorID, providerID, firstEnd, secondEnd, created, key),
+		distTestReport(t, monitorID, providerID, secondEnd, thirdEnd, created, key),
 	}
-	second, err := quality.Sign(wire.QualityReport{MonitorID: monitorID, ProviderID: providerID, PeriodStart: wire.FormatTime(firstEnd), PeriodEnd: wire.FormatTime(secondEnd), CreatedAt: wire.FormatTime(created), MethodologyDigest: strings.Repeat("a", 64), ObservationsDigest: strings.Repeat("b", 64), SampleSeed: seed, SampleSeedCommitment: commitment, SampleCoverage: "complete", AvailabilityAttempts: 20, AvailabilitySuccesses: 18, RetrievalAttempts: 20, RetrievalPasses: 18, RestoreAttempts: 0, RestorePasses: 0, Sponsors: []string{keys.DIDOf(devnet.ReplicaKey())}, Conflicts: "none", SampleFrameDigest: strings.Repeat("c", 64)}, key)
-	if err != nil {
-		t.Fatal(err)
-	}
-	third, err := quality.Sign(wire.QualityReport{MonitorID: monitorID, ProviderID: providerID, PeriodStart: wire.FormatTime(secondEnd), PeriodEnd: wire.FormatTime(thirdEnd), CreatedAt: wire.FormatTime(created), MethodologyDigest: strings.Repeat("a", 64), ObservationsDigest: strings.Repeat("b", 64), SampleSeed: seed, SampleSeedCommitment: commitment, SampleCoverage: "complete", AvailabilityAttempts: 20, AvailabilitySuccesses: 18, RetrievalAttempts: 20, RetrievalPasses: 18, RestoreAttempts: 0, RestorePasses: 0, Sponsors: []string{keys.DIDOf(devnet.ReplicaKey())}, Conflicts: "none", SampleFrameDigest: strings.Repeat("c", 64)}, key)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return []wire.QualityReport{first, second, third}
 }
 
 func TestDistPayoutIsReusedAfterServiceRestart(t *testing.T) {

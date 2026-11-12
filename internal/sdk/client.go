@@ -165,8 +165,12 @@ func (c *Client) send(ctx context.Context, method, path string, query url.Values
 		return response{}, &Error{HTTPStatus: res.StatusCode, Status: string(parsed.Status), RetryAfter: time.Duration(parsed.RetryAfterSeconds) * time.Second, Endpoint: path}
 	}
 	mediaType := strings.TrimSpace(strings.Split(res.Header.Get("Content-Type"), ";")[0])
-	if mediaType != "application/json" {
-		return response{}, rdProtocolHTTP(res.StatusCode, "success response is not application/json")
+	wanted := "application/json"
+	if accept := header.Get("Accept"); accept != "" {
+		wanted = accept
+	}
+	if mediaType != wanted {
+		return response{}, rdProtocolHTTP(res.StatusCode, "success response is not "+wanted)
 	}
 	if limit <= 0 {
 		limit = rdObjectLimit

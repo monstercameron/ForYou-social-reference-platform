@@ -450,6 +450,14 @@ func (s *Service) distFetchProvider(ctx context.Context, client *sdk.Client, net
 				if report.MonitorID != monitor || report.ProviderID != providerKey || quality.CheckReport(report) != nil {
 					continue
 				}
+				// A report counts only when its evidence is served and its values recompute from it.
+				if _, _, err := client.QualityEvidence(ctx, report); err != nil {
+					if ctx.Err() != nil {
+						return data, ctx.Err()
+					}
+					log.Printf("foundation distribution: report %s from monitor %s is not used: %v", report.ReportID, monitor, err)
+					continue
+				}
 				data.reports[monitor] = append(data.reports[monitor], report)
 			}
 		}
