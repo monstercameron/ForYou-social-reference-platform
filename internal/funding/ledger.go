@@ -161,6 +161,7 @@ const (
 	kindDisposition      = "disposition"
 	kindAdmission        = "admission"
 	kindRestore          = "restore"
+	kindProviderFailure  = "provider_failure"
 	kindWithdrawal       = "withdrawal"
 	kindWithdrawalStatus = "withdrawal_status"
 )
@@ -273,6 +274,8 @@ func (l *Ledger) stage(r record) (func(), error) {
 		apply, err = l.stageAdmission(r, at)
 	case kindRestore:
 		apply, err = l.stageRestore(r, at)
+	case kindProviderFailure:
+		apply, err = l.stageProviderFailure(r)
 	case kindWithdrawal:
 		apply, err = l.stageWithdrawal(r, at)
 	case kindWithdrawalStatus:

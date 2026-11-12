@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"sort"
 	"time"
 
 	"foryou.local/foryou/internal/fee"
@@ -32,12 +33,22 @@ type ReceiptEntry struct {
 	Receipt  wire.SubmissionReceipt
 }
 
+// ProviderFailure is a provider-caused finalization failure whose fee is not yet restored.
+type ProviderFailure struct {
+	AuthorID, MessageID, ReceiptID string
+	Issued                         time.Time
+}
+
 type admissionState struct {
-	encoded  []byte
-	network  string
-	amount   *big.Int
-	issued   time.Time
-	restored bool
+	encoded        []byte
+	network        string
+	amount         *big.Int
+	issued         time.Time
+	authorID       string
+	messageID      string
+	receiptID      string
+	restored       bool
+	providerFailed bool
 }
 
 func (s *admissionState) record() (wire.PreparedAdmissionRecord, error) {
@@ -173,7 +184,7 @@ func (l *Ledger) stageAdmission(r record, at time.Time) (func(), error) {
 	return func() {
 		sequence := l.admissionSequences[rc.Network] + 1
 		l.admissionSequences[rc.Network] = sequence
-		l.admissions[key] = &admissionState{encoded: encoded, network: rc.Network, amount: amount, issued: at}
+		l.admissions[key] = &admissionState{encoded: encoded, network: rc.Network, amount: amount, issued: at, authorID: rc.AuthorID, messageID: rc.MessageID, receiptID: rc.ReceiptID}
 		l.quotes[rc.QuoteID] = true
 		l.receiptIDs[rc.ReceiptID] = true
 		l.receipts[rc.Network] = append(l.receipts[rc.Network], ReceiptEntry{Sequence: sequence, Receipt: rc})
@@ -198,13 +209,70 @@ func (l *Ledger) Receipts(network string, after uint64, limit int) []ReceiptEntr
 	return append([]ReceiptEntry(nil), list[after:end]...)
 }
 
-// Restored reports whether an admission's fee was restored, so the settlement
-// claim builder leaves its receipt out of a claim.
+// Restored reports whether an admission's fee was restored.
 func (l *Ledger) Restored(authorID, messageID string) bool {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
 	st := l.admissions[recordKey(authorID, messageID)]
 	return st != nil && st.restored
+}
+
+// ProviderFailed reports whether the provider itself caused an admission's finalization
+// to fail. Its receipt is left out of settlement claims from that moment on.
+func (l *Ledger) ProviderFailed(authorID, messageID string) bool {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+	st := l.admissions[recordKey(authorID, messageID)]
+	return st != nil && st.providerFailed
+}
+
+// MarkProviderFailed durably records a provider-caused finalization failure of an
+// admission before the provider replies. A repeat is a no-op; an admission whose fee
+// is already restored cannot be marked.
+func (l *Ledger) MarkProviderFailed(authorID, messageID string) error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	st := l.admissions[recordKey(authorID, messageID)]
+	switch {
+	case st == nil:
+		return ErrNotFound
+	case st.restored:
+		return fmt.Errorf("%w: fee already restored", ErrConflict)
+	case st.providerFailed:
+		return nil
+	}
+	now, err := l.mutationTime()
+	if err != nil {
+		return err
+	}
+	return l.commit(record{Kind: kindProviderFailure, At: wire.FormatTime(now), AuthorID: authorID, MessageID: messageID})
+}
+
+func (l *Ledger) stageProviderFailure(r record) (func(), error) {
+	st := l.admissions[recordKey(r.AuthorID, r.MessageID)]
+	if st == nil || st.restored || st.providerFailed {
+		return nil, errors.New("funding: provider failure of a missing, restored or already failed admission")
+	}
+	return func() { st.providerFailed = true }, nil
+}
+
+// ProviderFailures lists provider-caused failures whose fee is not yet restored, oldest first.
+func (l *Ledger) ProviderFailures() []ProviderFailure {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+	var out []ProviderFailure
+	for _, st := range l.admissions {
+		if st.providerFailed && !st.restored {
+			out = append(out, ProviderFailure{AuthorID: st.authorID, MessageID: st.messageID, ReceiptID: st.receiptID, Issued: st.issued})
+		}
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if !out[i].Issued.Equal(out[j].Issued) {
+			return out[i].Issued.Before(out[j].Issued)
+		}
+		return out[i].MessageID < out[j].MessageID
+	})
+	return out
 }
 
 // RestoreFee restores the fee of a provider-caused failed preparation to the same

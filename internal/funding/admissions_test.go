@@ -200,6 +200,52 @@ func TestConcurrentAdmissions(t *testing.T) {
 	})
 }
 
+func TestProviderFailureIsDurableAndRestoredOnce(t *testing.T) {
+	notAccepted := func() (bool, error) { return false, nil }
+	f := newFixture(t)
+	f.fund(t, author, faux.BitcoinMainnet, "50000", "fund")
+	if _, _, err := f.admit("message", "quote", "136"); err != nil {
+		t.Fatal(err)
+	}
+	f.now = start.Add(time.Hour)
+	if err := f.ledger.MarkProviderFailed(author, "message"); err != nil {
+		t.Fatal(err)
+	}
+	t.Run("the mark is listed and survives a restart", func(t *testing.T) {
+		reopened := f.open(t, 0)
+		failures := reopened.ProviderFailures()
+		if len(failures) != 1 || failures[0].MessageID != "message" || failures[0].AuthorID != author {
+			t.Errorf("ProviderFailures after restart = %+v; want the one failed message", failures)
+		}
+		if !reopened.ProviderFailed(author, "message") || reopened.Restored(author, "message") {
+			t.Error("reopened ProviderFailed = false or Restored = true; want the failure recorded and no restore")
+		}
+		checkBalance(t, reopened, author, faux.BitcoinMainnet, 49_999_864, 0, 2)
+	})
+	t.Run("one restore at the window end", func(t *testing.T) {
+		f.now = start.Add(preparationWindow)
+		if restored, err := f.ledger.RestoreFee(author, "message", notAccepted); err != nil || !restored {
+			t.Fatalf("RestoreFee = %v, %v; want restored", restored, err)
+		}
+		checkBalance(t, f.ledger, author, faux.BitcoinMainnet, 50_000_000, 0, 3)
+		if failures := f.ledger.ProviderFailures(); len(failures) != 0 {
+			t.Errorf("ProviderFailures after restore = %+v; want none", failures)
+		}
+	})
+	t.Run("a restart after the restore does not credit again", func(t *testing.T) {
+		reopened := f.open(t, 0)
+		if restored, err := reopened.RestoreFee(author, "message", notAccepted); err != nil || restored {
+			t.Errorf("RestoreFee after restart = %v, %v; want no second restore", restored, err)
+		}
+		checkBalance(t, reopened, author, faux.BitcoinMainnet, 50_000_000, 0, 3)
+	})
+	t.Run("a restored admission cannot be marked", func(t *testing.T) {
+		if err := f.ledger.MarkProviderFailed(author, "message"); !errors.Is(err, ErrConflict) {
+			t.Errorf("MarkProviderFailed after restore = %v; want ErrConflict", err)
+		}
+	})
+}
+
 func TestRestoreFee(t *testing.T) {
 	notAccepted := func() (bool, error) { return false, nil }
 	setup := func(t *testing.T) *fixture {

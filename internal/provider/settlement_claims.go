@@ -73,12 +73,15 @@ type settlementPeriod struct {
 	receipts   []settlementReceipt
 }
 
+// settlementClaimsMu serializes claim publication with marking a provider-caused
+// finalization failure, so a receipt is either claimed or marked, never both.
+var settlementClaimsMu sync.Mutex
+
 func init() {
 	routeGroups = append(routeGroups, func(s *Service, _ *http.ServeMux) {
-		var mu sync.Mutex
 		s.Every("settlement-claims", time.Minute, func(ctx context.Context, now time.Time) error {
-			mu.Lock()
-			defer mu.Unlock()
+			settlementClaimsMu.Lock()
+			defer settlementClaimsMu.Unlock()
 			return s.publishSettlementClaims(ctx, now)
 		})
 	})
@@ -130,7 +133,7 @@ func (s *Service) publishNetworkClaims(ctx context.Context, network string, now 
 	var unclaimed []settlementReceipt
 	for _, entry := range entries {
 		r := entry.Receipt
-		if r.ProviderID != s.ProviderID() || s.Ledger.Restored(r.AuthorID, r.MessageID) {
+		if r.ProviderID != s.ProviderID() || s.Ledger.Restored(r.AuthorID, r.MessageID) || s.Ledger.ProviderFailed(r.AuthorID, r.MessageID) {
 			continue
 		}
 		if _, _, located, err := st.Locate(r.ReceiptID); err != nil {

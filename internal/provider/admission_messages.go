@@ -1,7 +1,9 @@
 package provider
 
 import (
+	"context"
 	"crypto/sha256"
+	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
@@ -21,6 +23,7 @@ const (
 	finalizeMessageBodyLimit = 1048576
 	finalizeWindow           = 30 * 24 * time.Hour
 	finalizeRetryAfter       = 5
+	finalizeRemedyInterval   = time.Hour
 )
 
 func init() {
@@ -34,6 +37,92 @@ func registerFinalizeMessages(s *Service, mux *http.ServeMux) {
 		defer finalizeMu.Unlock()
 		handleFinalizeMessage(s, w, r)
 	})
+	s.Every("finalize-fee-remedies", finalizeRemedyInterval, func(_ context.Context, now time.Time) error {
+		finalizeMu.Lock()
+		defer finalizeMu.Unlock()
+		return finalizeRestoreFees(s, now)
+	})
+}
+
+// finalizeRestoreFees restores the fee of each provider-caused failure once its preparation
+// window has passed. It runs under the finalization lock, so an acceptance and its remedy
+// never interleave. A failure that a later retry overcame was accepted and is never refunded.
+func finalizeRestoreFees(s *Service, now time.Time) error {
+	var errs []error
+	for _, failure := range s.Ledger.ProviderFailures() {
+		if now.Before(failure.Issued.Add(finalizeWindow)) {
+			continue
+		}
+		accepted, err := finalizeAccepted(s, failure.MessageID, failure.ReceiptID)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		if accepted {
+			continue
+		}
+		_, _, claimed, err := s.Settlement().Locate(failure.ReceiptID)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		if claimed {
+			log.Printf("provider: receipt %s was claimed before its finalization failure was recorded; its fee is not restored", failure.ReceiptID)
+			continue
+		}
+		if _, err := s.Ledger.RestoreFee(failure.AuthorID, failure.MessageID, func() (bool, error) {
+			return finalizeAccepted(s, failure.MessageID, failure.ReceiptID)
+		}); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return errors.Join(errs...)
+}
+
+// finalizeAccepted reports whether the stored acceptance of the message belongs to the
+// admission that issued receiptID. A message ID held by another intent or receipt does not
+// accept this admission, so its fee stays restorable.
+func finalizeAccepted(s *Service, messageID, receiptID string) (bool, error) {
+	var meta recordMeta
+	var found bool
+	err := s.Records().content.View(func(tx store.Tx) error {
+		b, ok, err := tx.Get("provider.records", messageID)
+		if err != nil || !ok {
+			return err
+		}
+		found = true
+		return json.Unmarshal(b, &meta)
+	})
+	if err != nil {
+		return false, err
+	}
+	return found && meta.ReceiptID == receiptID, nil
+}
+
+// finalizeMarkProviderFailed records a provider-caused failure of the admission that the
+// submission names before the reply, so its receipt leaves settlement claims at once.
+// A submission whose receipt is not the prepared one names no admission to mark, and a
+// receipt already in a published claim cannot leave it. The settlement lock keeps the
+// publisher from claiming the receipt between the check and the mark.
+func finalizeMarkProviderFailed(s *Service, submitted wire.PostMessage) {
+	prepared, ok := s.Ledger.Admission(submitted.AuthorID, submitted.MessageID)
+	if !ok || prepared.Receipt != submitted.SubmissionReceipt {
+		return
+	}
+	settlementClaimsMu.Lock()
+	defer settlementClaimsMu.Unlock()
+	_, _, claimed, err := s.Settlement().Locate(submitted.SubmissionReceipt.ReceiptID)
+	if err != nil {
+		log.Printf("provider: provider-caused finalization failure not recorded, claim state unreadable message_id=%s: %v", submitted.MessageID, err)
+		return
+	}
+	if claimed {
+		log.Printf("provider: provider-caused finalization failure not recorded, receipt already claimed message_id=%s", submitted.MessageID)
+		return
+	}
+	if err := s.Ledger.MarkProviderFailed(submitted.AuthorID, submitted.MessageID); err != nil {
+		log.Printf("provider: provider-caused finalization failure could not be recorded message_id=%s: %v", submitted.MessageID, err)
+	}
 }
 
 // handleFinalizeMessage accepts a message only at the provider that prepared its admission;
@@ -105,6 +194,7 @@ func handleFinalizeMessage(s *Service, w http.ResponseWriter, r *http.Request) {
 		accepted, acceptErr := s.Records().Accept(acceptance)
 		if errors.Is(acceptErr, ErrIDCollision) {
 			finalizeRecordCollision(s, submitted.MessageID)
+			finalizeMarkProviderFailed(s, submitted)
 			writeError(w, http.StatusConflict, "id_collision")
 			return
 		}
@@ -134,6 +224,7 @@ func handleFinalizeMessage(s *Service, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err = s.CheckClock(); err != nil {
+		finalizeMarkProviderFailed(s, submitted)
 		writeRetry(w, http.StatusServiceUnavailable, "unavailable", finalizeRetryAfter)
 		return
 	}
@@ -145,6 +236,7 @@ func handleFinalizeMessage(s *Service, w http.ResponseWriter, r *http.Request) {
 	accepted, err := s.Records().Accept(acceptance)
 	if errors.Is(err, ErrIDCollision) {
 		finalizeRecordCollision(s, submitted.MessageID)
+		finalizeMarkProviderFailed(s, submitted)
 		writeError(w, http.StatusConflict, "id_collision")
 		return
 	}
@@ -153,6 +245,7 @@ func handleFinalizeMessage(s *Service, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
+		finalizeMarkProviderFailed(s, submitted)
 		writeRetry(w, http.StatusServiceUnavailable, "unavailable", finalizeRetryAfter)
 		return
 	}

@@ -104,7 +104,7 @@ func newFinalizeFixture(t *testing.T, text string) *finalizeFixture {
 		t.Fatal(err)
 	}
 	quoteID := "fyfq2:" + strings.Repeat("0", 64)
-	scheduleID := "fyfs2:" + strings.Repeat("0", 64)
+	scheduleID := s.FeeSchedules()[0].ScheduleID
 	quote := wire.FeeQuote{
 		ProviderID: s.ProviderID(), AuthorID: intent.AuthorID, MessageID: messageID,
 		ScheduleID: scheduleID, QuoteID: quoteID, BillableBytes: int64(len(intentBytes)),
@@ -291,5 +291,163 @@ func TestFinalizeMessageStorageFailureIsUnavailable(t *testing.T) {
 	w = finalizeRequest(t, f.service, f.message)
 	if w.Code != http.StatusCreated || w.Body.String() != `{"message_id":"`+f.message.MessageID+`","status":"accepted"}` {
 		t.Fatalf("retry after storage recovery = %d %s", w.Code, w.Body.String())
+	}
+}
+
+func TestProviderFailureOvercomeByRetryIsNotRestored(t *testing.T) {
+	f := newFinalizeFixture(t, "provider failure overcome post")
+	afterDebit, err := f.service.Ledger.Balance(f.intent.AuthorID, faux.BitcoinMainnet)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.storage.fail = true
+	if w := finalizeRequest(t, f.service, f.message); w.Code != http.StatusServiceUnavailable {
+		t.Fatalf("provider-caused failure = %d %s", w.Code, w.Body.String())
+	}
+	f.storage.fail = false
+	t.Run("a retry inside the window is accepted", func(t *testing.T) {
+		if w := finalizeRequest(t, f.service, f.message); w.Code != http.StatusCreated {
+			t.Fatalf("retry after a recorded provider failure = %d %s", w.Code, w.Body.String())
+		}
+	})
+	t.Run("the accepted message is never refunded", func(t *testing.T) {
+		*f.clock = f.messageTime().Add(finalizeWindow)
+		if err := finalizeRemedyRun(t, f.service, *f.clock); err != nil {
+			t.Fatal(err)
+		}
+		if err := finalizeRemedyRun(t, f.service, *f.clock); err != nil {
+			t.Fatal(err)
+		}
+		checkFinalizeBalance(t, f.service, f.intent.AuthorID, afterDebit.Available)
+		if f.service.Ledger.Restored(f.intent.AuthorID, f.message.MessageID) {
+			t.Fatal("Restored = true; want an accepted message kept unrefunded")
+		}
+	})
+}
+
+func TestProviderFailureRestoresFeeOnce(t *testing.T) {
+	f := newFinalizeFixture(t, "provider failure post")
+	afterDebit, err := f.service.Ledger.Balance(f.intent.AuthorID, faux.BitcoinMainnet)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.storage.fail = true
+	if w := finalizeRequest(t, f.service, f.message); w.Code != http.StatusServiceUnavailable {
+		t.Fatalf("provider-caused failure = %d %s", w.Code, w.Body.String())
+	}
+	t.Run("the failure is durable before the reply", func(t *testing.T) {
+		if !f.service.Ledger.ProviderFailed(f.intent.AuthorID, f.message.MessageID) {
+			t.Fatal("ProviderFailed = false; want the failure recorded")
+		}
+	})
+	t.Run("settlement never claims the failed receipt", func(t *testing.T) {
+		f.storage.fail = false
+		*f.clock = f.messageTime().Add(3 * time.Minute)
+		if err := f.service.RunOnce(context.Background()); err != nil {
+			t.Fatal(err)
+		}
+		if _, _, located, err := f.service.Settlement().Locate(f.message.SubmissionReceipt.ReceiptID); err != nil || located {
+			t.Fatalf("Locate(provider-failed receipt) = %t, %v; want not located", located, err)
+		}
+	})
+	t.Run("no credit before the window closes", func(t *testing.T) {
+		*f.clock = f.messageTime().Add(finalizeWindow - time.Second)
+		if err := finalizeRemedyRun(t, f.service, *f.clock); err != nil {
+			t.Fatal(err)
+		}
+		checkFinalizeBalance(t, f.service, f.intent.AuthorID, afterDebit.Available)
+	})
+	t.Run("exactly one credit after the window", func(t *testing.T) {
+		*f.clock = f.messageTime().Add(finalizeWindow)
+		if err := finalizeRemedyRun(t, f.service, *f.clock); err != nil {
+			t.Fatal(err)
+		}
+		checkFinalizeBalance(t, f.service, f.intent.AuthorID, new(big.Int).Add(afterDebit.Available, big.NewInt(136)))
+	})
+	t.Run("rerun does not credit again", func(t *testing.T) {
+		if err := finalizeRemedyRun(t, f.service, *f.clock); err != nil {
+			t.Fatal(err)
+		}
+		checkFinalizeBalance(t, f.service, f.intent.AuthorID, new(big.Int).Add(afterDebit.Available, big.NewInt(136)))
+	})
+	t.Run("finalization after the window is stale", func(t *testing.T) {
+		f.storage.fail = false
+		if w := finalizeRequest(t, f.service, f.message); w.Code != http.StatusConflict || w.Body.String() != `{"status":"stale_state"}` {
+			t.Fatalf("finalization after the window = %d %s", w.Code, w.Body.String())
+		}
+	})
+}
+
+func TestProviderFailureRestoresFeeAfterIDCollision(t *testing.T) {
+	f := newFinalizeFixture(t, "collision provider failure post")
+	afterDebit, err := f.service.Ledger.Balance(f.intent.AuthorID, faux.BitcoinMainnet)
+	if err != nil {
+		t.Fatal(err)
+	}
+	messageBytes, err := canon.Encode(f.message)
+	if err != nil {
+		t.Fatal(err)
+	}
+	otherReceipt := keys.EncodeB64URL([]byte(strings.Repeat("o", 32)))
+	if _, err = f.service.Records().Accept(Acceptance{MessageID: f.message.MessageID, Bytes: messageBytes, IntentDigest: sha256.Sum256([]byte("another intent")), ReceiptID: otherReceipt, IssuedAt: f.messageTime()}); err != nil {
+		t.Fatal(err)
+	}
+	t.Run("colliding finalization is a provider-caused failure", func(t *testing.T) {
+		if w := finalizeRequest(t, f.service, f.message); w.Code != http.StatusConflict || w.Body.String() != `{"status":"id_collision"}` {
+			t.Fatalf("colliding finalization = %d %s", w.Code, w.Body.String())
+		}
+		if !f.service.Ledger.ProviderFailed(f.intent.AuthorID, f.message.MessageID) {
+			t.Fatal("ProviderFailed = false; want the failure recorded")
+		}
+	})
+	t.Run("exactly one credit after the window", func(t *testing.T) {
+		*f.clock = f.messageTime().Add(finalizeWindow)
+		if err := finalizeRemedyRun(t, f.service, *f.clock); err != nil {
+			t.Fatal(err)
+		}
+		checkFinalizeBalance(t, f.service, f.intent.AuthorID, new(big.Int).Add(afterDebit.Available, big.NewInt(136)))
+	})
+	t.Run("rerun does not credit again", func(t *testing.T) {
+		if err := finalizeRemedyRun(t, f.service, *f.clock); err != nil {
+			t.Fatal(err)
+		}
+		checkFinalizeBalance(t, f.service, f.intent.AuthorID, new(big.Int).Add(afterDebit.Available, big.NewInt(136)))
+	})
+}
+
+func TestProviderFailureSkipsClaimedReceipt(t *testing.T) {
+	f := newFinalizeFixture(t, "claimed provider failure post")
+	*f.clock = f.messageTime().Add(3 * time.Minute)
+	if err := f.service.RunOnce(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, claimed, err := f.service.Settlement().Locate(f.message.SubmissionReceipt.ReceiptID); err != nil || !claimed {
+		t.Fatalf("Locate(receipt) = %t, %v; want the receipt claimed before the failure", claimed, err)
+	}
+	f.storage.fail = true
+	if w := finalizeRequest(t, f.service, f.message); w.Code != http.StatusServiceUnavailable {
+		t.Fatalf("finalization of a claimed receipt = %d %s", w.Code, w.Body.String())
+	}
+	if f.service.Ledger.ProviderFailed(f.intent.AuthorID, f.message.MessageID) {
+		t.Fatal("ProviderFailed = true; want a claimed receipt left unmarked")
+	}
+}
+
+func finalizeRemedyRun(t *testing.T, s *Service, now time.Time) error {
+	t.Helper()
+	for _, l := range s.loops {
+		if l.name == "finalize-fee-remedies" {
+			return l.fn(context.Background(), now)
+		}
+	}
+	t.Fatal("finalize-fee-remedies loop is not registered")
+	return nil
+}
+
+func checkFinalizeBalance(t *testing.T, s *Service, authorID string, want *big.Int) {
+	t.Helper()
+	b, err := s.Ledger.Balance(authorID, faux.BitcoinMainnet)
+	if err != nil || b.Available.Cmp(want) != 0 {
+		t.Fatalf("available = %v, %v; want %v", b.Available, err, want)
 	}
 }

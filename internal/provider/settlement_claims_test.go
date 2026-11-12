@@ -344,6 +344,28 @@ func TestSettlementPublisherResumesAfterRestart(t *testing.T) {
 	}
 }
 
+func TestSettlementExcludesProviderFailedReceipt(t *testing.T) {
+	now := time.Date(2026, 11, 11, 11, 0, 0, 0, time.UTC)
+	s, _ := settlementTestService(t, &now, "")
+	defer s.Close()
+	now = time.Date(2026, 11, 11, 12, 1, 10, 0, time.UTC)
+	settlementFundAuthor(t, s, now)
+	failed := settlementAdmit(t, s, time.Date(2026, 11, 11, 12, 0, 10, 0, time.UTC), 61)
+	kept := settlementAdmit(t, s, time.Date(2026, 11, 11, 12, 0, 20, 0, time.UTC), 62)
+	if err := s.Ledger.MarkProviderFailed(failed.AuthorID, failed.MessageID); err != nil {
+		t.Fatal(err)
+	}
+	now = time.Date(2026, 11, 11, 12, 4, 0, 0, time.UTC)
+	claims := settlementRun(t, s)
+	if len(claims) != 1 || claims[0].ReceiptCount != 1 {
+		t.Fatalf("claims = %+v; want one claim of one receipt", claims)
+	}
+	settlementCheckLocated(t, s, kept, claims[0].ClaimID)
+	if _, _, located, err := s.Settlement().Locate(failed.ReceiptID); err != nil || located {
+		t.Errorf("Locate(provider-failed receipt) = %t, %v; want not claimed", located, err)
+	}
+}
+
 func TestSettlementStoreSurvivesRestart(t *testing.T) {
 	now := time.Date(2026, 11, 11, 12, 0, 30, 0, time.UTC)
 	s, cfg := settlementTestService(t, &now, t.TempDir())
