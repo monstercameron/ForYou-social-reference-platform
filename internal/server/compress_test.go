@@ -113,17 +113,17 @@ func TestCompressedRangeAndComposer(t *testing.T) {
 		r.Header.Set("Accept-Encoding", "gzip, br")
 		w := httptest.NewRecorder()
 		h.ServeHTTP(w, r)
-		if w.Code != http.StatusOK || w.Header().Get("Content-Encoding") != "" || !strings.Contains(w.Body.String(), `name="draft_token"`) {
-			t.Errorf("status %d, encoding %q, token present %t", w.Code, w.Header().Get("Content-Encoding"), strings.Contains(w.Body.String(), `name="draft_token"`))
+		if w.Code != http.StatusOK || w.Header().Get("Content-Encoding") != "" || !strings.Contains(w.Body.String(), `<h1>New post</h1>`) {
+			t.Errorf("status %d, encoding %q", w.Code, w.Header().Get("Content-Encoding"))
 		}
 	})
-	t.Run("quote page token is not compressed", func(t *testing.T) {
+	t.Run("quote page is not compressed", func(t *testing.T) {
 		r := httptest.NewRequest(http.MethodGet, "/quote?text=hello", nil)
 		r.Header.Set("Accept-Encoding", "gzip, br")
 		w := httptest.NewRecorder()
 		h.ServeHTTP(w, r)
-		if w.Code != http.StatusOK || w.Header().Get("Content-Encoding") != "" || !strings.Contains(w.Body.String(), `name="draft_token"`) {
-			t.Errorf("status %d, encoding %q, token present %t", w.Code, w.Header().Get("Content-Encoding"), strings.Contains(w.Body.String(), `name="draft_token"`))
+		if w.Code != http.StatusOK || w.Header().Get("Content-Encoding") != "" || !strings.Contains(w.Body.String(), `<h1>Post quote</h1>`) {
+			t.Errorf("status %d, encoding %q", w.Code, w.Header().Get("Content-Encoding"))
 		}
 	})
 }

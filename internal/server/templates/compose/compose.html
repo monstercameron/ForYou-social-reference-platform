@@ -1,11 +1,245 @@
 {{define "compose-page"}}
 {{template "layout-open" .Layout}}
   <div class="page-content compose-content">
-    <header class="page-heading"><h1>New post</h1><p>Draft text for this local demo.</p></header>
+    <header class="page-heading"><h1>New post</h1><p>Write the post, check its size and fee, then confirm before anything is sent.</p></header>
+    {{if .Blocked}}
+      {{template "compose-blocked" .}}
+    {{else if .Refused}}{{with .Refused}}
+      <section class="component-card compose-blocked" aria-labelledby="compose-refused-heading">
+        <h2 id="compose-refused-heading">{{.Heading}}</h2>
+        <p class="compose-hint">{{.Message}}</p>
+        <p><a class="button button-secondary" href="/compose">Write a new post</a></p>
+      </section>
+    {{end}}
+    {{else}}
     <div class="compose-grid">
-      {{template "compose-form" .}}
-      {{template "compose-quote-panel" .}}
+      {{template "compose-editor" .}}
+      <aside class="component-card compose-quote" id="compose-quote" aria-label="Fee and confirmation" aria-live="polite">{{template "compose-quote" .}}</aside>
     </div>
+    {{end}}
+    {{template "compose-unfinished" .}}
   </div>
 {{template "layout-close" .Layout}}
+{{end}}
+
+{{define "compose-blocked"}}
+<section class="component-card compose-blocked" aria-labelledby="compose-blocked-heading">
+  <h2 id="compose-blocked-heading">Publishing is not ready</h2>
+  <p class="compose-hint">The editor opens once these are done.</p>
+  {{range .Blocked}}<div class="compose-step"><p><strong>{{.Title}}</strong> {{.Text}}</p><a class="button button-secondary" href="{{.Href}}">{{.Link}}</a></div>{{end}}
+</section>
+{{end}}
+
+{{define "compose-editor"}}
+<section id="compose-editor" class="component-card compose-editor">
+  <h2 class="compose-title">Write a post</h2>
+  {{if .Form.Supersedes}}
+  <p class="compose-hint">A new version keeps the same reply target. This publishes a new, separately paid version. The earlier version stays public.</p>
+  {{end}}
+  {{with .Parent}}
+  <div class="compose-parent">
+    <h3>Replying to</h3>
+    {{if .Missing}}
+    <p>Parent not available from your sources.</p>
+    <label class="compose-check"><input type="checkbox" name="allow_missing_parent" form="compose-form"{{if $.Form.AllowMissingParent}} checked{{end}}> Reply to this exact ID anyway</label>
+    {{else}}
+    {{template "card-post-card" .Post}}
+    {{end}}
+    <p><span class="id-chip">{{.ID}}</span></p>
+  </div>
+  {{end}}
+  <form id="compose-form" class="compose-form" action="/compose/quote" method="post" post="/compose/quote/fragment" target="#compose-quote(innerHTML)" loading="#compose-quote(innerHTML)" timeout="5000" onerror="#compose-quote(innerHTML)" data-focus-after-swap="#compose-quote-heading">
+    {{with .Parent}}<input type="hidden" name="reply_to" value="{{.ID}}">{{end}}
+    {{if .Form.Supersedes}}<input type="hidden" name="supersedes" value="{{.Form.Supersedes}}">{{end}}
+    <fieldset class="compose-block">
+      <legend>Format</legend>
+      <label class="compose-check"><input type="radio" name="format" value="text/plain"{{if eq .Form.Format "text/plain"}} checked{{end}}> Plain text</label>
+      <label class="compose-check"><input type="radio" name="format" value="text/markdown"{{if eq .Form.Format "text/markdown"}} checked{{end}}> Markdown (CommonMark, no extensions)</label>
+    </fieldset>
+    <label class="compose-label" for="compose-text">Your post</label>
+    <textarea id="compose-text" class="compose-textarea" name="text" rows="9" aria-describedby="compose-help compose-measure" post="/compose/measure/fragment" trigger="input" debounce="400" source="#compose-form" target="#compose-measure(innerHTML)">{{.Form.Text}}</textarea>
+    <p id="compose-help" class="compose-help">Raw HTML shows as text. Links open only after a confirmation. Images appear only from media slots: <code>![alt](fy-media:id)</code>.</p>
+    <div id="compose-measure" class="compose-measure" role="status" aria-live="polite">{{template "compose-measure" .}}</div>
+    <label class="compose-label" for="compose-network">Publish on</label>
+    <select id="compose-network" class="compose-select" name="network">{{range .Networks}}<option value="{{.Value}}"{{if eq .Value $.Form.Network}} selected{{end}}>{{.Label}}</option>{{end}}</select>
+    {{template "compose-media" .}}
+    {{template "compose-refs" .}}
+    <div class="compose-actions">
+      <button class="button button-primary" type="submit">Get quote</button>
+      <button class="button button-secondary" type="submit" formaction="/compose/check" formmethod="post">Check size and fee</button>
+    </div>
+  </form>
+</section>
+{{end}}
+
+{{define "compose-measure"}}
+{{if .Blocked}}<p class="compose-hint">The size and fee show once publishing is set up.</p>
+{{else if .Measure}}{{with .Measure}}
+  {{range .Problems}}<p class="notice-bad">{{.}}</p>{{end}}
+  {{if not .Problems}}
+  <p class="compose-size"><strong>Billable size: {{.Bytes}} bytes</strong> (the signed intent, before the receipt is added)</p>
+  <p class="compose-fee"><strong>Fee: {{.Fee}} {{.Unit}}</strong> <span class="id-chip">{{.ScheduleID}}</span></p>
+  {{if .Base}}<p class="compose-hint">F = base + per-KiB fee × ceil(N / 1024): {{.Fee}} {{.Unit}} = {{.Base}} {{.Unit}} + {{.PerKiB}} {{.Unit}} × {{.Units}}. N is {{.Bytes}} bytes, so ceil(N / 1024) is {{.Units}} KiB.</p>{{end}}
+  {{range .Findings}}<p class="notice-warn">{{.}}</p>{{end}}
+  {{range .Inert}}<p class="notice-warn">{{.}}</p>{{end}}
+  {{end}}
+{{end}}{{else if .Failure}}{{with .Failure}}<p class="notice-bad"><strong>{{.Heading}}</strong> {{.Message}}</p>{{end}}
+{{else}}<p class="compose-hint">Size and fee update as you write.</p>{{end}}
+{{end}}
+
+{{define "compose-media"}}
+<fieldset class="compose-block">
+  <legend>External media</legend>
+  <p class="compose-hint">Media stays on its own host. The post stores the link and the SHA-256 of the exact file.</p>
+  {{range .Form.Media}}{{template "compose-media-row" .}}{{end}}
+  <button class="button button-secondary" type="submit" name="row_action" value="add-media" formaction="/compose/rows" formmethod="post" post="/compose/rows/fragment" source="#compose-form" loading="#compose-measure(innerHTML)" target="#compose-editor(outerHTML)">Add media</button>
+</fieldset>
+{{end}}
+
+{{define "compose-media-row"}}
+<div class="compose-row">
+  <label class="compose-label">Slot ID<input class="compose-input" name="media_slot" value="{{.Slot}}" maxlength="32" autocomplete="off"></label>
+  <label class="compose-label">Kind<select class="compose-select" name="media_kind"><option value="image"{{if eq .Kind "image"}} selected{{end}}>Image</option><option value="video"{{if eq .Kind "video"}} selected{{end}}>Video</option></select></label>
+  <label class="compose-label">HTTPS URL<input class="compose-input" name="media_url" type="url" value="{{.URL}}"></label>
+  <label class="compose-label">SHA-256 of the exact file<input class="compose-input" name="media_sha256" value="{{.SHA256}}" maxlength="64" autocomplete="off"></label>
+  <label class="compose-label">Size in bytes (optional)<input class="compose-input" name="media_size" inputmode="numeric" value="{{.Size}}"></label>
+  <label class="compose-label">Alt text (optional)<input class="compose-input" name="media_alt" value="{{.Alt}}" maxlength="2000"></label>
+  {{if .Origin}}<button class="button button-secondary" type="submit" name="row_action" value="digest-media:{{.Index}}" formaction="/compose/rows" formmethod="post" post="/compose/rows/fragment" source="#compose-form" loading="#compose-measure(innerHTML)" target="#compose-editor(outerHTML)">Fetch from {{.Origin}} to compute</button>{{end}}
+  {{with .Notice}}<p class="notice-bad">{{.}}</p>{{end}}
+  <p class="compose-hint">Insert in text: <code>![alt](fy-media:{{.Slot}})</code></p>
+  <button class="button button-secondary" type="submit" name="row_action" value="remove-media:{{.Index}}" formaction="/compose/rows" formmethod="post" post="/compose/rows/fragment" source="#compose-form" loading="#compose-measure(innerHTML)" target="#compose-editor(outerHTML)">Remove</button>
+</div>
+{{end}}
+
+{{define "compose-refs"}}
+<fieldset class="compose-block">
+  <legend>References</legend>
+  <p class="compose-hint">The label you write is not proof of who or what the target is; readers see the target.</p>
+  {{range .Form.Refs}}{{template "compose-ref-row" .}}{{end}}
+  <button class="button button-secondary" type="submit" name="row_action" value="add-ref" formaction="/compose/rows" formmethod="post" post="/compose/rows/fragment" source="#compose-form" loading="#compose-measure(innerHTML)" target="#compose-editor(outerHTML)">Add reference</button>
+</fieldset>
+{{end}}
+
+{{define "compose-ref-row"}}
+<div class="compose-row">
+  <label class="compose-label">Reference ID<input class="compose-input" name="ref_id" value="{{.ID}}" maxlength="32" autocomplete="off"></label>
+  <label class="compose-label">Target (message ID or did:key)<input class="compose-input" name="ref_target" value="{{.Target}}" autocomplete="off"></label>
+  <p class="compose-hint">Insert in text: <code>[label](fy-ref:{{.ID}})</code></p>
+  <button class="button button-secondary" type="submit" name="row_action" value="remove-ref:{{.Index}}" formaction="/compose/rows" formmethod="post" post="/compose/rows/fragment" source="#compose-form" loading="#compose-measure(innerHTML)" target="#compose-editor(outerHTML)">Remove</button>
+</div>
+{{end}}
+
+{{define "compose-quote"}}
+{{if .Blocked}}
+  <h2 id="compose-quote-heading" tabindex="-1">Publishing is not ready</h2>
+  <p class="compose-hint">Finish the setup steps on this page first.</p>
+{{else if .Result}}{{with .Result}}
+  <h2 id="compose-quote-heading" tabindex="-1" data-focus-target>Published</h2>
+  <p>{{if .Already}}Already accepted earlier.{{else}}The provider accepted your post.{{end}}</p>
+  <dl class="compose-facts">
+    <div><dt>Message ID</dt><dd><a class="id-chip" href="/posts/{{.MessageID}}">{{.MessageID}}</a></dd></div>
+    <div><dt>Receipt</dt><dd><span class="id-chip">{{.ReceiptID}}</span></dd></div>
+    <div><dt>Fee</dt><dd>{{.Amount}} {{.Unit}}</dd></div>
+    <div><dt>Issued</dt><dd>{{.IssuedAt}}</dd></div>
+  </dl>
+  <p class="compose-hint">Settlement: pending until a committee settles the claim.</p>
+{{end}}
+{{else if .Failure}}{{with .Failure}}
+  <div class="notice-bad" role="alert">
+    <h2 id="compose-quote-heading" tabindex="-1" data-focus-target>{{.Heading}}</h2>
+    <p>{{.Message}}</p>
+    {{if .Href}}<p><a class="button button-secondary" href="{{.Href}}">{{.Link}}</a></p>{{end}}
+    {{if .RetryID}}<form action="/compose/resume" method="post" post="/compose/resume/fragment" target="#compose-quote(innerHTML)" loading="#compose-quote(innerHTML)" timeout="5000" onerror="#compose-quote(innerHTML)" data-focus-after-swap="#compose-quote-heading"><input type="hidden" name="message_id" value="{{.RetryID}}"><button class="button button-primary" type="submit">Retry the same request</button></form>{{end}}
+  </div>
+{{end}}
+{{else if .Quote}}{{with .Quote}}
+  {{if not .MessageID}}
+    <h2 id="compose-quote-heading" tabindex="-1" data-focus-target>Check your post</h2>
+    {{range .Problems}}<p class="notice-bad">{{.}}</p>{{end}}
+  {{else}}
+    <h2 id="compose-quote-heading" tabindex="-1" data-focus-target>Review and confirm</h2>
+    <p class="compose-hint">The fee is set by the specification, not by a provider. A reply pays the same fee.</p>
+    <p class="compose-provider">Provider {{.ProviderLabel}} <span class="id-chip">{{.ProviderID}}</span></p>
+    {{template "card-post-cost" .Cost}}
+    {{if .Balance.Known}}<p class="compose-balance">Balance at {{.ProviderLabel}}: {{.Balance.Available}} {{.Unit}}</p>{{else}}<p class="compose-hint">Balance not available from the provider right now.</p>{{end}}
+    {{if .Balance.Short}}<p class="notice-bad">Shortfall: {{.Balance.Shortfall}} {{.Unit}}. Fund your balance, then get a new quote.</p>
+    <p><a class="button button-secondary" href="/wallet">Open the wallet</a></p>
+    {{end}}
+    <dl class="compose-facts">
+      <div><dt>Quote</dt><dd><span class="id-chip">{{.QuoteID}}</span></dd></div>
+      <div><dt>Schedule</dt><dd><span class="id-chip">{{.ScheduleID}}</span></dd></div>
+      <div><dt>Expiry</dt><dd>{{.Expires}}</dd></div>
+    </dl>
+    <p><span class="pill-ok">Matches your own calculation</span></p>
+    {{range .Findings}}<p class="notice-warn">{{.}}</p>{{end}}
+    <div class="compose-permanence">
+      <p><strong>Permanence.</strong> Every version is public. There is no delete. The provider keeps it for its declared period (at least one year) and the Lifetime Vault keeps it with no scheduled expiry. Copies can persist elsewhere.</p>
+      {{with .Retention}}<p>The provider declares it keeps posts for {{.}}.</p>{{end}}
+    </div>
+    {{if not .Balance.Short}}
+    <form class="compose-confirm" action="/compose/publish" method="post" post="/compose/publish/fragment" target="#compose-quote(innerHTML)" loading="#compose-quote(innerHTML)" timeout="5000" onerror="#compose-quote(innerHTML)" data-focus-after-swap="#compose-quote-heading">
+      <input type="hidden" name="message_id" value="{{.MessageID}}">
+      <label class="compose-check"><input type="checkbox" id="compose-permanence" name="permanence"{{if .PermanenceError}} aria-invalid="true" aria-describedby="compose-permanence-error"{{end}}> I understand every version is public and cannot be deleted.</label>
+      {{with .PermanenceError}}<p id="compose-permanence-error" class="notice-bad">{{.}}</p>{{end}}
+      <label class="compose-check"><input type="checkbox" id="compose-approve-amount" name="approve_amount"{{if .AmountError}} aria-invalid="true" aria-describedby="compose-approve-error"{{end}}> Publish this exact post for {{.Amount}} {{.Unit}} from my balance at {{.ProviderLabel}}.</label>
+      {{with .AmountError}}<p id="compose-approve-error" class="notice-bad">{{.}}</p>{{end}}
+      <div class="compose-actions">
+        <button class="button button-primary" type="submit">Confirm and post</button>
+        <a class="button button-secondary" href="#compose-text">Edit the text</a>
+      </div>
+    </form>
+    {{end}}
+  {{end}}
+{{end}}
+{{else}}
+  <h2 id="compose-quote-heading" tabindex="-1">Post quote</h2>
+  <p class="compose-hint">Get a quote to see the size and fee before anything is posted.</p>
+{{end}}
+{{end}}
+
+{{define "compose-unfinished"}}
+<section class="component-card compose-unfinished" aria-labelledby="compose-unfinished-heading">
+  <h2 id="compose-unfinished-heading">Unfinished publications</h2>
+  {{if .Pending}}
+  <ul class="compose-list">
+    {{range .Pending}}
+    <li>
+      <span class="id-chip">{{.MessageID}}</span> <span class="pill-warn">{{.State}}</span>
+      <span class="compose-hint">{{if .Deadline}}finish before {{.Deadline}}{{else}}started {{.Started}}{{end}}</span>
+      <form action="/compose/resume" method="post" post="/compose/resume/fragment" target="#compose-quote(innerHTML)" loading="#compose-quote(innerHTML)" timeout="5000" onerror="#compose-quote(innerHTML)" data-focus-after-swap="#compose-quote-heading"><input type="hidden" name="message_id" value="{{.MessageID}}"><button class="button button-secondary" type="submit">Resume</button></form>
+    </li>
+    {{end}}
+  </ul>
+  {{else}}
+  <p class="compose-hint">Nothing is waiting to be finished.</p>
+  {{end}}
+  {{if .Recent}}
+  <h3>Your recent posts on this server</h3>
+  <ul class="compose-list">{{range .Recent}}<li><a href="{{.Href}}">{{.MessageID}}</a></li>{{end}}</ul>
+  {{end}}
+</section>
+{{end}}
+
+{{define "compose-quote-page"}}
+{{template "layout-open" .Layout}}
+  <div class="page-content compose-content">
+    <header class="page-heading"><h1>Post quote</h1><p>The fee for this text under the fee schedule in force.</p></header>
+    <aside class="component-card compose-quote">{{template "compose-quote-result" .}}</aside>
+    <p class="compose-draft-text">{{.Text}}</p>
+    <p><a class="button button-secondary" href="/compose">Write the post</a></p>
+  </div>
+{{template "layout-close" .Layout}}
+{{end}}
+
+{{define "compose-quote-result"}}<h2>Post quote</h2><p class="compose-hint">The fee is set by the specification, not by a provider. A reply pays the same fee.</p>{{template "card-post-cost" .Cost}}{{end}}
+
+{{define "compose-quote-response"}}<fragment target="#quote-result(innerHTML)">{{template "compose-quote-result" .}}</fragment><fragment target="#byte-count(innerHTML)">{{.Bytes}} bytes</fragment><fragment target="#quote-status(innerHTML)">Size and fee updated. Check again after editing.</fragment>{{end}}
+
+{{define "compose-success"}}
+<main id="compose-main" class="component-card compose-editor">
+  <h2 class="compose-title" tabindex="-1" data-compose-result>Post added</h2>
+  <p class="compose-description">Your demo post is visible on this server until it restarts.</p>
+  <p><a class="button button-primary button-link" href="/posts/{{.ID}}">View post</a></p>
+  <p><a class="button-link" href="/">View feed</a> · <a class="button-link" href="/compose">Write another</a></p>
+</main>
 {{end}}

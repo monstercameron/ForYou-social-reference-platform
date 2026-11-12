@@ -212,12 +212,9 @@ func TestComposerAndMobileActions(t *testing.T) {
 		}
 	}
 	check("/", `aria-label="New post"`)
-	check("/compose", `name="draft_token"`)
-	check("/compose", `source="#draft"`)
+	check("/compose", `Publishing is not ready`)
 	check("/compose", `aria-label="Main navigation"`)
 	check("/compose", `href="/compose" class="nav-compose is-current" aria-current="page"`)
-	check("/compose", `trigger="input" debounce="400" source="#draft"`)
-	check("/compose", `id="byte-count"`)
 	check("/static/tailwind.css", `min-height`)
 }
 
@@ -235,8 +232,8 @@ func TestNoScriptComposerFallback(t *testing.T) {
 	page := httptest.NewRecorder()
 	h.ServeHTTP(page, httptest.NewRequest(http.MethodGet, "/compose", nil))
 	body := page.Body.String()
-	if page.Code != http.StatusOK || !strings.Contains(body, `<noscript><link rel="stylesheet" href="/static/no-js.css"></noscript>`) || !strings.Contains(body, `formaction="/quote" formmethod="post"`) {
-		t.Errorf("composer lacks its no-script quote fallback; status %d", page.Code)
+	if page.Code != http.StatusOK || !strings.Contains(body, `<noscript><link rel="stylesheet" href="/static/no-js.css"></noscript>`) || !strings.Contains(body, `Publishing is not ready`) {
+		t.Errorf("composer without a provider should say what is missing; status %d", page.Code)
 	}
 	quote := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodPost, "/quote", strings.NewReader(url.Values{"text": {"café"}}.Encode()))

@@ -1,1 +1,236 @@
-@layer components {}
+@layer components {
+  .compose-content {
+    display: grid;
+    gap: 16px;
+    min-width: 0;
+  }
+
+  .compose-grid {
+    display: grid;
+    gap: 16px;
+    align-items: start;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  @media (min-width: 700px) {
+    .compose-grid {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
+    }
+  }
+
+  .compose-editor,
+  .compose-quote,
+  .compose-unfinished,
+  .compose-blocked {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    padding: 16px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .compose-title,
+  .compose-quote h2,
+  .compose-unfinished h2,
+  .compose-blocked h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .compose-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    margin: 0;
+  }
+
+  .compose-block {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    margin: 0;
+    padding: 12px;
+    min-width: 0;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+
+  .compose-block legend {
+    padding: 0 4px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .compose-label {
+    display: grid;
+    gap: 4px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .compose-textarea,
+  .compose-input,
+  .compose-select {
+    width: 100%;
+    min-height: 44px;
+    box-sizing: border-box;
+    padding: 8px 10px;
+    font: inherit;
+    color: var(--text);
+    background: var(--control);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+
+  .compose-textarea {
+    min-height: 200px;
+    resize: vertical;
+  }
+
+  .compose-check {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    min-height: 44px;
+    font-weight: 400;
+    color: var(--text);
+  }
+
+  .compose-check input {
+    width: 20px;
+    height: 20px;
+    margin-top: 2px;
+    flex: none;
+  }
+
+  .compose-hint,
+  .compose-help {
+    margin: 0;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .compose-size,
+  .compose-fee,
+  .compose-provider {
+    margin: 0;
+    color: var(--text);
+  }
+
+  .compose-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    padding: 12px;
+    min-width: 0;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--panel);
+  }
+
+  .compose-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .compose-actions .button {
+    min-height: 44px;
+  }
+
+  .compose-facts {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    margin: 0;
+  }
+
+  .compose-facts div {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+
+  .compose-balance {
+    margin: 0;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .compose-facts dt {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .compose-facts dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+    color: var(--text);
+  }
+
+  .compose-permanence {
+    padding: 12px;
+    border-radius: 8px;
+    background: var(--warn-soft);
+    color: var(--text);
+  }
+
+  .compose-permanence p {
+    margin: 0;
+  }
+
+  .compose-list {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding-left: 18px;
+    color: var(--text);
+  }
+
+  .compose-draft-text {
+    overflow-wrap: anywhere;
+    color: var(--text);
+  }
+
+  .compose-step {
+    display: grid;
+    gap: 10px;
+    padding: 12px;
+    min-width: 0;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--panel);
+    color: var(--text);
+  }
+
+  .compose-step p {
+    margin: 0;
+  }
+
+  .compose-step .button {
+    justify-self: start;
+    min-height: 44px;
+  }
+
+  .compose-editor .button,
+  .compose-quote .button,
+  .compose-unfinished .button,
+  .compose-blocked .button {
+    min-height: 44px;
+  }
+
+  .compose-quote form,
+  .compose-unfinished form {
+    margin: 0;
+  }
+
+  .compose-quote :focus-visible,
+  .compose-editor :focus-visible,
+  .compose-unfinished :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
