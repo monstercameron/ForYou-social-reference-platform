@@ -16,7 +16,7 @@ import (
 )
 
 // maxOutstandingPerAccount is the protocol's limit of unexpired, unpaid invoices
-// per author and network, counting invoices with a pending observed transfer.
+// per author and network.
 const maxOutstandingPerAccount = 4
 
 // Outcome reports what an observation committed.
@@ -81,11 +81,6 @@ type pendingObservation struct {
 
 func (s *invoiceState) open(now time.Time) bool {
 	return !s.credited && now.Before(s.expires)
-}
-
-// counted reports whether the invoice still counts toward the invoice and custody limits.
-func (s *invoiceState) counted(now time.Time) bool {
-	return s.open(now) || s.pending != nil
 }
 
 // exposure is the accounting amount the invoice may still add to the balance.
@@ -179,19 +174,27 @@ func (l *Ledger) IssueInvoice(req wire.DepositRequest, cap *big.Int, s Sealer) (
 	return sealed, true, nil
 }
 
-// outstandingFor counts outstanding invoices globally and for one account, with
-// the account's pending exposure, and forgets invoices that no longer count.
+// outstandingFor counts unexpired, unpaid invoices globally and for one account,
+// with the account's pending exposure. An expired invoice holds no invoice slot;
+// one with a pending transfer still counts toward custody, because that transfer
+// may yet be credited. Invoices that can add nothing more are forgotten.
 func (l *Ledger) outstandingFor(authorID, network string, now time.Time) (global, outstanding int, pending *big.Int) {
 	pending = new(big.Int)
 	for id := range l.outstanding {
 		st := l.invoices[id]
-		if !st.counted(now) {
+		open := st.open(now)
+		if !open && st.pending == nil {
 			delete(l.outstanding, id)
 			continue
 		}
-		global++
-		if st.invoice.AuthorID == authorID && st.invoice.Network == network {
-			outstanding++
+		mine := st.invoice.AuthorID == authorID && st.invoice.Network == network
+		if open {
+			global++
+			if mine {
+				outstanding++
+			}
+		}
+		if mine {
 			pending.Add(pending, st.exposure(now))
 		}
 	}

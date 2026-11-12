@@ -162,19 +162,28 @@ func TestInvoiceLimits(t *testing.T) {
 			t.Errorf("sixth invoice = %v; want ErrInvoiceLimit", err)
 		}
 	})
-	t.Run("pending transfer keeps an expired invoice outstanding", func(t *testing.T) {
+	t.Run("an expired invoice with a pending transfer frees its slot", func(t *testing.T) {
 		f := newFixture(t)
 		held := f.invoice(t, author, faux.BitcoinMainnet, "1000", "held")
-		if _, outcome, err := f.observe(f.pay(t, held, held.Recipient, "1000", true)); err != nil || outcome != Pending {
+		proof := f.pay(t, held, held.Recipient, "1000", true)
+		if _, outcome, err := f.observe(proof); err != nil || outcome != Pending {
 			t.Fatalf("Observe = %v, %v; want Pending", outcome, err)
 		}
 		f.now = start.Add(24*time.Hour + time.Second)
 		f.invoice(t, author, faux.BitcoinMainnet, "1000", "two")
 		f.invoice(t, author, faux.BitcoinMainnet, "1000", "three")
 		f.invoice(t, author, faux.BitcoinMainnet, "1000", "four")
-		if err := issue(f, author, "1000", "five"); !errors.Is(err, ErrInvoiceLimit) {
-			t.Errorf("fifth invoice = %v; want ErrInvoiceLimit", err)
+		f.invoice(t, author, faux.BitcoinMainnet, "1000", "five")
+		if err := issue(f, author, "1000", "six"); !errors.Is(err, ErrInvoiceLimit) {
+			t.Errorf("sixth invoice = %v; want ErrInvoiceLimit", err)
 		}
+		if _, err := f.chain.Mine(context.Background(), faux.BitcoinMainnet, 5); err != nil {
+			t.Fatal(err)
+		}
+		if _, outcome, err := f.observe(proof); err != nil || outcome != Created {
+			t.Errorf("Observe once final = %v, %v; want Created", outcome, err)
+		}
+		checkBalance(t, f.ledger, author, faux.BitcoinMainnet, 1_000_000, 0, 1)
 	})
 	t.Run("custody cap on an empty account", func(t *testing.T) {
 		f := newFixture(t)
