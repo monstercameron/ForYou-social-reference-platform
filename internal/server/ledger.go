@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"slices"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -345,6 +346,73 @@ type ldgDistribution struct {
 	Missing, Empty bool
 	Failure        string
 	Statements     []ldgStatement
+	Disclosures    []ldgDisclosure
+	Tied           string
+}
+
+// ldgDisclosure is what the Foundation states about one monitor it relies on.
+type ldgDisclosure struct {
+	Monitor, Short, Key string
+	Known               bool
+	Policies            string
+	Criteria            string
+	Relationships       []ldgRelationship
+}
+
+type ldgRelationship struct{ Party, Kind, Description string }
+
+// ldgDisclosures folds the page's disclosures into one entry per monitor and statement text,
+// counting the policies each covers, and says how many monitors declare a tie.
+func (a *App) ldgDisclosures(profile string, disclosures []wire.MonitorDisclosure) ([]ldgDisclosure, string) {
+	var out []ldgDisclosure
+	policies := map[int]int{}
+	index := map[string]int{}
+	tied, monitors := map[string]bool{}, map[string]bool{}
+	for _, d := range disclosures {
+		monitors[d.MonitorID] = true
+		if len(d.Relationships) > 0 {
+			tied[d.MonitorID] = true
+		}
+		key := d.MonitorID + "\x00" + d.SelectionCriteria
+		for _, rel := range d.Relationships {
+			key += "\x00" + rel.Party + "\x00" + rel.Kind + "\x00" + rel.Description
+		}
+		at, seen := index[key]
+		if !seen {
+			at = len(out)
+			index[key] = at
+			row := ldgDisclosure{Key: d.MonitorID, Short: shortDID(d.MonitorID), Criteria: d.SelectionCriteria, Known: a.ldgKnown(profile, d.MonitorID)}
+			if row.Known {
+				row.Monitor = a.ldgWho(profile, d.MonitorID)
+			}
+			for _, rel := range d.Relationships {
+				row.Relationships = append(row.Relationships, ldgRelationship{Party: ldgPartyText(rel.Party), Kind: rel.Kind, Description: rel.Description})
+			}
+			out = append(out, row)
+		}
+		policies[at]++
+	}
+	for i := range out {
+		out[i].Policies = "1 policy"
+		if policies[i] != 1 {
+			out[i].Policies = fmt.Sprintf("%d policies", policies[i])
+		}
+	}
+	if len(monitors) == 0 {
+		return out, ""
+	}
+	return out, fmt.Sprintf("%d of %d monitors have a declared funding or ownership tie to the Foundation or a provider.", len(tied), len(monitors))
+}
+
+// ldgPartyText names the other side of a declared tie.
+func ldgPartyText(party string) string {
+	if party == "foundation" {
+		return "The Foundation"
+	}
+	if strings.HasPrefix(party, "did:key:") {
+		return "Provider " + shortDID(party)
+	}
+	return party
 }
 
 type ldgStatement struct {
@@ -878,11 +946,13 @@ func (a *App) ldgDistributionSection(r *http.Request, profile string) ldgDistrib
 	if err != nil {
 		return ldgDistribution{Failure: ldgFailure(a.ldgFoundationLabel(), err)}
 	}
+	var result ldgDistribution
+	result.Disclosures, result.Tied = a.ldgDisclosures(profile, page.Disclosures)
 	if len(page.Statements) == 0 {
-		return ldgDistribution{Empty: true}
+		result.Empty = true
+		return result
 	}
 	root, _ := a.trustRoot()
-	var result ldgDistribution
 	for _, network := range ldgNetworkOrder {
 		var latest *wire.DistributionStatement
 		var latestEnd time.Time

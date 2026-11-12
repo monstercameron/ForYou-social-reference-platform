@@ -155,6 +155,7 @@
   {{if .Missing}}<p>No Foundation endpoint is configured in this client.</p>
   {{else if .Failure}}<div class="notice notice-bad" role="alert"><p>{{.Failure}}</p></div>
   {{else if .Empty}}<p>The Foundation has not published a distribution statement yet. Statements follow each calendar quarter within 30 days.</p>
+  {{template "ledger-disclosures" .}}
   {{else}}
   {{range .Statements}}
   <article class="ledger-statement">
@@ -194,9 +195,27 @@
   </article>
   {{end}}
   <p class="ledger-muted">A distribution payment is the Foundation's payment to a provider. It is not a refund to authors.</p>
+  {{template "ledger-disclosures" .}}
   {{end}}
 </section>
 {{end}}
+
+{{define "ledger-disclosures"}}{{if .Disclosures}}
+<div class="ledger-statement ledger-disclosures">
+  <h3>Monitors the Foundation relies on</h3>
+  <p class="ledger-muted">Monitors measure provider quality and witness settlement. The Foundation must say how it chose each one and what ties it has. {{.Tied}}</p>
+  <details class="ledger-disclosure-list">
+    <summary>Show what the Foundation states about each monitor</summary>
+    <ul class="ledger-monitor-payments">
+      {{range .Disclosures}}<li class="ledger-disclosure">
+        <p class="ledger-monitor-id">{{if .Known}}<strong>{{.Monitor}}</strong> {{end}}<span class="id-chip" title="{{.Key}}">{{.Short}}</span> · {{.Policies}}</p>
+        <p>{{.Criteria}}</p>
+        {{range .Relationships}}<p><span class="pill pill-warn">{{.Kind}}</span> {{.Party}}: {{.Description}}</p>{{else}}<p class="ledger-muted">No funding or ownership tie declared.</p>{{end}}
+      </li>{{end}}
+    </ul>
+  </details>
+</div>
+{{end}}{{end}}
 
 {{define "ledger-icon-check"}}<svg width="14" height="14" viewBox="0 0 16 16" stroke="currentColor" stroke-width="2" fill="none" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"/></svg>{{end}}
 {{define "ledger-icon-cross"}}<svg width="14" height="14" viewBox="0 0 16 16" stroke="currentColor" stroke-width="2" fill="none" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg>{{end}}

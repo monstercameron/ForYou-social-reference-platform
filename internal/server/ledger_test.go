@@ -348,6 +348,24 @@ func TestLedgerPage(t *testing.T) {
 		client, _ := ldgClient(t, now, fake, false)
 		ldgWant(t, ldgGet(client.Handler(), "/ledger").Body.String(), "has not published a distribution statement yet")
 	})
+	t.Run("monitor disclosures state each tie and count the monitors that have one", func(t *testing.T) {
+		fake, _, _ := ldgTwoClaims(t, now)
+		tied, free := keys.DIDOf(devnet.MonitorKey(0)), keys.DIDOf(devnet.MonitorKey(1))
+		policy := "fydp2:" + strings.Repeat("a", 64)
+		raw, err := json.Marshal(wire.DistributionPage{Policies: []wire.DistributionPolicy{}, Statements: []wire.DistributionStatement{}, Disclosures: []wire.MonitorDisclosure{
+			{PolicyID: policy, MonitorID: tied, SelectionCriteria: "Chosen by lot from the applicants.", Relationships: []wire.MonitorRelationship{{Party: "foundation", Kind: "funding", Description: "Receives an annual grant."}}},
+			{PolicyID: policy, MonitorID: free, SelectionCriteria: "Chosen by lot from the applicants.", Relationships: []wire.MonitorRelationship{}},
+		}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		fake.distribution = raw
+		client, _ := ldgClient(t, now, fake, false)
+		body := ldgGet(client.Handler(), "/ledger").Body.String()
+		ldgWant(t, body, "1 of 2 monitors have a declared funding or ownership tie")
+		ldgWant(t, body, "The Foundation: Receives an annual grant.")
+		ldgWant(t, body, "No funding or ownership tie declared.")
+	})
 	t.Run("a signed distribution statement verifies", func(t *testing.T) {
 		fake, _, _ := ldgTwoClaims(t, now)
 		raw, err := json.Marshal(wire.DistributionPage{Policies: []wire.DistributionPolicy{}, Statements: []wire.DistributionStatement{ldgSignedStatement(t)}, Disclosures: []wire.MonitorDisclosure{}})
