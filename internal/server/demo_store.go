@@ -119,10 +119,17 @@ func (s *demoStore) replyCount(postID string) int {
 // the replies written in this session.
 func (a *App) forReader(r *http.Request, posts []post) {
 	feedback, followed, store, shown := feedbackSelections(r), a.followSet(r), a.store, readerFilters(r)
+	own := ""
+	if profile := requestProfile(r); profile != "" {
+		if identity, found, err := a.keystore().Identity(profile); err == nil && found {
+			own = identity.DID
+		}
+	}
 	for i := range posts {
 		posts[i].Rating = rate(posts[i].format(), posts[i].Text, shown)
 		posts[i].Feedback = feedback[posts[i].ID]
 		posts[i].Following = followed[posts[i].AuthorID]
+		posts[i].Own = own != "" && posts[i].AuthorID == own
 		if store != nil {
 			posts[i].ReplyCount += store.replyCount(posts[i].ID)
 		}

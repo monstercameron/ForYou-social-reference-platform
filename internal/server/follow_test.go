@@ -158,3 +158,21 @@ func TestSingleImageOpensGallery(t *testing.T) {
 		t.Errorf("status %d; a single image has no second slide", code)
 	}
 }
+
+func TestOwnPostsAreMarked(t *testing.T) {
+	client := newTestClient(t, false)
+	if _, err := client.app.keystore().Create(setTestProfile); err != nil {
+		t.Fatal(err)
+	}
+	identity, found, err := client.app.keystore().Identity(setTestProfile)
+	if err != nil || !found {
+		t.Fatalf("identity: found %v, error %v", found, err)
+	}
+	r := httptest.NewRequest(http.MethodGet, "/", nil)
+	r.AddCookie(&http.Cookie{Name: profileCookie, Value: setTestProfile})
+	posts := []post{{ID: "mine", AuthorID: identity.DID}, {ID: "theirs", AuthorID: mydataTestDID(t)}}
+	client.app.forReader(r, posts)
+	if !posts[0].Own || posts[1].Own {
+		t.Errorf("own = %v for the reader's post and %v for another key's; want true and false", posts[0].Own, posts[1].Own)
+	}
+}

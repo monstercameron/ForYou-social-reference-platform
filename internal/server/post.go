@@ -23,6 +23,8 @@ type post struct {
 	Rating             rating
 	ReplyCount         int
 	IsReply, Following bool
+	// Own marks a post signed by the reader's own key.
+	Own bool
 	// Format is the post's content_format; empty means plain text.
 	// Timestamp is the signed timestamp of a network post.
 	Format, Timestamp string
