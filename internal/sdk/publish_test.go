@@ -232,7 +232,7 @@ func (f *pbFakeProvider) serveAdmission(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 	if f.hangAdmission && first {
-		<-r.Context().Done()
+		pbDropConnection(f.t, w)
 		return
 	}
 	pbWriteJSON(f.t, w, http.StatusCreated, receipt)
@@ -250,7 +250,7 @@ func (f *pbFakeProvider) serveMessage(w http.ResponseWriter, r *http.Request, bo
 		return
 	}
 	if f.hangMessage && first {
-		<-r.Context().Done()
+		pbDropConnection(f.t, w)
 		return
 	}
 	status := http.StatusCreated
@@ -258,6 +258,18 @@ func (f *pbFakeProvider) serveMessage(w http.ResponseWriter, r *http.Request, bo
 		status = http.StatusOK
 	}
 	pbWriteJSON(f.t, w, status, wire.MessageAcceptance{MessageID: record.MessageID, Status: "accepted"})
+}
+
+// pbDropConnection loses the response the way a broken connection does, so the
+// client's outcome is unknown without the test depending on how fast the machine is.
+func pbDropConnection(t *testing.T, w http.ResponseWriter) {
+	t.Helper()
+	conn, _, err := w.(http.Hijacker).Hijack()
+	if err != nil {
+		t.Errorf("hijack: %v", err)
+		return
+	}
+	_ = conn.Close()
 }
 
 func (f *pbFakeProvider) admissionBodies() [][]byte {
@@ -591,7 +603,7 @@ func TestAdmissionRejected(t *testing.T) {
 
 func TestAmbiguousAdmission(t *testing.T) {
 	now := time.Date(2026, 11, 11, 12, 0, 0, 0, time.UTC)
-	publisher, author, fake := pbSetup(t, now, 100*time.Millisecond)
+	publisher, author, fake := pbSetup(t, now, 10*time.Second)
 	fake.hangAdmission = true
 	q := pbQuote(t, publisher, author, "ambiguous admission")
 	if _, err := publisher.Admit(t.Context(), author, q, pbApproval(q, now)); !errors.Is(err, ErrOutcomeUnknown) {
@@ -629,7 +641,7 @@ func TestAmbiguousAdmission(t *testing.T) {
 func TestAmbiguousFinalization(t *testing.T) {
 	now := time.Date(2026, 11, 11, 12, 0, 0, 0, time.UTC)
 	t.Run("Resume resubmits the identical signed bytes", func(t *testing.T) {
-		publisher, author, fake := pbSetup(t, now, 100*time.Millisecond)
+		publisher, author, fake := pbSetup(t, now, 10*time.Second)
 		fake.hangMessage = true
 		q := pbQuote(t, publisher, author, "ambiguous finalization")
 		if _, err := publisher.Publish(t.Context(), author, q, pbApproval(q, now)); !errors.Is(err, ErrOutcomeUnknown) {
@@ -648,7 +660,7 @@ func TestAmbiguousFinalization(t *testing.T) {
 		}
 	})
 	t.Run("a second Finalize reports the 200 identical retry", func(t *testing.T) {
-		publisher, author, fake := pbSetup(t, now, 100*time.Millisecond)
+		publisher, author, fake := pbSetup(t, now, 10*time.Second)
 		fake.hangMessage = true
 		q := pbQuote(t, publisher, author, "finalize retry")
 		admitted, err := publisher.Admit(t.Context(), author, q, pbApproval(q, now))
