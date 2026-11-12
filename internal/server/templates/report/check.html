@@ -1,0 +1,45 @@
+{{define "report-check-page"}}{{template "layout-open" .Layout}}
+<div class="page-content settings-content report-page">
+  <header class="page-heading"><h1>Check a report</h1><p>Ask a provider whether it still holds a request you sent. You need the recovery secret you saved.</p></header>
+  <section class="component-card settings-card report-list-card" aria-labelledby="report-list-title">
+    <h2 id="report-list-title">Your reports on this server</h2>
+    {{if .Damaged}}<div class="notice notice-warn" role="status">Your list of reports on this server could not be read, so it is shown empty. It is replaced the next time you send a report. Nothing was sent anywhere.</div>{{end}}
+    {{if .Entries}}<ul class="report-list">{{range .Entries}}<li class="report-entry">
+      <div class="report-entry-head"><strong>{{.Kind}}</strong><span>{{.Provider}}</span></div>
+      <p class="settings-meta">Received {{.Received}}</p>
+      <div class="report-entry-foot"><span class="id-chip">{{.RequestID}}</span><a class="button button-secondary" href="/report/check?request={{.RequestID}}#report-check">Check</a></div>
+    </li>{{end}}</ul>
+    {{else}}<p>No reports sent from this browser yet. Reports you send are listed here, without their secrets.</p>{{end}}
+    <p class="settings-meta">This list is saved on this server for this browser. It is not sent to the network.</p>
+  </section>
+  <section id="report-check" class="component-card settings-card" aria-labelledby="report-check-title">
+    <h2 id="report-check-title" tabindex="-1">Check a request</h2>
+    {{if .Providers}}<form class="report-check-form" action="/report/check" method="post" post="/report/check/fragment" target="#report-check-result(innerHTML)" data-focus-after-swap="#report-check-result h3" timeout="20000" onerror="#report-check-result(innerHTML)">
+      <div class="field">
+        <label for="report-check-provider">Provider</label>
+        <select id="report-check-provider" name="provider">{{range .Providers}}<option value="{{.Key}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select>
+      </div>
+      <div class="field">
+        <label for="report-check-key">Recovery secret</label>
+        <p class="help-text" id="report-check-key-help">43 letters, digits, - and _. It is sent only to the provider you choose.</p>
+        <input id="report-check-key" type="password" name="key" autocomplete="off" spellcheck="false" required aria-describedby="report-check-key-help{{if .KeyError}} report-check-key-error{{end}}"{{if .KeyError}} aria-invalid="true"{{end}}>
+        {{with .KeyError}}<p class="error-text" id="report-check-key-error">{{.}}</p>{{end}}
+      </div>
+      <button class="button button-primary" type="submit">Check</button>
+    </form>{{else}}<p>Choose a provider on the Network page to check a request.</p>{{end}}
+    <div id="report-check-result" role="status" aria-live="polite">{{template "report-check-result" .Result}}</div>
+  </section>
+</div>
+{{template "layout-close" .Layout}}{{end}}
+
+{{define "report-check-result"}}
+{{if .FieldError}}<p class="error-text">{{.FieldError}}</p>
+{{else if .Title}}<h3 tabindex="-1">{{.Title}}</h3>
+  {{if .Verified}}<p><span class="pill pill-ok">Receipt verified</span></p>
+  <dl class="network-list"><div><dt><span>Received at</span></dt><dd>{{.Received}}</dd></div><div><dt><span>Kind</span></dt><dd>{{.Kind}}</dd></div></dl>
+  <h4>Statement</h4><p class="report-statement">{{.Statement}}</p>
+  {{if .Locators}}<h4>Locations</h4><p class="report-statement">{{.Locators}}</p>{{end}}
+  <p class="settings-meta">'Received' is the only status this page can show. The provider tells you about decisions through its own channel.</p>
+  {{else}}{{with .Notice}}<div class="notice notice-bad">{{.}}</div>{{end}}{{with .Body}}<p>{{.}}</p>{{end}}{{end}}
+{{end}}
+{{end}}

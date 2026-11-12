@@ -1,0 +1,114 @@
+@layer components {
+  .report-card-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    margin-left: auto;
+    border-radius: 9999px;
+    color: var(--muted);
+  }
+  .report-card-link svg { width: 18px; height: 18px; }
+  .report-card-link:hover { background: var(--accent-soft); color: var(--text); }
+  .report-card-link:active { transform: scale(.96); }
+  .report-card-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .mute-slot + .report-card-link { margin-left: 0; }
+  @media (max-width: 540px) {
+    .report-card-link { width: 44px; height: 44px; }
+  }
+  .posts > .detail-post-card .detail-post-actions:has(.report-detail-action) {
+    grid-template-columns: repeat(auto-fit, minmax(44px, 1fr));
+  }
+
+  .report-flow,
+  .report-form,
+  .report-check-form,
+  .report-choose { display: grid; gap: 16px; }
+  .report-page .report-flow { margin-top: 4px; }
+  .report-provider { margin: 0; }
+  .report-kinds { display: grid; gap: 8px; margin: 0 0 16px; padding: 0; border: 0; min-width: 0; }
+  .report-kind {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 4px 12px;
+    min-height: 56px;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--panel);
+    cursor: pointer;
+  }
+  .report-kind:hover { background: var(--accent-soft); }
+  .report-kind:has(input:checked) { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .report-kind:has(input:focus-visible) { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .report-kind:has(input:disabled) { opacity: .6; cursor: not-allowed; }
+  .report-kind input { margin-top: 4px; }
+  .report-kind-body { display: grid; gap: 4px; justify-items: start; min-width: 0; }
+  .report-kind-reason { color: var(--muted); font-size: 13px; }
+  .report-instructions {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .report-long summary { cursor: pointer; }
+  .report-post .id-chip,
+  .report-flow .id-chip,
+  .report-receipt .id-chip,
+  .report-list-card .id-chip,
+  .report-check-form .id-chip,
+  .report-contacts .id-chip {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .report-contact-value { overflow-wrap: anywhere; white-space: normal; }
+  .report-secret input {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 14px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .report-facts dd { overflow-wrap: anywhere; }
+  .report-understood .report-check { display: flex; gap: 10px; align-items: flex-start; }
+  .report-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+  .report-actions .button,
+  .report-check-form .button { min-height: 44px; }
+  .report-entry { display: grid; gap: 6px; padding: 12px 0; border-top: 1px solid var(--line); }
+  .report-entry-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; justify-content: space-between; }
+  .report-entry-foot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+  .report-list { list-style: none; margin: 0; padding: 0; }
+  .report-statement {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    margin: 0;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--panel);
+  }
+  .report-receipt-links { margin-top: 4px; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .report-kind,
+    .report-card-link {
+      transition: background-color 150ms, border-color 150ms, box-shadow 150ms, transform 150ms;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .report-actions .button,
+    .report-receipt-links .button,
+    .report-check-form .button { width: 100%; justify-content: center; }
+    .report-entry-foot .button { width: 100%; }
+  }
+}
+
+.report-page > .detail-posts { margin: 0 0 12px; padding: 0; }
+.report-page .detail-posts .post-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+}

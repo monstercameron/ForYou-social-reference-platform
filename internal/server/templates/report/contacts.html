@@ -1,0 +1,13 @@
+{{define "report-contacts"}}
+<section class="component-card settings-card report-contacts" aria-labelledby="report-contacts-title">
+  {{if .Heading}}<h2 id="report-contacts-title" tabindex="-1">Contact the provider directly</h2>{{end}}
+  {{if .Heading}}<p>{{.Label}} does not offer online reports through this app. You can contact it directly; it is free and needs no account.</p>{{else}}<p>You can contact {{.Label}} directly; it is free and needs no account.</p>{{end}}
+  {{if .Verified}}<dl class="network-list">{{range .Rows}}<div><dt><span>{{.Name}}</span></dt><dd class="report-contact-value">{{.Value}}</dd></div>{{end}}</dl>{{end}}
+  <div class="share-panel report-post-id">
+    <label for="report-post-id">Quote this post ID</label>
+    <div class="detail-copy-row"><input id="report-post-id" readonly value="{{.PostID}}"><button type="button" class="detail-copy js-only" data-copy-target="report-post-id" aria-label="Copy post ID">{{template "layout-icon-detail-copy"}}<span>Copy</span></button></div>
+    <div class="detail-live" data-copy-status role="status" aria-live="polite" aria-atomic="true"></div>
+  </div>
+  {{if .Verified}}<p class="settings-meta">Contacts from {{.Label}}'s signed manifest, version {{.Version}}, valid until {{.Expires}}.</p>{{else}}<div class="notice notice-warn" role="status">This provider's signed contact details could not be verified ({{.Reason}}), so none are shown.</div><a class="button button-secondary" href="{{.TryURL}}">Try again</a>{{end}}
+</section>
+{{end}}

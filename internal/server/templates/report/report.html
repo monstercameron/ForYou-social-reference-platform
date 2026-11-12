@@ -1,0 +1,101 @@
+{{define "report-page"}}{{template "layout-open" .Layout}}
+<div class="page-content settings-content report-page">
+  <header class="page-heading"><h1>Report a post</h1><p>Send a notice, a data-rights request or an appeal to the provider that admitted this post. The provider decides what happens. Reporting does not remove anything from the network.</p></header>
+  <a class="detail-back" href="/posts/{{.ID}}">{{template "layout-icon-detail-back"}}<span>Back to post</span></a>
+  {{if .HasPost}}{{template "card-post-card" .Post}}{{end}}
+  <div id="report-flow" class="report-flow" aria-live="polite">{{template "report-flow" .Flow}}</div>
+</div>
+{{template "layout-close" .Layout}}{{end}}
+
+{{define "report-flow"}}
+{{with .Provider}}<p class="settings-meta report-provider">Provider: <strong>{{.Label}}</strong> · {{.Host}} · <span class="id-chip" title="{{.FullKey}}">{{.ShortKey}}</span></p>{{end}}
+{{if eq .Stage "demo"}}<section class="component-card settings-card" aria-labelledby="report-stage-title"><h2 id="report-stage-title" tabindex="-1">Demo post</h2><p>This is a demo post stored on this client server. It is not on the network, so there is no provider to report it to.</p></section>
+{{else if eq .Stage "notfound"}}<section class="component-card settings-card" aria-labelledby="report-stage-title"><h2 id="report-stage-title" tabindex="-1">Provider not known here</h2><p>None of your selected providers returned this post right now, so its provider is not known here. This does not mean the post is gone from the network.</p><a class="button button-secondary" href="/report?id={{.ID}}">Try again</a></section>
+{{else if eq .Stage "unverified"}}<section class="component-card settings-card" aria-labelledby="report-stage-title"><h2 id="report-stage-title" tabindex="-1">Provider not known here</h2><p>This post did not verify, so its provider cannot be identified safely.</p></section>
+{{else if eq .Stage "notselected"}}<section class="component-card settings-card" aria-labelledby="report-stage-title"><h2 id="report-stage-title" tabindex="-1">Provider not selected</h2><p>This post was admitted by provider <span class="id-chip" title="{{.Admitted.FullKey}}">{{.Admitted.ShortKey}}</span>, which is not one of your providers. Add it on the Network page to report through it here.</p><a class="button button-secondary" href="/network">Open Network</a></section>
+{{else if eq .Stage "kinds"}}{{template "report-kinds" .}}
+{{else if eq .Stage "form"}}{{template "report-form" .Form}}
+{{else if eq .Stage "receipt"}}{{template "report-receipt" .Receipt}}
+{{end}}
+<div id="report-flow-error" role="alert"></div>
+{{end}}
+
+{{define "report-kinds"}}
+{{with .Warn}}<div class="notice notice-warn" role="status">{{.}}</div>{{end}}
+{{if .HasKinds}}
+<section class="component-card settings-card" aria-labelledby="report-kinds-title">
+  <h2 id="report-kinds-title" tabindex="-1">What do you want to send?</h2>
+  <form class="report-choose" action="/report" method="get" get="/report/fragment" target="#report-flow(innerHTML)" data-focus-after-swap="#report-flow h2" timeout="8000" onerror="#report-flow-error(innerHTML)">
+    <input type="hidden" name="id" value="{{.ID}}"><input type="hidden" name="step" value="choose">
+    <fieldset class="report-kinds"{{if .Error}} aria-describedby="report-kinds-error"{{end}}>
+      <legend class="detail-sr-only">Kind of report</legend>
+      {{range .Kinds}}<label class="report-kind"><input type="radio" name="kind" value="{{.Kind}}"{{if not .Offered}} disabled{{end}}><span class="report-kind-body"><strong>{{.Name}}</strong><span>{{.Summary}}</span>{{if .Offered}}{{else if .Unavailable}}<span class="pill pill-warn">Unavailable</span><span class="report-kind-reason">{{.Reason}}</span>{{else}}<span class="pill pill-muted">Not offered</span><span class="report-kind-reason">{{.Reason}}</span>{{end}}</span></label>{{end}}
+    </fieldset>
+    {{with .Error}}<p class="error-text" id="report-kinds-error">{{.}}</p>{{end}}
+    <button class="button button-primary" type="submit">Continue</button>
+  </form>
+</section>
+<details class="report-more"><summary>Other ways to reach this provider</summary>{{template "report-contacts" .Contacts}}</details>
+{{else}}{{template "report-contacts" .Contacts}}{{end}}
+{{end}}
+
+{{define "report-form"}}
+{{if .Summary}}<div class="notice notice-bad report-summary" role="alert" tabindex="-1">Check the highlighted fields.</div>{{end}}
+{{with .Notice}}<div class="notice notice-warn" role="status">{{.}}</div>{{end}}
+<section class="component-card settings-card report-form-card" aria-labelledby="report-form-title">
+  <h2 id="report-form-title" tabindex="-1">{{.Heading}}</h2>
+  {{if .LongInstructions}}<details class="report-long"><summary>Show the provider's instructions</summary><div class="report-instructions">{{.Instructions}}</div></details>{{else}}<div class="report-instructions">{{.Instructions}}</div>{{end}}
+  <p class="settings-meta">Form {{.FormID}}, version {{.FormVersion}}</p>
+  <form class="report-form" action="/report" method="post" post="/report/fragment" target="#report-flow(innerHTML)" data-focus-after-swap="#report-flow .report-summary, #report-flow h2" timeout="20000" onerror="#report-flow-error(innerHTML)" loading="#report-sending(innerHTML)">
+    <input type="hidden" name="id" value="{{.PostID}}"><input type="hidden" name="kind" value="{{.Kind}}"><input type="hidden" name="form_digest" value="{{.Digest}}">
+    <div class="field report-post"><span class="field-label">This post</span><p><span class="id-chip">{{.PostID}}</span></p><p class="help-text">Sent first, as the locator of this report.</p></div>
+    <div class="field">
+      <label for="report-locators">Other locations (optional)</label>
+      <p class="help-text" id="report-locators-help">Other post IDs or addresses this is about, one per line, up to 15. They are sent as text and never opened.</p>
+      {{with index .Errors "locators"}}<p class="error-text" id="report-locators-error">{{.}}</p>{{end}}
+      <textarea id="report-locators" name="locators" rows="2" aria-describedby="report-locators-help{{if index .Errors "locators"}} report-locators-error{{end}}"{{if index .Errors "locators"}} aria-invalid="true"{{end}}>{{.Locators}}</textarea>
+    </div>
+    <div class="field">
+      <label for="report-statement">{{.StatementLabel}}</label>
+      <p class="help-text" id="report-statement-help">{{.StatementHelp}}</p>
+      {{with index .Errors "statement"}}<p class="error-text" id="report-statement-error">{{.}}</p>{{end}}
+      <textarea id="report-statement" name="statement" rows="6" required maxlength="65536" aria-describedby="report-statement-help{{if index .Errors "statement"}} report-statement-error{{end}}"{{if index .Errors "statement"}} aria-invalid="true"{{end}}>{{.Statement}}</textarea>
+    </div>
+    {{if .IsRights}}<div class="field">
+      <label for="report-right">Right</label>
+      {{with index .Errors "right"}}<p class="error-text" id="report-right-error">{{.}}</p>{{end}}
+      <select id="report-right" name="requested_right" required{{if index .Errors "right"}} aria-invalid="true" aria-describedby="report-right-error"{{end}}>
+        <option value="">Choose one</option>
+        {{range .Rights}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}
+      </select>
+    </div>{{end}}
+    {{if .IsAppeal}}<div class="field">
+      <label for="report-decision">Decision reference</label>
+      <p class="help-text" id="report-decision-help">The case or decision ID the provider gave you.</p>
+      {{with index .Errors "decision"}}<p class="error-text" id="report-decision-error">{{.}}</p>{{end}}
+      <input id="report-decision" name="decision_reference" required maxlength="4096" value="{{.Decision}}" aria-describedby="report-decision-help{{if index .Errors "decision"}} report-decision-error{{end}}"{{if index .Errors "decision"}} aria-invalid="true"{{end}}>
+    </div>{{end}}
+    {{range .Fields}}<div class="field">
+      <label for="report-field-{{.Name}}">{{.Name}}</label>
+      <p class="help-text" id="report-field-{{.Name}}-help">{{.Help}}</p>
+      {{with .Err}}<p class="error-text" id="report-field-{{.Name}}-error">{{.}}</p>{{end}}
+      <input id="report-field-{{.Name}}" name="field_{{.Name}}" value="{{.Value}}" maxlength="{{.Max}}"{{if .Required}} required{{end}} aria-describedby="report-field-{{.Name}}-help{{if .Err}} report-field-{{.Name}}-error{{end}}"{{if .Err}} aria-invalid="true"{{end}}>
+    </div>{{end}}
+    <div class="field">
+      <label for="report-contact">Email for replies (optional)</label>
+      <p class="help-text" id="report-contact-help">Only the provider sees it. It is not checked and does not prove who you are.</p>
+      {{with index .Errors "contact"}}<p class="error-text" id="report-contact-error">{{.}}</p>{{end}}
+      <input id="report-contact" type="email" name="contact" autocomplete="email" maxlength="320" value="{{.Contact}}" aria-describedby="report-contact-help{{if index .Errors "contact"}} report-contact-error{{end}}"{{if index .Errors "contact"}} aria-invalid="true"{{end}}>
+    </div>
+    <div class="field report-understood">
+      {{with index .Errors "understood"}}<p class="error-text" id="report-understood-error">{{.}}</p>{{end}}
+      <label class="report-check"><input type="checkbox" name="understood" value="1" required{{if .Understood}} checked{{end}}{{if index .Errors "understood"}} aria-invalid="true" aria-describedby="report-understood-error"{{end}}><span>I understand that a receipt proves only that the provider received this. The provider decides what happens, and reporting does not remove the post from the network.</span></label>
+    </div>
+    <div class="report-actions">
+      <button class="button button-primary" type="submit">Send to {{.Label}}</button>
+      <a class="button button-secondary" href="/report?id={{.PostID}}">Back</a>
+    </div>
+    <span id="report-sending" role="status" aria-live="polite"></span>
+  </form>
+</section>
+{{end}}

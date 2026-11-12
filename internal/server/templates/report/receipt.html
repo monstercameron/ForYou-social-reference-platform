@@ -1,0 +1,53 @@
+{{define "report-receipt"}}
+{{if .Success}}
+<section class="component-card settings-card report-receipt" aria-labelledby="report-receipt-title">
+  <h2 id="report-receipt-title" tabindex="-1">Report received by {{.Label}}</h2>
+  <p><span class="pill pill-ok">Receipt verified</span></p>
+  <dl class="network-list report-facts">
+    <div><dt><span>Kind</span></dt><dd>{{.KindName}}</dd></div>
+    <div><dt><span>Received at</span></dt><dd>{{.ReceivedAt}}</dd></div>
+    <div><dt><span>Request ID</span></dt><dd><span class="id-chip">{{.RequestID}}</span></dd></div>
+    <div><dt><span>Request digest</span></dt><dd><span class="id-chip">{{.RequestDigest}}</span></dd></div>
+    <div><dt><span>Provider key</span></dt><dd><span class="id-chip" title="{{.ProviderKey}}">{{.ProviderShort}}</span></dd></div>
+  </dl>
+  {{with .Note}}<p class="settings-meta">{{.}}</p>{{end}}
+</section>
+{{template "report-secret" .}}
+{{template "report-meaning" .}}
+<nav class="settings-links report-receipt-links" aria-label="Report links"><a class="button button-secondary" href="/report/check?request={{.RequestID}}">Check a request later</a><a class="button button-secondary" href="/posts/{{.PostID}}">Back to post</a></nav>
+{{else}}
+<section class="component-card settings-card report-receipt" aria-labelledby="report-receipt-title">
+  <h2 id="report-receipt-title" tabindex="-1">Report not confirmed</h2>
+  <div class="notice {{.NoticeClass}}" role="status">{{.Notice}}</div>
+  {{if .ShowSecret}}{{template "report-secret" .}}{{end}}
+  {{if .ShowResend}}<form class="report-resend" action="/report/resend" method="post" post="/report/resend/fragment" target="#report-flow(innerHTML)" data-focus-after-swap="#report-flow h2" timeout="20000" onerror="#report-flow-error(innerHTML)" loading="#report-sending(innerHTML)">
+    <input type="hidden" name="request" value="{{.ResendRequest}}"><input type="hidden" name="key" value="{{.ResendKey}}">
+    <button class="button button-primary" type="submit">Send the same report again</button>
+  </form>{{end}}
+  <nav class="settings-links report-receipt-links" aria-label="Report links">
+    {{if .ShowStart}}<a class="button button-secondary" href="/report?id={{.PostID}}">Start again</a>{{end}}
+    {{if .ShowBack}}<a class="button button-secondary" href="/report?id={{.PostID}}&amp;kind={{.Kind}}">Back to the form</a>{{end}}
+    <a class="button button-secondary" href="/posts/{{.PostID}}">Back to post</a>
+  </nav>
+  <span id="report-sending" role="status" aria-live="polite"></span>
+</section>
+{{end}}
+{{end}}
+
+{{define "report-secret"}}
+<section class="share-panel report-secret" aria-labelledby="report-secret-title">
+  <strong id="report-secret-title">Recovery secret, shown once</strong>
+  <div class="detail-copy-row"><input id="report-secret-value" readonly value="{{.Secret}}" autocomplete="off" spellcheck="false"><button type="button" class="detail-copy js-only" data-copy-target="report-secret-value" aria-label="Copy recovery secret">{{template "layout-icon-detail-copy"}}<span>Copy</span></button></div>
+  <div class="detail-live" data-copy-status role="status" aria-live="polite" aria-atomic="true"></div>
+  <p>Save this secret somewhere safe now. It is the only way to check this request here later. This server does not keep it and cannot show it again. Losing it ends this recovery method, but your rights are not gone: you can still use the provider's contacts.</p>
+</section>
+{{end}}
+
+{{define "report-meaning"}}
+<section class="component-card settings-card report-meaning" aria-labelledby="report-meaning-title">
+  <h2 id="report-meaning-title">What this receipt means</h2>
+  <p>{{.Label}} signed that it received your report at {{.ReceivedAt}}. That is all the receipt proves: not that the report is true, complete or accepted.</p>
+  <p>The provider decides what happens, under its own policy and the law. It may ask you to show who you are before it acts or tells you more.</p>
+  <p>Reporting does not remove the post from the network. Other providers, mirrors and the Lifetime Vault may keep their copies.</p>
+</section>
+{{end}}
