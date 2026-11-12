@@ -1,4 +1,86 @@
-{{define "explore-page"}}{{template "layout-open" .Layout}}  <section aria-label="Explore posts" class="min-w-0">    <header class="feed-heading"><div><h1>Explore</h1><p>Discover posts available on this server.</p></div>{{template "feed-filter-pills" .}}</header>    {{template "feed-search" .}}    <div id="thread-error" class="thread-error" role="status" aria-live="polite"></div>    {{template "feed-ads-note" .}}<div class="posts">{{if .Posts}}{{template "card-post-list" .Posts}}{{if .HasMore}}{{template "explore-more" .}}{{else}}{{template "feed-end"}}{{end}}{{else}}{{template "feed-empty-results" .}}{{end}}</div>    <div id="explore-status" role="status" aria-live="polite" aria-atomic="true" class="feed-status"></div>  </section>{{template "layout-close" .Layout}}{{end}}
+{{define "explore-page"}}{{template "layout-open" .Layout}}
+<section aria-labelledby="explore-title" class="min-w-0 explore">
+  <header class="feed-heading"><div><h1 id="explore-title">Explore</h1><p>Search the posts this client has fetched, or look up an author by their key. There is no global search.</p></div></header>
+  <div class="explore-forms">
+    {{template "explore-search-form" .}}
+    {{template "explore-author-form" .}}
+  </div>
+  <div id="thread-error" class="thread-error" role="status" aria-live="polite"></div>
+  <div id="explore-results" class="explore-results">{{template "explore-results" .}}</div>
+</section>
+{{template "layout-close" .Layout}}{{end}}
 
-{{define "explore-more"}}<form id="explore-more" class="load-more" action="/explore" method="get" get="/explore/more" auto="lazy" target="#explore-more(outerHTML)" timeout="5000" loading="#explore-status(innerHTML)" onerror="#explore-status(innerHTML)"><input type="hidden" name="filter" value="{{.Layout.Filter}}"><input type="hidden" name="q" value="{{.Layout.Query}}"><input type="hidden" name="theme" value="{{.Layout.Theme}}"><input type="hidden" name="limit" value="{{.NextLimit}}"><input type="hidden" name="anchor" value="{{.Anchor}}"><button type="submit">Load more posts</button></form>{{end}}
-{{define "explore-more-response"}}<fragment target="#explore-more(outerHTML)">{{template "card-post-list" .Posts}}{{if .HasMore}}{{template "explore-more" .}}{{else}}{{template "feed-end"}}{{end}}</fragment><fragment target="#explore-status(innerHTML)">{{len .Posts}} more posts loaded, {{.Loaded}} total.</fragment>{{end}}
+{{define "explore-search-form"}}<form class="panel explore-form" role="search" action="/explore" method="get" aria-labelledby="explore-search-heading">
+  <h2 id="explore-search-heading">Search</h2>
+  <input type="hidden" name="theme" value="{{.Layout.Theme}}">
+  <div class="field">
+    <label for="explore-q">Search fetched posts</label>
+    <input id="explore-q" name="q" type="search" maxlength="120" value="{{.Query}}" aria-describedby="explore-q-help{{if eq .ErrorField "q"}} explore-error{{end}}"{{if eq .ErrorField "q"}} aria-invalid="true"{{end}}>
+    <span id="explore-q-help" class="help-text">Plain text. A name, @handle or #tag typed here is only text.</span>
+  </div>
+  <fieldset class="explore-kinds">
+    <legend>Kind of post</legend>
+    <label><input type="radio" name="kind" value="all"{{if eq .Kind "all"}} checked{{end}}><span>All</span></label>
+    <label><input type="radio" name="kind" value="text"{{if eq .Kind "text"}} checked{{end}}><span>Text</span></label>
+    <label><input type="radio" name="kind" value="images"{{if eq .Kind "images"}} checked{{end}}><span>Images</span></label>
+    <label><input type="radio" name="kind" value="video"{{if eq .Kind "video"}} checked{{end}}><span>Video</span></label>
+    <label><input type="radio" name="kind" value="posts"{{if eq .Kind "posts"}} checked{{end}}><span>Posts</span></label>
+    <label><input type="radio" name="kind" value="replies"{{if eq .Kind "replies"}} checked{{end}}><span>Replies</span></label>
+  </fieldset>
+  <div class="explore-dates">
+    <div class="field">
+      <label for="explore-from">From</label>
+      <input id="explore-from" name="from" type="date" value="{{.From}}" aria-describedby="explore-dates-help{{if eq .ErrorField "dates"}} explore-error{{end}}"{{if eq .ErrorField "dates"}} aria-invalid="true"{{end}}>
+    </div>
+    <div class="field">
+      <label for="explore-until">Until</label>
+      <input id="explore-until" name="until" type="date" value="{{.Until}}" aria-describedby="explore-dates-help{{if eq .ErrorField "dates"}} explore-error{{end}}"{{if eq .ErrorField "dates"}} aria-invalid="true"{{end}}>
+    </div>
+    <span id="explore-dates-help" class="explore-dates-help">Dates are whole UTC days, both included, compared with each post's signed time.</span>
+  </div>
+  <button class="btn-primary" type="submit">Search</button>
+</form>{{end}}
+
+{{define "explore-author-form"}}<form class="panel explore-form" action="/explore" method="get" aria-labelledby="explore-author-heading">
+  <h2 id="explore-author-heading">Look up an author</h2>
+  <input type="hidden" name="theme" value="{{.Layout.Theme}}">
+  <div class="field">
+    <label for="explore-author">Author key (did:key)</label>
+    <input id="explore-author" name="author" type="text" value="{{.Author}}" autocomplete="off" spellcheck="false" aria-describedby="explore-author-help{{if eq .ErrorField "author"}} explore-error{{end}}"{{if eq .ErrorField "author"}} aria-invalid="true"{{end}}>
+    <span id="explore-author-help" class="help-text">Paste the author's full did:key. Names and @handles are not identities.</span>
+  </div>
+  <button class="btn-secondary" type="submit">Look up author</button>
+</form>{{end}}
+
+{{define "explore-results"}}{{if .Error}}<p id="explore-error" class="notice-bad explore-error" role="alert">{{.Error}}</p>{{end}}
+{{if .AuthorHeader}}{{template "explore-author-header" .AuthorHeader}}{{end}}
+{{if .Coverage}}<ul class="explore-coverage" aria-label="Sources">{{range .Coverage}}<li>{{.}}</li>{{end}}</ul>{{end}}
+{{if .Bounds}}<p class="explore-bounds">{{.Bounds}}</p>{{end}}
+<div class="posts">{{if .Posts}}{{template "card-post-list" .Posts}}{{end}}{{if .HasMore}}{{template "explore-more" .}}{{else if .Posts}}{{template "explore-end"}}{{else if not .Error}}{{template "explore-empty" .}}{{end}}</div>
+<div id="explore-status" class="feed-status" role="status" aria-live="polite" aria-atomic="true"></div>
+{{end}}
+
+{{define "explore-author-header"}}<section class="panel explore-author" aria-labelledby="explore-author-title">
+  <h2 id="explore-author-title">Posts by this key from your sources</h2>
+  <div class="explore-author-id">{{template "card-post-avatar" .Avatar}}
+    <div class="min-w-0">
+      <label for="explore-author-did">Full key</label>
+      <input id="explore-author-did" class="explore-did" type="text" readonly value="{{.DID}}">
+      <p class="explore-short">Short form: <span class="id-chip">{{.Short}}</span></p>
+    </div>
+  </div>
+  {{if .Successor}}<p class="notice-warn explore-successor">{{.Successor}}</p>{{end}}
+</section>{{end}}
+
+{{define "explore-empty"}}<div class="empty-results">{{if .Author}}<h2>No posts by this key</h2><p>Your sources returned no posts by this key.</p>{{else}}<h2>No fetched posts match</h2><p>No fetched posts match. Your sources may have others.</p>{{end}}</div>{{end}}
+
+{{define "explore-end"}}<p class="end-feed">No more results from what your sources returned.</p>{{end}}
+
+{{define "explore-more"}}<form id="explore-more" class="load-more" action="/explore" method="get" get="/explore/more" auto="lazy" target="#explore-more(outerHTML)" timeout="5000" loading="#explore-status(innerHTML)" onerror="#explore-status(innerHTML)">
+  <input type="hidden" name="q" value="{{.Query}}"><input type="hidden" name="kind" value="{{.Kind}}"><input type="hidden" name="from" value="{{.From}}"><input type="hidden" name="until" value="{{.Until}}"><input type="hidden" name="author" value="{{.Author}}"><input type="hidden" name="theme" value="{{.Layout.Theme}}"><input type="hidden" name="position" value="{{.Next}}"><input type="hidden" name="shown" value="{{.Loaded}}">
+  <button type="submit">Load more</button>
+</form>{{end}}
+
+{{define "explore-more-response"}}<fragment target="#explore-more(outerHTML)">{{if .Posts}}{{template "card-post-list" .Posts}}{{end}}{{if .HasMore}}{{template "explore-more" .}}{{else}}{{template "explore-end"}}{{end}}</fragment><fragment target="#explore-status(innerHTML)">{{len .Posts}} more posts loaded, {{.Loaded}} total.</fragment>{{end}}
+
+{{define "explore-more-error"}}<p role="alert">{{.Error}}</p>{{end}}

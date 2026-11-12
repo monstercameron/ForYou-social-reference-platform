@@ -1,1 +1,35 @@
-@layer components {}
+@layer components {
+  .explore-forms, .explore-error, .explore-author, .explore-coverage, .explore-bounds { margin-left: 16px; margin-right: 16px; }
+  .explore-forms { display: grid; gap: 16px; margin-bottom: 16px; }
+  .explore-dates-help { grid-column: 1 / -1; color: var(--muted); font-size: 12px; }
+  .explore-form { display: grid; gap: 14px; min-width: 0; }
+  .explore-form h2, .explore-author h2 { margin: 0; font-size: 16px; font-weight: 700; }
+  .explore-form .field input { width: 100%; min-width: 0; }
+  .explore-form button { min-height: 44px; width: 100%; }
+  .explore-dates { display: grid; gap: 12px; }
+  .explore-kinds { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
+  .explore-kinds legend { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  .explore-kinds label { position: relative; display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--control); color: var(--text); cursor: pointer; }
+  .explore-kinds label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+  .explore-kinds label:has(input:checked)::before { content: "\2713"; margin-right: 6px; }
+  .explore-kinds input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .explore-kinds label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .explore-error { margin-top: 0; margin-bottom: 12px; padding: 12px 14px; border-radius: 10px; font-size: 14px; }
+  .explore-coverage { margin-top: 0; margin-bottom: 8px; padding-left: 18px; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+  .explore-bounds { margin-top: 0; margin-bottom: 12px; color: var(--muted); font-size: 13px; }
+  .explore-author { display: grid; gap: 10px; margin-bottom: 16px; min-width: 0; }
+  .explore-author-id { display: flex; gap: 12px; align-items: center; min-width: 0; }
+  .explore-author-id > div { flex: 1; min-width: 0; display: grid; gap: 6px; }
+  .explore-author-id label { font-size: 14px; font-weight: 600; }
+  .explore-did { width: 100%; min-width: 0; min-height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--subtle); color: var(--text); font-family: ui-monospace, monospace; font-size: 13px; text-overflow: ellipsis; }
+  .explore-short { margin: 0; color: var(--muted); font-size: 13px; }
+  .explore-successor { margin: 0; padding: 10px 12px; border-radius: 10px; font-size: 14px; overflow-wrap: anywhere; }
+  @media (max-width: 540px) {
+    .explore-forms, .explore-error, .explore-author, .explore-coverage, .explore-bounds { margin-left: 12px; margin-right: 12px; }
+    .explore-form { padding: 16px; }
+  }
+  @media (min-width: 851px) {
+    .explore-forms { grid-template-columns: 1fr 1fr; align-items: start; }
+    .explore-form button { width: auto; justify-self: start; }
+  }
+}

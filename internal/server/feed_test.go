@@ -136,39 +136,6 @@ func TestFeedVideoPlayerFragments(t *testing.T) {
 	t.Run("unknown post rejected", func(t *testing.T) { check(t, "missing", "", http.StatusBadRequest) })
 }
 
-func TestHomeAndExploreShareSearchAndFilterMarkup(t *testing.T) {
-	request := func(path string) string {
-		t.Helper()
-		w := httptest.NewRecorder()
-		testClientHandler(t).ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
-		if w.Code != http.StatusOK {
-			t.Fatalf("%s status = %d; want 200", path, w.Code)
-		}
-		return w.Body.String()
-	}
-	extract := func(body, start, end string) string {
-		t.Helper()
-		from := strings.Index(body, start)
-		if from < 0 {
-			t.Fatalf("missing markup start %q", start)
-		}
-		to := strings.Index(body[from:], end)
-		if to < 0 {
-			t.Fatalf("missing markup end %q", end)
-		}
-		return body[from : from+to+len(end)]
-	}
-	home := request("/?filter=video&q=server&theme=dark")
-	explore := request("/explore?filter=video&q=server&theme=dark")
-	normalize := func(markup string) string { return strings.ReplaceAll(markup, `action="/explore"`, `action="/"`) }
-	if got, want := normalize(extract(home, `<form class="feed-search"`, `</form>`)), normalize(extract(explore, `<form class="feed-search"`, `</form>`)); got != want {
-		t.Errorf("search markup differs between Home and Explore")
-	}
-	if got, want := normalize(extract(home, `<nav class="feed-filters"`, `</nav>`)), normalize(extract(explore, `<nav class="feed-filters"`, `</nav>`)); got != want {
-		t.Errorf("filter markup differs between Home and Explore")
-	}
-}
-
 func TestFeedRejectsInvalidQueryEncoding(t *testing.T) {
 	t.Run("malformed percent escape", func(t *testing.T) {
 		w := httptest.NewRecorder()
