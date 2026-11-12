@@ -166,17 +166,17 @@ func (c *Client) send(ctx context.Context, method, path string, query url.Values
 	}
 	mediaType := strings.TrimSpace(strings.Split(res.Header.Get("Content-Type"), ";")[0])
 	if mediaType != "application/json" {
-		return response{}, rdProtocol("success response is not application/json")
+		return response{}, rdProtocolHTTP(res.StatusCode, "success response is not application/json")
 	}
 	if limit <= 0 {
 		limit = rdObjectLimit
 	}
 	data, err := io.ReadAll(io.LimitReader(res.Body, limit+1))
 	if err != nil {
-		return response{}, fmt.Errorf("sdk: read response: %w", err)
+		return response{}, rdProtocolHTTPCause(res.StatusCode, err)
 	}
 	if int64(len(data)) > limit {
-		return response{}, rdProtocol("response body exceeds limit")
+		return response{}, rdProtocolHTTP(res.StatusCode, "response body exceeds limit")
 	}
 	return response{status: res.StatusCode, header: res.Header.Clone(), body: data}, nil
 }

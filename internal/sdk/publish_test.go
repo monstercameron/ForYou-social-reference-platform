@@ -2,6 +2,7 @@ package sdk
 
 import (
 	"bytes"
+	"compress/gzip"
 	"crypto/ed25519"
 	"errors"
 	"net/http"
@@ -28,24 +29,27 @@ var pbProviderSeed = []byte{32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 
 
 // pbFakeProvider answers the quote, admission and message routes as the protocol describes, built from internal/fee and internal/message.
 type pbFakeProvider struct {
-	t             *testing.T
-	now           time.Time
-	root          *TrustRoot
-	provider      ed25519.PrivateKey
-	quoteSigner   ed25519.PrivateKey
-	quoteChange   func(wire.FeeQuote) wire.FeeQuote
-	rejectWith    apierr.Status
-	hangAdmission bool
-	hangMessage   bool
-	available     string
-	auth          *delegation.ServiceAuth
-	mu            sync.Mutex
-	quotes        map[string]wire.FeeQuote
-	receipts      map[string]wire.SubmissionReceipt
-	debits        map[string]int
-	admissions    [][]byte
-	messages      [][]byte
-	server        *httptest.Server
+	t                 *testing.T
+	now               time.Time
+	root              *TrustRoot
+	provider          ed25519.PrivateKey
+	quoteSigner       ed25519.PrivateKey
+	quoteChange       func(wire.FeeQuote) wire.FeeQuote
+	rejectWith        apierr.Status
+	hangAdmission     bool
+	hangMessage       bool
+	compressAdmission bool
+	compressMessage   bool
+	rejectMalformed   bool
+	available         string
+	auth              *delegation.ServiceAuth
+	mu                sync.Mutex
+	quotes            map[string]wire.FeeQuote
+	receipts          map[string]wire.SubmissionReceipt
+	debits            map[string]int
+	admissions        [][]byte
+	messages          [][]byte
+	server            *httptest.Server
 }
 
 func pbSetup(t *testing.T, now time.Time, timeout time.Duration) (*Publisher, ed25519.PrivateKey, *pbFakeProvider) {
@@ -204,6 +208,11 @@ func (f *pbFakeProvider) serveAdmission(w http.ResponseWriter, r *http.Request, 
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	if f.rejectMalformed {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		_, _ = w.Write([]byte("{not-json"))
+		return
+	}
 	if f.rejectWith != "" {
 		apierr.Write(w, apierr.PublicReadError{Status: f.rejectWith})
 		return
@@ -235,6 +244,10 @@ func (f *pbFakeProvider) serveAdmission(w http.ResponseWriter, r *http.Request, 
 		pbDropConnection(f.t, w)
 		return
 	}
+	if f.compressAdmission && first {
+		pbWriteGzipped(f.t, w, http.StatusCreated, receipt)
+		return
+	}
 	pbWriteJSON(f.t, w, http.StatusCreated, receipt)
 }
 
@@ -251,6 +264,10 @@ func (f *pbFakeProvider) serveMessage(w http.ResponseWriter, r *http.Request, bo
 	}
 	if f.hangMessage && first {
 		pbDropConnection(f.t, w)
+		return
+	}
+	if f.compressMessage && first {
+		pbWriteGzipped(f.t, w, http.StatusCreated, wire.MessageAcceptance{MessageID: record.MessageID, Status: "accepted"})
 		return
 	}
 	status := http.StatusCreated
@@ -315,6 +332,29 @@ func pbReadBody(t *testing.T, r *http.Request) []byte {
 		t.Error(err)
 	}
 	return body.Bytes()
+}
+
+func pbWriteGzipped(t *testing.T, w http.ResponseWriter, status int, value any) {
+	t.Helper()
+	data, err := canon.Encode(value)
+	if err != nil {
+		t.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	var compressed bytes.Buffer
+	writer := gzip.NewWriter(&compressed)
+	if _, err := writer.Write(data); err != nil {
+		t.Error(err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Error(err)
+	}
+	w.Header().Set("Content-Encoding", "gzip")
+	w.WriteHeader(status)
+	if _, err := w.Write(compressed.Bytes()); err != nil {
+		t.Error(err)
+	}
 }
 
 func pbWriteJSON(t *testing.T, w http.ResponseWriter, status int, value any) {
@@ -636,6 +676,65 @@ func TestAmbiguousAdmission(t *testing.T) {
 	if n := fake.debitCount(q.Prepared.MessageID); n != 1 {
 		t.Fatalf("debits = %d; want 1", n)
 	}
+}
+
+func TestCompressedSuccessIsAmbiguous(t *testing.T) {
+	now := time.Date(2026, 11, 11, 12, 0, 0, 0, time.UTC)
+	t.Run("compressed 201 admission leaves the entry retryable and the retry succeeds", func(t *testing.T) {
+		publisher, author, fake := pbSetup(t, now, 10*time.Second)
+		fake.compressAdmission = true
+		q := pbQuote(t, publisher, author, "compressed admission")
+		if _, err := publisher.Admit(t.Context(), author, q, pbApproval(q, now)); !errors.Is(err, ErrOutcomeUnknown) {
+			t.Fatalf("Admit error = %v; want ErrOutcomeUnknown", err)
+		}
+		if entry, ok, err := publisher.journal.Get(q.Prepared.MessageID); err != nil || !ok || entry.State != "authorized" {
+			t.Fatalf("journal = %+v, %v, %v; want authorized", entry, ok, err)
+		}
+		entry, err := publisher.Resume(t.Context(), author, q.Prepared.MessageID)
+		if err != nil || entry.State != "admitted" {
+			t.Fatalf("Resume = %+v, %v; want admitted", entry, err)
+		}
+		bodies := fake.admissionBodies()
+		if len(bodies) != 2 || !bytes.Equal(bodies[0], bodies[1]) {
+			t.Fatalf("admission bodies = %d; want 2 byte-identical", len(bodies))
+		}
+		if n := fake.debitCount(q.Prepared.MessageID); n != 1 {
+			t.Fatalf("debits = %d; want 1", n)
+		}
+	})
+	t.Run("compressed 201 message leaves the entry retryable and the retry succeeds", func(t *testing.T) {
+		publisher, author, fake := pbSetup(t, now, 10*time.Second)
+		fake.compressMessage = true
+		q := pbQuote(t, publisher, author, "compressed message")
+		if _, err := publisher.Publish(t.Context(), author, q, pbApproval(q, now)); !errors.Is(err, ErrOutcomeUnknown) {
+			t.Fatalf("Publish error = %v; want ErrOutcomeUnknown", err)
+		}
+		if entry, ok, err := publisher.journal.Get(q.Prepared.MessageID); err != nil || !ok || entry.State != "signed" {
+			t.Fatalf("journal = %+v, %v, %v; want signed", entry, ok, err)
+		}
+		entry, err := publisher.Resume(t.Context(), author, q.Prepared.MessageID)
+		if err != nil || entry.State != "accepted" {
+			t.Fatalf("Resume = %+v, %v; want accepted", entry, err)
+		}
+		bodies := fake.messageBodies()
+		if len(bodies) != 2 || !bytes.Equal(bodies[0], bodies[1]) {
+			t.Fatalf("message bodies = %d; want 2 byte-identical", len(bodies))
+		}
+		if n := fake.debitCount(q.Prepared.MessageID); n != 1 {
+			t.Fatalf("debits = %d; want 1", n)
+		}
+	})
+	t.Run("malformed 422 body does not set the entry to rejected", func(t *testing.T) {
+		publisher, author, fake := pbSetup(t, now, 10*time.Second)
+		fake.rejectMalformed = true
+		q := pbQuote(t, publisher, author, "malformed rejection")
+		if _, err := publisher.Admit(t.Context(), author, q, pbApproval(q, now)); err == nil {
+			t.Fatal("Admit succeeded; want an error")
+		}
+		if entry, ok, err := publisher.journal.Get(q.Prepared.MessageID); err != nil || !ok || entry.State != "authorized" {
+			t.Fatalf("journal = %+v, %v, %v; want authorized", entry, ok, err)
+		}
+	})
 }
 
 func TestAmbiguousFinalization(t *testing.T) {

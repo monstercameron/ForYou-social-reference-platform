@@ -139,13 +139,14 @@ func Classify(err error) Signal {
 }
 
 // IsAmbiguous reports whether a state-changing request may have taken effect despite its error.
+// A 2xx response that cannot be read was committed by the provider, so it is ambiguous as well.
 func IsAmbiguous(err error) bool {
 	if err == nil {
 		return false
 	}
 	var e *Error
 	if errors.As(err, &e) {
-		return e.HTTPStatus >= 500 && e.HTTPStatus <= 599
+		return (e.HTTPStatus >= 500 && e.HTTPStatus <= 599) || (e.HTTPStatus >= 200 && e.HTTPStatus <= 299)
 	}
 	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
 		return true
@@ -166,6 +167,9 @@ var rdErrProtocol = errors.New("sdk: protocol error")
 func rdProtocol(message string) error { return fmt.Errorf("%w: %s", rdErrProtocol, message) }
 func rdProtocolHTTP(status int, message string) error {
 	return fmt.Errorf("%w: %w: %s", rdErrProtocol, &Error{HTTPStatus: status}, message)
+}
+func rdProtocolHTTPCause(status int, cause error) error {
+	return fmt.Errorf("%w: %w: read response: %w", rdErrProtocol, &Error{HTTPStatus: status}, cause)
 }
 func rdStatus(err error, status string) bool {
 	var e *Error

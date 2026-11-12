@@ -536,23 +536,23 @@ func (p *Publisher) pbSendAdmission(ctx context.Context, entry JournalEntry) (Ad
 	res, err := p.client.send(ctx, http.MethodPost, "v1/admissions", nil, entry.AdmissionRequest, nil, 1<<20)
 	if err != nil {
 		if IsAmbiguous(err) {
-			return Admitted{}, fmt.Errorf("%w: %w", ErrOutcomeUnknown, err)
+			return Admitted{}, pbUnknown(err)
 		}
 		return Admitted{}, errors.Join(err, p.pbReject(entry, err))
 	}
 	if res.status != http.StatusCreated && res.status != http.StatusOK {
-		return Admitted{}, rdProtocol("unexpected admission success status")
+		return Admitted{}, pbUnknown(rdProtocol("unexpected admission success status"))
 	}
 	var receipt wire.SubmissionReceipt
 	if err := wire.Decode(res.body, "SubmissionReceipt", &receipt); err != nil {
-		return Admitted{}, rdProtocol("invalid submission receipt")
+		return Admitted{}, pbUnknown(rdProtocol("invalid submission receipt"))
 	}
 	if err := fee.CheckReceipt(receipt, entry.Quote); err != nil || receipt.ProviderID != p.client.ServiceID() {
-		return Admitted{}, rdProtocol("receipt does not match quote")
+		return Admitted{}, pbUnknown(rdProtocol("receipt does not match quote"))
 	}
 	issued, err := wire.ParseTime(receipt.IssuedAt)
 	if err != nil {
-		return Admitted{}, rdProtocol("invalid receipt time")
+		return Admitted{}, pbUnknown(rdProtocol("invalid receipt time"))
 	}
 	deadline := issued.Add(30 * 24 * time.Hour)
 	entry.State, entry.Receipt, entry.ReceiptRaw, entry.Deadline, entry.UpdatedAt = "admitted", receipt, append([]byte(nil), res.body...), wire.FormatTime(deadline), wire.FormatTime(p.now())
@@ -566,16 +566,16 @@ func (p *Publisher) pbSendFinal(ctx context.Context, entry JournalEntry) (Publis
 	res, err := p.client.send(ctx, http.MethodPost, "v1/messages", nil, entry.FinalMessage, nil, 1<<20)
 	if err != nil {
 		if IsAmbiguous(err) {
-			return Published{}, fmt.Errorf("%w: %w", ErrOutcomeUnknown, err)
+			return Published{}, pbUnknown(err)
 		}
 		return Published{}, errors.Join(err, p.pbReject(entry, err))
 	}
 	if res.status != http.StatusCreated && res.status != http.StatusOK {
-		return Published{}, rdProtocol("unexpected message acceptance status")
+		return Published{}, pbUnknown(rdProtocol("unexpected message acceptance status"))
 	}
 	var acceptance wire.MessageAcceptance
 	if err := wire.Decode(res.body, "MessageAcceptance", &acceptance); err != nil || acceptance.MessageID != entry.MessageID || acceptance.Status != "accepted" {
-		return Published{}, rdProtocol("invalid message acceptance")
+		return Published{}, pbUnknown(rdProtocol("invalid message acceptance"))
 	}
 	entry.State, entry.UpdatedAt = "accepted", wire.FormatTime(p.now())
 	if err := p.journal.Put(entry); err != nil {
@@ -584,7 +584,13 @@ func (p *Publisher) pbSendFinal(ctx context.Context, entry JournalEntry) (Publis
 	return Published{MessageID: entry.MessageID, Raw: append([]byte(nil), entry.FinalMessage...), Retry: res.status == http.StatusOK}, nil
 }
 
+func pbUnknown(err error) error { return fmt.Errorf("%w: %w", ErrOutcomeUnknown, err) }
+
+// pbReject records a rejection only for a well-formed public error; a malformed response leaves the entry retryable.
 func (p *Publisher) pbReject(entry JournalEntry, err error) error {
+	if errors.Is(err, rdErrProtocol) {
+		return nil
+	}
 	var serviceError *Error
 	if errors.As(err, &serviceError) {
 		entry.State, entry.Rejection, entry.UpdatedAt = "rejected", serviceError.Status, wire.FormatTime(p.now())
