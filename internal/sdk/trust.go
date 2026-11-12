@@ -94,6 +94,37 @@ type TrustRoot struct {
 	closures     []wire.FoundationKeyClosure
 	endpoint     string
 	fetchedAt    time.Time
+	applied      []AppliedUpdate
+}
+
+// AppliedUpdate names a release key-set update a client has applied. An applied update is
+// final for that client: no later publication may omit or replace it.
+type AppliedUpdate struct {
+	Sequence int64  `json:"sequence"`
+	UpdateID string `json:"update_id"`
+}
+
+// CheckAppliedUpdates refuses a publication that omits or replaces an update the client applied.
+func CheckAppliedUpdates(applied []AppliedUpdate, published []wire.ReleaseKeySetUpdate) error {
+	bySequence := make(map[int64]string, len(published))
+	for _, update := range published {
+		bySequence[update.Sequence] = update.UpdateID
+	}
+	for _, kept := range applied {
+		id, ok := bySequence[kept.Sequence]
+		if !ok {
+			return fmt.Errorf("release key-set update %d, which this client applied, is missing from the publication", kept.Sequence)
+		}
+		if id != kept.UpdateID {
+			return fmt.Errorf("release key-set update %d differs from the one this client applied", kept.Sequence)
+		}
+	}
+	return nil
+}
+
+// AppliedUpdates lists the release key-set updates this root applied, in sequence order.
+func (r *TrustRoot) AppliedUpdates() []AppliedUpdate {
+	return append([]AppliedUpdate(nil), r.applied...)
 }
 
 // BuildTrustRoot verifies a pinned genesis and all usable Foundation publications.
@@ -126,6 +157,14 @@ func BuildTrustRoot(pin Pin, pub Publications) (*TrustRoot, error) {
 	if err != nil {
 		return nil, err
 	}
+	seen := map[int64]bool{}
+	for _, update := range updates {
+		if !seen[update.Sequence] {
+			seen[update.Sequence] = true
+			root.applied = append(root.applied, AppliedUpdate{Sequence: update.Sequence, UpdateID: update.UpdateID})
+		}
+	}
+	sort.Slice(root.applied, func(i, j int) bool { return root.applied[i].Sequence < root.applied[j].Sequence })
 	root.certificates = vfCloneCertificates(append(append([]wire.FoundationKeyCertificate(nil), pub.Genesis.FoundationKeyCertificates...), pub.Certificates.Certificates...))
 	root.closures = vfCloneClosures(pub.Certificates.Closures)
 	heads := make([]wire.FoundationLogHead, 0, len(root.closures))

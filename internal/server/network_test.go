@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -93,6 +96,21 @@ func TestTrustRefreshPinsAndRetainsRoot(t *testing.T) {
 		root, status := client.app.trustRoot()
 		if root != nil || status.State != TrustUnavailable || status.Err == "" {
 			t.Fatalf("trust state = (%v, %+v), want unavailable with reason", root, status)
+		}
+	})
+	t.Run("a publication without an update this client applied is refused", func(t *testing.T) {
+		cfg := config(sdk.Pin{ReleaseKeyIDs: genesis.ReleaseKeyIDs, Threshold: int(genesis.ReleaseThreshold)})
+		if err := os.WriteFile(filepath.Join(cfg.DataDir, "keyset-updates.json"), []byte(`[{"sequence":1,"update_id":"fyku2:applied"}]`), 0600); err != nil {
+			t.Fatal(err)
+		}
+		forgetful, err := NewClient(cfg)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = forgetful.RunOnce(context.Background())
+		root, status := forgetful.app.trustRoot()
+		if err == nil || root != nil || status.State != TrustUnavailable || !strings.Contains(status.Err, "release key-set update 1, which this client applied, is missing from the publication") {
+			t.Fatalf("error %v, trust state = (%v, %+v); want no root and the missing update named", err, root, status)
 		}
 	})
 	t.Run("failed refresh retains last good root as stale", func(t *testing.T) {

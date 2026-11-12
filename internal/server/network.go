@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -259,15 +260,57 @@ func refreshTrustRoot(ctx context.Context, a *App) error {
 		return a.failTrustRefresh(err)
 	}
 	pubs := sdk.Publications{Genesis: genesis, GenesisRaw: genesisRaw, Certificates: certificates, CertificatesRaw: certificatesRaw, FeeSchedules: schedules, FeeSchedulesRaw: schedulesRaw, Distribution: distribution, DistributionRaw: distributionRaw, Endpoint: client.BaseURL(), FetchedAt: a.config.Now()}
+	applied, err := a.netAppliedUpdates()
+	if err != nil {
+		return a.failTrustRefresh(err)
+	}
+	if err := sdk.CheckAppliedUpdates(applied, certificates.KeySetUpdates); err != nil {
+		return a.failTrustRefresh(err)
+	}
 	root, err := sdk.BuildTrustRoot(a.config.Pin, pubs)
 	if err != nil {
 		return a.failTrustRefresh(err)
+	}
+	if now := root.AppliedUpdates(); len(now) > len(applied) {
+		if err := a.netSaveAppliedUpdates(now); err != nil {
+			return a.failTrustRefresh(err)
+		}
 	}
 	a.trustMu.Lock()
 	a.root = root
 	a.trustStatus = TrustStatus{State: TrustReady, FetchedAt: pubs.FetchedAt, Endpoint: client.BaseURL()}
 	a.trustMu.Unlock()
 	return nil
+}
+
+// netAppliedPath is where the client keeps the release key-set updates it has applied.
+func (a *App) netAppliedPath() string {
+	return filepath.Join(a.config.DataDir, "keyset-updates.json")
+}
+
+// netAppliedUpdates reads the applied updates. A missing file means none; a file that cannot
+// be read is an error, so a damaged file never lets an applied update be forgotten.
+func (a *App) netAppliedUpdates() ([]sdk.AppliedUpdate, error) {
+	data, err := os.ReadFile(a.netAppliedPath())
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("applied key-set updates: %w", err)
+	}
+	var applied []sdk.AppliedUpdate
+	if err := json.Unmarshal(data, &applied); err != nil {
+		return nil, fmt.Errorf("applied key-set updates cannot be read: %w", err)
+	}
+	return applied, nil
+}
+
+func (a *App) netSaveAppliedUpdates(applied []sdk.AppliedUpdate) error {
+	data, err := json.Marshal(applied)
+	if err != nil {
+		return err
+	}
+	return saveLedger(a.netAppliedPath(), data)
 }
 
 func (a *App) failTrustRefresh(err error) error {
