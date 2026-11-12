@@ -13,7 +13,6 @@ import (
 func init() { routeGroups = append(routeGroups, registerEmbed) }
 
 func registerEmbed(a *App, mux *http.ServeMux) {
-	mux.HandleFunc("GET /posts/{id}", a.postPageHandler)
 	mux.HandleFunc("GET /embed/{id}", a.embedPageHandler)
 	mux.HandleFunc("GET /share", a.sharePageHandler)
 	mux.HandleFunc("GET /share/fragment", a.shareFragmentHandler)
@@ -113,32 +112,6 @@ func embAuthor(p post) string {
 // writeDetailNotFound answers an unknown post with the app's shared not-found page, inside the shell.
 func (a *App) writeDetailNotFound(w http.ResponseWriter, r *http.Request) {
 	a.renderStatus(w, r, "layout-error-page", notFoundPage{Layout: a.layout(r, "", "Page not found")}, http.StatusNotFound)
-}
-
-// postThread reads the first page of a post's replies for rendering inside its page.
-func (a *App) postThread(r *http.Request, id string) (thread, int) {
-	threadRequest := r.Clone(r.Context())
-	threadRequest.URL = &url.URL{Path: "/thread", RawQuery: url.Values{"id": {id}}.Encode()}
-	t, status := a.readThread(threadRequest)
-	t.Static = true
-	return t, status
-}
-
-func (a *App) postPageHandler(w http.ResponseWriter, r *http.Request) {
-	details, status := a.shareData(r, r.PathValue("id"))
-	if status == http.StatusOK {
-		details.Thread, status = a.postThread(r, details.Post.ID)
-	}
-	if status != http.StatusOK {
-		if status == http.StatusNotFound {
-			a.writeDetailNotFound(w, r)
-			return
-		}
-		http.Error(w, http.StatusText(status), status)
-		return
-	}
-	details.Layout = a.layout(r, "post", details.Post.Receipt)
-	a.page(w, r, "post-page", details)
 }
 
 // embedTheme honors only an explicit query choice, so an embed otherwise follows the host reader's color scheme.

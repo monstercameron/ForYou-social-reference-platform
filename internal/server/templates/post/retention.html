@@ -1,0 +1,15 @@
+{{define "post-retention"}}<section id="retention" class="component-card post-section" aria-labelledby="retention-heading">
+  <h2 id="retention-heading">Retention and vault</h2>
+  {{if .Demo}}<p>Demo data has no retention record.</p>
+  {{else if .Unverifiable}}<p>{{.Unverifiable}}</p>
+  {{else}}
+  <p>{{.Text}}</p>
+  <h3>Lifetime Vault</h3>
+  <form class="post-vault-check" action="/posts/{{.ID}}/vault" method="get" get="/posts/{{.ID}}/vault/fragment" target="#vault-status(innerHTML)" timeout="5000">
+    <button class="button button-secondary" type="submit">Check the Lifetime Vault</button>
+  </form>
+  <p id="vault-status" class="post-vault-status" role="status" aria-live="polite">{{.Vault}}</p>
+  {{end}}
+</section>{{end}}
+
+{{define "post-vault"}}{{.}}{{end}}

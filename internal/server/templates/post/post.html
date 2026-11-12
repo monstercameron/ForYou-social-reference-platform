@@ -1,1 +1,41 @@
-{{define "post-page"}}{{template "layout-open" .Layout}}<div class="detail-column">{{template "card-detail-back"}}{{template "card-detail-post-card" .Post}}<section class="detail-thread" aria-label="Replies"><div id="thread-error" class="thread-error" role="status" aria-live="polite"></div><div id="thread-{{.Post.ID}}" class="thread-region">{{template "thread-open" .Thread}}</div></section></div>{{template "layout-close" .Layout}}{{end}}
+{{define "post-page"}}{{template "layout-open" .Layout}}
+<div class="page-content post-page">
+  {{template "card-detail-back"}}
+  <header class="page-heading"><h1>Post</h1><p>Why this server trusts this record: its verification, receipt, settlement, retention and source.</p></header>
+  {{if .Missing}}{{template "post-missing" .}}{{else}}
+  {{template "card-detail-post-card" .Post}}
+  {{template "post-actions" .}}
+  <section class="detail-thread" aria-label="Replies"><div id="thread-error" class="thread-error" role="status" aria-live="polite"></div><div id="thread-{{.ID}}" class="thread-region">{{template "thread-open" .Thread}}</div></section>
+  <nav class="post-sections" aria-label="On this page">
+    <a href="#verification">Verification</a>
+    <a href="#receipt">Receipt</a>
+    <a href="#settlement">Settlement</a>
+    <a href="#retention">Retention</a>
+    <a href="#sources">Sources</a>
+    <a href="#record">Signed record</a>
+  </nav>
+  {{template "post-verification" .Verify}}
+  {{template "post-receipt" .Receipt}}
+  {{template "post-proof" .Proof}}
+  {{template "post-retention" .Retention}}
+  {{template "post-sources" .Sources}}
+  {{template "post-raw" .Raw}}
+  {{end}}
+</div>
+{{template "layout-close" .Layout}}{{end}}
+
+{{define "post-actions"}}<nav class="post-actions-row" aria-label="Actions for this post">
+  <a class="button button-secondary" href="/thread?id={{.ID}}">Replies</a>
+  <a class="button button-secondary" href="/posts/{{.ID}}/versions">Versions</a>
+  <a class="button button-secondary" href="/compose?reply_to={{.ID}}">Reply</a>
+  {{if .Mine}}<a class="button button-secondary" href="/compose?supersedes={{.ID}}">New version</a>{{end}}
+  <a class="button button-secondary" href="/share?id={{.ID}}">Share</a>
+</nav>{{end}}
+
+{{define "post-missing"}}<section id="not-found" class="component-card post-section" aria-labelledby="not-found-heading">
+  <h2 id="not-found-heading">Not found</h2>
+  <p>This post was not returned by your sources.</p>
+  <ul class="post-source-lines">{{range .Coverage.Lines}}<li>{{.}}</li>{{end}}</ul>
+  <p class="post-note">This does not mean it was deleted or never existed.</p>
+  {{if .RetentionEnded}}<p>This provider's declared retention ended; the Lifetime Vault may still have it.</p>{{end}}
+</section>{{end}}

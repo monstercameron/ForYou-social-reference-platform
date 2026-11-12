@@ -1,0 +1,14 @@
+{{define "post-verification"}}<section id="verification" class="component-card post-section" aria-labelledby="verification-heading">
+  <h2 id="verification-heading">Verification</h2>
+  {{if .Demo}}<p>Demo data is not a signed network record, so there is nothing to verify.</p>
+  {{else if .Unverifiable}}<p class="notice-warn">{{.Unverifiable}}</p>
+  {{else}}
+  <p><span class="pill {{.PillClass}}">{{.Pill}}</span></p>
+  <ol class="post-checks">
+    {{range .Checks}}<li class="post-check"><span class="pill {{if .OK}}pill-ok{{else}}pill-bad{{end}}">{{if .OK}}Passed{{else}}Failed{{end}}</span><span class="post-check-text"><strong>Step {{.Step}}: {{.Name}}</strong>{{if .Detail}} {{.Detail}}{{end}}</span></li>{{end}}
+    <li class="post-check"><span class="pill {{.SettlementPill}}">{{.Settlement}}</span><span class="post-check-text"><strong>Step 6: Settlement state of the receipt</strong>: <a href="#settlement">see Settlement</a></span></li>
+    <li class="post-check"><span class="pill {{if .Trusted}}pill-ok{{else}}pill-muted{{end}}">{{if .Trusted}}Trusted{{else}}Not trusted{{end}}</span><span class="post-check-text"><strong>Step 7: Your trust in {{.Provider}}</strong>: {{if .Trusted}}trusted{{else}}not trusted{{end}} (change on the Network page)</span></li>
+  </ol>
+  <p class="post-note">A valid signature does not prove the content is true.</p>
+  {{end}}
+</section>{{end}}

@@ -1,0 +1,13 @@
+{{define "post-raw"}}<section id="record" class="component-card post-section" aria-labelledby="record-heading">
+  <h2 id="record-heading">Signed record</h2>
+  {{if .Demo}}<p>Demo data has no signed bytes.</p>
+  {{else if .Unverifiable}}<p>{{.Unverifiable}}</p>
+  {{else}}
+  {{if .Text}}<details class="post-raw">
+    <summary>Show the signed JSON</summary>
+    <p class="post-note">Pretty-printed for reading; the signed bytes are canonical JSON.</p>
+    <pre class="post-raw-json"><code>{{.Text}}</code></pre>
+  </details>{{end}}
+  <a class="button button-secondary" href="/posts/{{.ID}}/raw">Download exact bytes</a>
+  {{end}}
+</section>{{end}}

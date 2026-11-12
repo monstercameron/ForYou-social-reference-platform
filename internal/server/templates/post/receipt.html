@@ -1,0 +1,12 @@
+{{define "post-receipt"}}<section id="receipt" class="component-card post-section" aria-labelledby="receipt-heading">
+  <h2 id="receipt-heading">Receipt</h2>
+  {{if .Demo}}<p>Demo data has no submission receipt.</p>
+  {{else if .Unverifiable}}<p>{{.Unverifiable}}</p>
+  {{else}}
+  <dl class="post-facts">{{range .Rows}}{{template "post-fact" .}}{{end}}</dl>
+  <p>Billable size: {{.Billable}}. Recomputed fee: {{.Fee}}{{if .FeeMatches}}, matches the receipt{{else}}, does not match the receipt{{end}}.</p>
+  <p class="post-note">A receipt is the provider's signed statement; settlement shows the fee was paid.</p>
+  {{end}}
+</section>{{end}}
+
+{{define "post-fact"}}<div class="post-fact"><dt>{{.Term}}</dt><dd>{{if .Chip}}<span class="id-chip" title="{{.Value}}">{{.Short}}</span><input class="post-id-full" type="text" readonly value="{{.Value}}" aria-label="{{.Term}}, full value">{{else}}{{.Value}}{{end}}</dd></div>{{end}}

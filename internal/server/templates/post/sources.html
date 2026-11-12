@@ -1,0 +1,5 @@
+{{define "post-sources"}}<section id="sources" class="component-card post-section" aria-labelledby="sources-heading">
+  <h2 id="sources-heading">Sources</h2>
+  {{if .Served}}<p>This copy came from {{.Served}}.</p>{{end}}
+  <ul class="post-source-lines">{{range .Lines}}<li>{{.}}</li>{{end}}</ul>
+</section>{{end}}

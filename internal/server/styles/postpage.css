@@ -1,1 +1,28 @@
-@layer components {}
+@layer components {
+  .post-page { @apply min-w-0; }
+  .post-page .post-actions-row { @apply mt-4 flex flex-wrap gap-2; }
+  .post-page .post-actions-row .button { @apply min-h-11; }
+  .post-page .post-sections { @apply mt-4 flex flex-wrap gap-2; }
+  .post-page .post-sections a { @apply inline-flex min-h-11 items-center rounded-full border border-[var(--line)] px-4 text-[14px] text-[var(--text)] no-underline; }
+  .post-section { @apply mt-4 min-w-0; overflow-wrap: anywhere; }
+  .post-section h3 { @apply mt-4 text-[15px] font-semibold; }
+  .post-note { @apply text-[13px] text-[var(--muted)]; }
+  .post-checks, .post-source-lines, .post-reasons, .post-witnesses { @apply m-0 mt-3 grid list-none gap-2 p-0; }
+  .post-check { @apply flex flex-wrap items-start gap-2; }
+  .post-check-text { @apply min-w-0; overflow-wrap: anywhere; }
+  .post-facts { @apply m-0 mt-3 grid gap-3; }
+  .post-fact { @apply grid gap-1 border-t border-[var(--line)] pt-3; }
+  .post-fact dt { @apply text-[13px] font-semibold text-[var(--muted)]; }
+  .post-fact dd { @apply m-0 min-w-0; overflow-wrap: anywhere; }
+  .post-page .id-chip { @apply align-middle text-[13px]; }
+  .post-id-full { @apply mt-1 block w-full min-w-0 rounded-md border border-[var(--line)] bg-transparent px-2 py-1 font-mono text-xs text-[var(--muted)]; }
+  .post-witness { @apply flex flex-col gap-1 border-t border-[var(--line)] pt-2; }
+  .post-recheck, .post-vault-check { @apply mt-4; }
+  .post-vault-status { @apply mt-3 min-h-6 text-[14px]; }
+  .post-raw { @apply mt-3; }
+  .post-raw summary { @apply inline-flex min-h-11 cursor-pointer items-center font-semibold; }
+  .post-raw-json { @apply mt-3 max-w-full overflow-x-auto whitespace-pre-wrap rounded-lg p-3 text-xs; overflow-wrap: anywhere; }
+  @media (min-width: 640px) {
+    .post-fact { @apply grid-cols-[minmax(0,12rem)_minmax(0,1fr)] gap-3; }
+  }
+}

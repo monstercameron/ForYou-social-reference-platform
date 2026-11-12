@@ -1,0 +1,19 @@
+{{define "post-proof"}}<section id="settlement" class="component-card post-section" aria-labelledby="settlement-heading">
+  <h2 id="settlement-heading">Settlement</h2>
+  {{if .Demo}}<p>Demo data has no settlement proof.</p>
+  {{else if .Unverifiable}}<p>{{.Unverifiable}}</p>
+  {{else}}
+  <p><span class="pill {{.PillClass}}">{{.Pill}}</span>{{if .Checked}} <span class="post-note" role="status">{{.Checked}}</span>{{end}}</p>
+  {{if .Pending}}<p>{{.Pending}}</p>{{end}}
+  {{if .Reasons}}<ul class="post-reasons">{{range .Reasons}}<li>{{.}}</li>{{end}}</ul>{{end}}
+  {{if .Claim}}
+  <dl class="post-facts">{{range .Claim}}{{template "post-fact" .}}{{end}}</dl>
+  <h3>Witnesses</h3>
+  <p>{{.Quorum}}</p>
+  <ul class="post-witnesses">{{range .Witnesses}}<li class="post-witness"><span class="id-chip" title="{{.Row.Value}}">{{.Row.Short}}</span><span>{{.Where}}, witnessed at {{.At}}</span><input class="post-id-full" type="text" readonly value="{{.Row.Value}}" aria-label="Monitor, full value"></li>{{end}}</ul>
+  {{end}}
+  <form class="post-recheck" data-focus-after-swap="#settlement .post-recheck button" action="/posts/{{.ID}}/recheck" method="post" post="/posts/{{.ID}}/recheck/fragment" target="#settlement(outerHTML)" timeout="5000">
+    <button class="button button-secondary" type="submit">Check settlement now</button>
+  </form>
+  {{end}}
+</section>{{end}}

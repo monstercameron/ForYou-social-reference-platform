@@ -6,6 +6,7 @@ import (
 	"html/template"
 
 	"foryou.local/foryou/internal/content"
+	"foryou.local/foryou/internal/sdk"
 )
 
 type post struct {
@@ -34,6 +35,8 @@ type post struct {
 	Unverifiable string
 	// ReplyTo and Supersedes are the signed parent and predecessor message IDs.
 	ReplyTo, Supersedes string
+	// Verified is the full verification state of a network record, with its signed bytes; nil for demo data.
+	Verified *sdk.Record
 }
 
 func mockReceipt(seed string) string {
