@@ -57,7 +57,7 @@ func settleClaimsPage(w http.ResponseWriter, r *http.Request, s *Service) {
 		}
 		after = int64(value)
 	}
-	if !s.LimitRead(w, r, ReadListing) {
+	if !s.LimitRead(w, r, ReadSettlement) {
 		return
 	}
 	claims, err := s.Settlement().Claims(network, after, 100)
@@ -106,7 +106,7 @@ func settleLeavesPage(w http.ResponseWriter, r *http.Request, s *Service) {
 		writeError(w, http.StatusNotFound, "not_found")
 		return
 	}
-	if !s.LimitRead(w, r, ReadListing) {
+	if !s.LimitRead(w, r, ReadSettlement) {
 		return
 	}
 	leaves := []wire.SettlementLeaf{}
@@ -139,7 +139,7 @@ func settleWitnessesPage(w http.ResponseWriter, r *http.Request, s *Service) {
 		writeError(w, http.StatusNotFound, "not_found")
 		return
 	}
-	if !s.LimitRead(w, r, ReadListing) {
+	if !s.LimitRead(w, r, ReadSettlement) {
 		return
 	}
 	witnesses, err := s.Settlement().Witnesses(claimID)

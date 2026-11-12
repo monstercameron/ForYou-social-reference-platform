@@ -19,6 +19,9 @@ const (
 	ReadListing
 	// ReadOther identifies another unauthenticated route.
 	ReadOther
+	// ReadSettlement identifies a settlement proof, claim chain, leaves, witnesses or retention read.
+	// Committee monitors depend on these, so they do not share the listing buckets.
+	ReadSettlement
 )
 
 type bucket struct {
@@ -38,7 +41,7 @@ type limiter struct {
 	used    uint64
 }
 
-func defaultReadLimits() ReadLimits { return ReadLimits{600, 30, 60, 6, 64, 4096} }
+func defaultReadLimits() ReadLimits { return ReadLimits{600, 30, 60, 6, 64, 4096, 600, 60} }
 func (l *ReadLimits) validate() error {
 	d := defaultReadLimits()
 	if l.DirectPerMinute == 0 {
@@ -59,6 +62,12 @@ func (l *ReadLimits) validate() error {
 	if l.MaxSources == 0 {
 		l.MaxSources = d.MaxSources
 	}
+	if l.SettlementPerMinute == 0 {
+		l.SettlementPerMinute = d.SettlementPerMinute
+	}
+	if l.SettlementPerSourcePerMinute == 0 {
+		l.SettlementPerSourcePerMinute = d.SettlementPerSourcePerMinute
+	}
 	if l.DirectPerMinute < 600 {
 		return invalidField("Reads.DirectPerMinute", "below floor 600")
 	}
@@ -70,6 +79,12 @@ func (l *ReadLimits) validate() error {
 	}
 	if l.ListingPerSourcePerMinute < 6 {
 		return invalidField("Reads.ListingPerSourcePerMinute", "below floor 6")
+	}
+	if l.SettlementPerMinute < 600 {
+		return invalidField("Reads.SettlementPerMinute", "below floor 600")
+	}
+	if l.SettlementPerSourcePerMinute < 60 {
+		return invalidField("Reads.SettlementPerSourcePerMinute", "below floor 60")
 	}
 	if l.MaxConcurrent < 1 {
 		return invalidField("Reads.MaxConcurrent", "must be positive")
@@ -98,12 +113,15 @@ func (s *Service) LimitRead(w http.ResponseWriter, r *http.Request, class ReadCl
 }
 
 func (l *limiter) allow(class ReadClass, r *http.Request) (int, bool) {
-	if class != ReadDirect && class != ReadListing && class != ReadOther {
+	if class != ReadDirect && class != ReadListing && class != ReadSettlement {
 		class = ReadOther
 	}
 	per, source := l.cfg.ListingPerMinute, l.cfg.ListingPerSourcePerMinute
-	if class == ReadDirect {
+	switch class {
+	case ReadDirect:
 		per, source = l.cfg.DirectPerMinute, l.cfg.DirectPerSourcePerMinute
+	case ReadSettlement:
+		per, source = l.cfg.SettlementPerMinute, l.cfg.SettlementPerSourcePerMinute
 	}
 	key := requestSource(r.RemoteAddr)
 	now := l.now()

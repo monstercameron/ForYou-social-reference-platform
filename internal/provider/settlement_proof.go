@@ -31,7 +31,7 @@ func settleProofRoute(w http.ResponseWriter, r *http.Request, s *Service) {
 		writeError(w, http.StatusNotFound, "not_found")
 		return
 	}
-	if !s.LimitRead(w, r, ReadDirect) {
+	if !s.LimitRead(w, r, ReadSettlement) {
 		return
 	}
 	receipt, err := settleLocatedReceipt(s, receiptID)

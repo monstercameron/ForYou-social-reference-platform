@@ -32,14 +32,16 @@ type manifestSaved struct {
 }
 
 type manifestReadLimits struct {
-	DirectPerMinute           int  `json:"direct_per_minute"`
-	DirectPerSourcePerMinute  int  `json:"direct_per_source_per_minute"`
-	ListingPerMinute          int  `json:"listing_per_minute"`
-	ListingPerSourcePerMinute int  `json:"listing_per_source_per_minute"`
-	MaxConcurrent             int  `json:"max_concurrent"`
-	MaxSources                int  `json:"max_sources"`
-	MaxConcurrentEnforced     bool `json:"max_concurrent_enforced"`
-	ReadOtherUsesListing      bool `json:"read_other_uses_listing_buckets"`
+	DirectPerMinute              int  `json:"direct_per_minute"`
+	DirectPerSourcePerMinute     int  `json:"direct_per_source_per_minute"`
+	ListingPerMinute             int  `json:"listing_per_minute"`
+	ListingPerSourcePerMinute    int  `json:"listing_per_source_per_minute"`
+	SettlementPerMinute          int  `json:"settlement_per_minute"`
+	SettlementPerSourcePerMinute int  `json:"settlement_per_source_per_minute"`
+	MaxConcurrent                int  `json:"max_concurrent"`
+	MaxSources                   int  `json:"max_sources"`
+	MaxConcurrentEnforced        bool `json:"max_concurrent_enforced"`
+	ReadOtherUsesListing         bool `json:"read_other_uses_listing_buckets"`
 }
 
 type manifestSnapshotLimits struct {
@@ -333,6 +335,7 @@ func (s *Service) manifestPolicy() ([]byte, error) {
 		ReadLimits: manifestReadLimits{
 			DirectPerMinute: limits.DirectPerMinute, DirectPerSourcePerMinute: limits.DirectPerSourcePerMinute,
 			ListingPerMinute: limits.ListingPerMinute, ListingPerSourcePerMinute: limits.ListingPerSourcePerMinute,
+			SettlementPerMinute: limits.SettlementPerMinute, SettlementPerSourcePerMinute: limits.SettlementPerSourcePerMinute,
 			MaxConcurrent: limits.MaxConcurrent, MaxSources: limits.MaxSources,
 			MaxConcurrentEnforced: false, ReadOtherUsesListing: true,
 		},

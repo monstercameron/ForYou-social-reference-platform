@@ -20,7 +20,10 @@ func init() {
 }
 
 func retentionRoutes(s *Service, mux *http.ServeMux) {
-	mux.HandleFunc("GET /v1/retention", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("GET /v1/retention", func(w http.ResponseWriter, r *http.Request) {
+		if !s.LimitRead(w, r, ReadSettlement) {
+			return
+		}
 		declarations := s.Declarations()
 		if len(declarations) > 1000 {
 			declarations = declarations[:1000]

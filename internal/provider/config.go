@@ -34,6 +34,10 @@ type ReadLimits struct {
 	MaxConcurrent int
 	// MaxSources bounds retained source buckets.
 	MaxSources int
+	// SettlementPerMinute is the aggregate capacity for settlement reads.
+	SettlementPerMinute int
+	// SettlementPerSourcePerMinute is the per-source capacity for settlement reads.
+	SettlementPerSourcePerMinute int
 }
 
 // RetentionConfig configures the initial signed retention commitment.

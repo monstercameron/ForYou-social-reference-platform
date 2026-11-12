@@ -118,6 +118,48 @@ func TestReadFloorRejected(t *testing.T) {
 	}
 }
 
+func TestSettlementReadsHaveTheirOwnBuckets(t *testing.T) {
+	now := time.Date(2026, 11, 11, 0, 0, 0, 0, time.UTC)
+	cfg, err := TestConfig(func() time.Time { return now })
+	if err != nil {
+		t.Fatal(err)
+	}
+	s, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	spend := func(class ReadClass, times int) bool {
+		allowed := true
+		for range times {
+			_, allowed = s.AllowRead(class, listingRequest("203.0.113.9:4000"))
+		}
+		return allowed
+	}
+	t.Run("a monitor's sixty claim reads in a minute all pass", func(t *testing.T) {
+		if !spend(ReadSettlement, 60) {
+			t.Error("the 60th settlement read from one source was refused; the floor is 60 a minute")
+		}
+	})
+	t.Run("the sixty-first is refused", func(t *testing.T) {
+		if spend(ReadSettlement, 1) {
+			t.Error("the 61st settlement read in the same minute was allowed")
+		}
+	})
+	t.Run("spent settlement reads leave the listing allowance whole", func(t *testing.T) {
+		if !spend(ReadListing, 6) {
+			t.Error("six listing reads were refused after the settlement bucket ran dry")
+		}
+	})
+	t.Run("a settlement floor below the specification is rejected", func(t *testing.T) {
+		low := cfg
+		low.Reads.SettlementPerSourcePerMinute = 59
+		if _, err := New(low); err == nil {
+			t.Error("a per-source settlement rate of 59 was accepted; the floor is 60")
+		}
+	})
+}
+
 func listingRequest(remote string) *http.Request {
 	r := httptest.NewRequest("GET", "/", nil)
 	r.RemoteAddr = remote
