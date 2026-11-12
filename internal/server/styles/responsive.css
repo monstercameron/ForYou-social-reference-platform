@@ -36,8 +36,8 @@
     .account-block { padding-top:8px; padding-bottom:0; }
   }
 
-  /* Narrow phones: filters scroll sideways before they wrap or clip. */
-  .feed-filters { max-width:100%; overflow-x:auto; scrollbar-width:none; }
+  /* A filter row too wide for its column scrolls sideways; on phones it wraps (post.css). Positioned so hidden labels inside scroll with it. */
+  .feed-filters { position:relative; max-width:100%; overflow-x:auto; scrollbar-width:none; }
   .feed-filters::-webkit-scrollbar { display:none; }
 
   /* Media never grows taller than the window can show with its caption and actions. */
