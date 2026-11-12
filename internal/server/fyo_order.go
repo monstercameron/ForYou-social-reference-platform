@@ -157,12 +157,10 @@ func (a *App) fyoOrderFragmentHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	fyoSetOrder(w, r, choice.order)
 	r2 := fyoFeedRequest(r, choice)
-	page, ok := a.readFeedRequest(r2, false)
+	page, ok := a.feedServe(w, r2, false)
 	if !ok {
-		http.Error(w, "Choose Newest or For you.", http.StatusBadRequest)
 		return
 	}
-	page.Layout = a.layout(r2, "home", "Home")
 	w.Header().Set("Cache-Control", "no-store")
 	a.fragment(w, r2, "feed-main", page)
 }

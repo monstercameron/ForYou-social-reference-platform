@@ -57,7 +57,7 @@ func TestRecordSourceSelection(t *testing.T) {
 		}
 		response := httptest.NewRecorder()
 		client.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/", nil))
-		if response.Code != http.StatusOK || strings.Contains(response.Body.String(), "Demo data") || !strings.Contains(response.Body.String(), "No posts yet") || !strings.Contains(response.Body.String(), "Your sources returned nothing") {
+		if response.Code != http.StatusOK || strings.Contains(response.Body.String(), "Demo data") || !strings.Contains(response.Body.String(), "No posts from your sources yet") || !strings.Contains(response.Body.String(), "Your sources have not returned any posts") {
 			t.Fatalf("non-dev empty-provider page = %d %q; want honest empty state", response.Code, response.Body.String())
 		}
 	})
@@ -146,8 +146,8 @@ func TestNetworkSourceRendersVerifiedRecord(t *testing.T) {
 		defer served.Store(&recordRaw)
 		response := httptest.NewRecorder()
 		client.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/", nil))
-		if response.Code != http.StatusOK || strings.Contains(response.Body.String(), original) {
-			t.Fatalf("tampered feed = %d %q; signed text %q was displayed", response.Code, response.Body.String(), original)
+		if response.Code != http.StatusOK || strings.Contains(response.Body.String(), "tampered payload") || !strings.Contains(response.Body.String(), original) {
+			t.Fatalf("tampered feed = %d %q; want the held verified %q and not the tampered text", response.Code, response.Body.String(), original)
 		}
 	})
 }

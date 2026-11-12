@@ -12,5 +12,23 @@
   /* Seven filters do not fit beside the title: they take their own row and scroll on narrow screens. */
   .feed-heading { flex-wrap:wrap; }
   .feed-heading .feed-filters { flex-basis:100%; }
-  @media(max-width:540px) { .ads-note { margin-right:12px; margin-left:12px; } }
+  /* Marks where a batch of cards starts, so focus can move to its first card. */
+  .feed-seam { display:none; }
+  .feed-notice { margin:0 16px 12px; }
+  .feed-notice p { margin:0; font-size:14px; }
+  .card-coverage { margin:0 16px 12px; color:var(--muted); font-size:13px; line-height:1.5; }
+  .card-coverage p { margin:0; }
+  .card-coverage details { margin-top:4px; }
+  .card-coverage summary { display:inline-flex; min-height:44px; align-items:center; color:var(--accent); cursor:pointer; }
+  .card-coverage ul { margin:4px 0 0; padding-left:18px; }
+  .coverage-source { color:var(--text); font-weight:600; }
+  .feed-failed { display:grid; gap:6px; margin:0 16px 12px; padding:12px 14px; border:1px solid var(--line); border-radius:12px; background:var(--subtle); color:var(--text); font-size:14px; }
+  .feed-failed a { display:inline-flex; width:max-content; min-height:44px; align-items:center; color:var(--accent); font-weight:600; }
+  .feed-hidden { margin:0 16px 12px; color:var(--muted); font-size:13px; }
+  .feed-hidden a { display:inline-flex; min-height:44px; align-items:center; color:var(--accent); }
+  .feed-newer { margin:0 16px 12px; }
+  .feed-keep { margin:0 16px 12px; }
+  .feed-keep a { display:inline-flex; min-height:44px; align-items:center; color:var(--accent); font-weight:600; }
+  .feed-newer a { display:inline-flex; min-height:44px; align-items:center; color:var(--accent); font-weight:600; }
+  @media(max-width:540px) { .ads-note, .feed-notice, .card-coverage, .feed-failed, .feed-hidden, .feed-newer, .feed-keep { margin-right:12px; margin-left:12px; } }
 }

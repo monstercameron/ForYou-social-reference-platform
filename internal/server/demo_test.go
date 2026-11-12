@@ -49,7 +49,7 @@ func TestFeedPagination(t *testing.T) {
 	})
 	t.Run("native fallback", func(t *testing.T) { check(t, "/?limit=10", 10, "Adult content", "LIMITED OFFER!", http.StatusOK) })
 	t.Run("filtered final page", func(t *testing.T) {
-		check(t, "/feed/more?filter=text&q=content&limit=10", 0, "caught up", `id="feed-more"`, http.StatusOK)
+		check(t, "/feed/more?filter=text&q=content&limit=10", 0, "You have reached the end of what your sources returned.", `id="feed-more"`, http.StatusOK)
 	})
 	t.Run("invalid page", func(t *testing.T) { check(t, "/feed/more?limit=6", 0, "invalid", "", http.StatusBadRequest) })
 	t.Run("anchor outside filtered results", func(t *testing.T) {
