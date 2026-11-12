@@ -127,6 +127,7 @@ func (a *App) forReader(r *http.Request, posts []post) {
 			posts[i].ReplyCount += store.replyCount(posts[i].ID)
 		}
 	}
+	a.muteFold(r, posts)
 }
 
 func (a *App) publishDemo(w http.ResponseWriter, r *http.Request) {

@@ -1,0 +1,53 @@
+@layer components {
+  /* The post card's More menu: one round trigger that opens a panel of actions. */
+  .mute-slot { margin-left:auto; position:relative; flex:0 0 auto; }
+  .mute-slot form { margin:0; }
+  .mute-menu { position:relative; }
+  .mute-trigger { display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:9999px; color:var(--muted); cursor:pointer; list-style:none; transition:background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out); }
+  .mute-trigger::-webkit-details-marker { display:none; }
+  .mute-trigger:hover { background:var(--accent-soft); color:var(--text); }
+  .mute-trigger:active { transform:scale(.96); }
+  .mute-trigger:focus-visible { outline:3px solid var(--accent); outline-offset:2px; }
+  .mute-menu[open] > .mute-trigger { background:var(--accent-soft); color:var(--text); }
+  .mute-panel { position:absolute; right:0; top:calc(100% + 6px); z-index:20; width:min(280px, calc(100vw - 48px)); padding:6px; border:1px solid var(--line); border-radius:12px; background:var(--panel); box-shadow:0 8px 24px color-mix(in srgb,var(--text) 14%,transparent); white-space:normal; }
+  @media (prefers-reduced-motion:no-preference) {
+    .mute-panel { animation:spawn-rise var(--dur) var(--ease-out) both; }
+  }
+  .mute-item { display:block; width:100%; min-height:44px; padding:8px 10px; border:0; border-radius:8px; background:transparent; color:var(--text); font-size:14px; text-align:left; text-decoration:none; cursor:pointer; }
+  .mute-item:hover, .mute-item:focus-visible { background:var(--accent-soft); }
+  .mute-item:focus-visible { outline:3px solid var(--accent); outline-offset:2px; }
+  .mute-item-key { display:block; color:var(--muted); font-size:12px; font-variant-numeric:tabular-nums; }
+  .mute-item-note, .mute-status { margin:0; padding:8px 10px; color:var(--muted); font-size:12px; }
+  .mute-status:empty { display:none; }
+
+  /* The Muted page sits in the Settings frame. */
+  .mute-card .mute-empty { margin:12px 0 0; color:var(--muted); font-size:14px; }
+  .mute-card .mute-status { padding:8px 0 0; }
+  .mute-list { list-style:none; margin:12px 0 0; padding:0; }
+  .mute-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:12px; align-items:center; padding:12px 0; border-top:1px solid var(--line); }
+  .mute-row > div { min-width:0; }
+  .mute-row p { margin:0; }
+  .mute-name { font-weight:600; }
+  .mute-name-note { margin-left:6px; color:var(--muted); font-size:12px; }
+  .mute-fp-line { color:var(--muted); font-size:13px; }
+  .mute-fp { font-variant-numeric:tabular-nums; }
+  .mute-did { display:block; margin-top:4px; color:var(--muted); font-size:12px; overflow-wrap:anywhere; }
+  .mute-add { display:flex; flex-wrap:wrap; align-items:flex-end; gap:12px; margin:12px 0 0; }
+  .mute-add .field { flex:1 1 220px; min-width:0; }
+  .mute-add-note { flex:1 1 100%; min-width:0; }
+  .mute-add-note p { margin:0; }
+  .mute-add-note .help-text { color:var(--muted); font-size:.75rem; line-height:1rem; }
+  .mute-add-note .error-text { margin-top:4px; color:var(--bad); font-size:.75rem; line-height:1rem; }
+  .mute-words { display:flex; flex-wrap:wrap; gap:8px; list-style:none; margin:12px 0 0; padding:0; }
+  .mute-word { display:inline-flex; align-items:center; gap:4px; max-width:100%; border:1px solid var(--line); border-radius:9999px; background:var(--control); padding:4px 4px 4px 12px; }
+  .mute-word-text { min-width:0; overflow-wrap:anywhere; }
+  .mute-word form { margin:0; }
+  .mute-word .button { min-height:44px; }
+  @media (max-width:720px) {
+    .mute-trigger { width:44px; height:44px; margin:-4px -6px -4px 0; }
+    .mute-row { grid-template-columns:minmax(0,1fr); }
+    .mute-row > form, .mute-add > .button { width:100%; }
+    .mute-add > .button { flex:1 1 100%; }
+    .mute-row > form .button { width:100%; }
+  }
+}

@@ -226,6 +226,7 @@ func (a *App) threadReplies(r *http.Request, postID string) []reply {
 	}
 	replies = thrKeepFirst(replies, postID, "", make(map[string]bool))
 	rateReplies(replies, readerFilters(r))
+	a.muteFoldReplies(r, replies)
 	return replies
 }
 

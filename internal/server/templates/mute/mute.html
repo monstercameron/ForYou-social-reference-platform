@@ -1,0 +1,37 @@
+{{define "mute-page"}}{{template "layout-open" .Layout}}
+  <div class="page-content settings-content">
+    <header class="page-heading"><h1>Muted</h1><p>Posts and replies that match are folded with the reason, and you can still open them. This list is saved on this server for this browser and is never sent to the network.</p></header>
+    {{if .Damaged}}<div class="notice notice-warn" role="alert"><p>{{.DamageText}}</p></div>
+    <form action="/muted/clear" method="post"><button class="button button-secondary" type="submit">Clear the mute list</button></form>{{end}}
+    {{template "mute-keys" .}}
+    {{template "mute-words" .}}
+    {{if .Clearable}}{{template "mute-clear"}}{{end}}
+  </div>
+{{template "layout-close" .Layout}}
+{{end}}
+{{define "mute-keys"}}<section id="muted-keys" class="component-card settings-card mute-card" aria-labelledby="muted-keys-title">
+  <h2 id="muted-keys-title" tabindex="-1">Muted keys</h2>
+  <p>Posts signed by these keys are folded. Names are labels the author signed and are not unique; the fingerprint tells keys apart.</p>
+  <p class="settings-meta">{{len .Keys}} of {{.KeyLimit}} keys</p>
+  {{if .Keys}}<ul class="mute-list">{{range .Keys}}<li class="mute-row"><div>{{if .Name}}<p><bdi class="mute-name">{{.Name}}</bdi> <span class="mute-name-note">name on the post when you muted it</span></p>{{end}}<p class="mute-fp-line">Key <code class="mute-fp">{{.Fingerprint}}</code> · Muted {{.MutedOn}}</p><code class="mute-did">{{.AuthorID}}</code></div><form action="/muted/keys/remove" method="post" post="/muted/keys/remove/fragment" target="#muted-keys(outerHTML)" timeout="5000" onerror="#muted-keys-status(innerHTML)" data-focus-after-swap="#muted-keys-title"><input type="hidden" name="key" value="{{.AuthorID}}"><button class="button button-secondary" type="submit" aria-label="{{.Label}}">Unmute</button></form></li>{{end}}</ul>{{else}}<p class="mute-empty">No muted keys. Open the <span aria-hidden="true">⋯</span><span class="sr-only">More actions</span> menu on a post and choose Mute to fold posts by its author key.</p>{{end}}
+  <p id="muted-keys-status" class="mute-status" role="status" aria-live="polite">{{.KeysStatus}}</p>
+</section>{{end}}
+{{define "mute-words"}}<section id="muted-words" class="component-card settings-card mute-card" aria-labelledby="muted-words-title">
+  <h2 id="muted-words-title" tabindex="-1">Muted words and phrases</h2>
+  <p>Posts and replies that contain one of these are folded. Matching ignores case and whole words only: “art” folds “Art show” but not “party”.</p>
+  <p class="settings-meta">{{len .Words}} of {{.WordLimit}} words</p>
+  <form class="mute-add" action="/muted/words" method="post" post="/muted/words/fragment" target="#muted-words(outerHTML)" timeout="5000" onerror="#muted-words-status(innerHTML)" data-focus-after-swap="#mute-word-input">
+    <div class="field"><label for="mute-word-input">Word or phrase</label><input id="mute-word-input" name="word" type="text" maxlength="40" required autocomplete="off" value="{{.WordValue}}" aria-describedby="mute-word-help{{if .WordError}} mute-word-error{{end}}"{{if .WordError}} aria-invalid="true"{{end}}{{if .WordsFull}} disabled{{end}}></div>
+    <button class="button button-primary" type="submit"{{if .WordsFull}} disabled{{end}}>Mute</button>
+    <div class="mute-add-note">
+      <p id="mute-word-help" class="help-text">{{if .WordsFull}}You have muted {{.WordLimit}} words or phrases, the most this list holds.{{else}}2 to 40 characters.{{end}}</p>{{if .WordError}}<p id="mute-word-error" class="error-text">{{.WordError}}</p>{{end}}
+    </div>
+  </form>
+  {{if .Words}}<ul class="mute-words">{{range .Words}}<li class="mute-word"><span class="mute-word-text">“<bdi>{{.}}</bdi>”</span><form action="/muted/words/remove" method="post" post="/muted/words/remove/fragment" target="#muted-words(outerHTML)" timeout="5000" onerror="#muted-words-status(innerHTML)" data-focus-after-swap="#muted-words-title"><input type="hidden" name="word" value="{{.}}"><button class="button button-secondary" type="submit" aria-label="Unmute {{.}}">Unmute</button></form></li>{{end}}</ul>{{else}}<p class="mute-empty">No muted words or phrases.</p>{{end}}
+  <p id="muted-words-status" class="mute-status" role="status" aria-live="polite">{{.WordsStatus}}</p>
+</section>{{end}}
+{{define "mute-clear"}}<section id="muted-clear" class="component-card settings-card mute-card" aria-labelledby="muted-clear-title">
+  <h2 id="muted-clear-title">Start over</h2>
+  <p>Unmute every key and word saved on this server for this browser.</p>
+  <form action="/muted/clear" method="post"><button class="button button-secondary" type="submit">Unmute everything</button></form>
+</section>{{end}}
