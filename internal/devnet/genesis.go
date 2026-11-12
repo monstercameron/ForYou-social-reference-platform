@@ -79,6 +79,21 @@ func Policies() []wire.DistributionPolicy {
 	return []wire.DistributionPolicy{policy}
 }
 
+// Disclosures returns the development Foundation's statement about each committee monitor of each policy.
+func Disclosures() []wire.MonitorDisclosure {
+	var disclosures []wire.MonitorDisclosure
+	for _, policy := range Policies() {
+		for _, monitor := range policy.Monitors {
+			disclosures = append(disclosures, wire.MonitorDisclosure{
+				PolicyID: policy.PolicyID, MonitorID: monitor,
+				SelectionCriteria: "Development network: the committee is five fixed keys derived from the public dev seed. They were not selected for independence.",
+				Relationships:     []wire.MonitorRelationship{{Party: "foundation", Kind: "ownership", Description: "One operator runs the dev Foundation, every dev monitor and the dev provider on one machine."}},
+			})
+		}
+	}
+	return disclosures
+}
+
 // Trust builds the verified development trust state with renewals issued by now.
 func Trust(now time.Time) (*governance.Trust, error) {
 	genesis := Genesis()

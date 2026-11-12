@@ -28,9 +28,11 @@ type Config struct {
 	KeySetUpdates []wire.ReleaseKeySetUpdate
 	FeeSchedules  []wire.ApprovedFeeSchedule
 	Policies      []wire.DistributionPolicy
-	Calendar      distribution.Calendar
-	DataDir       string
-	Clock         func() time.Time
+	// Disclosures states, for every monitor of every policy, how it was chosen and what ties it has.
+	Disclosures []wire.MonitorDisclosure
+	Calendar    distribution.Calendar
+	DataDir     string
+	Clock       func() time.Time
 	// HeadInterval defaults to one hour and cannot exceed 24 hours.
 	HeadInterval time.Duration
 	// Faux is the chain interface used for Foundation payments.
@@ -81,7 +83,34 @@ func (cfg Config) validate(now time.Time) (*governance.Trust, error) {
 			return nil, fmt.Errorf("foundation: policy %d: %w", i+1, err)
 		}
 	}
+	if err := validateDisclosures(cfg); err != nil {
+		return nil, err
+	}
 	return trust, nil
+}
+
+// validateDisclosures requires exactly one valid disclosure for every monitor of
+// every policy, because the Foundation must publish them with each policy.
+func validateDisclosures(cfg Config) error {
+	disclosed := make(map[string]bool, len(cfg.Disclosures))
+	for _, disclosure := range cfg.Disclosures {
+		if _, err := wire.Encode("MonitorDisclosure", disclosure); err != nil {
+			return fmt.Errorf("foundation: disclosure for monitor %s: %w", disclosure.MonitorID, err)
+		}
+		key := disclosure.PolicyID + "\n" + disclosure.MonitorID
+		if disclosed[key] {
+			return fmt.Errorf("foundation: two disclosures for monitor %s under policy %s", disclosure.MonitorID, disclosure.PolicyID)
+		}
+		disclosed[key] = true
+	}
+	for _, policy := range cfg.Policies {
+		for _, monitor := range policy.Monitors {
+			if !disclosed[policy.PolicyID+"\n"+monitor] {
+				return fmt.Errorf("foundation: no disclosure for monitor %s under policy %s", monitor, policy.PolicyID)
+			}
+		}
+	}
+	return nil
 }
 
 func hasCertificateForKey(genesis wire.GenesisManifest, certificates []wire.FoundationKeyCertificate, id string) bool {
@@ -180,6 +209,12 @@ func cloneConfig(cfg Config) Config {
 	for i := range cfg.Policies {
 		cfg.Policies[i] = clonePolicy(cfg.Policies[i])
 	}
+	disclosures := make([]wire.MonitorDisclosure, len(cfg.Disclosures))
+	for i, disclosure := range cfg.Disclosures {
+		disclosure.Relationships = append([]wire.MonitorRelationship{}, disclosure.Relationships...)
+		disclosures[i] = disclosure
+	}
+	cfg.Disclosures = disclosures
 	cfg.Providers = append([]string(nil), cfg.Providers...)
 	monitors := make(map[string]string, len(cfg.Monitors))
 	for id, address := range cfg.Monitors {

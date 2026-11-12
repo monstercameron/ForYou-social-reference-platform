@@ -3208,7 +3208,8 @@
       "additionalProperties": false,
       "required": [
         "policies",
-        "statements"
+        "statements",
+        "disclosures"
       ],
       "properties": {
         "policies": {
@@ -3225,6 +3226,14 @@
           "maxItems": 64,
           "items": {
             "$ref": "#/$defs/DistributionStatement"
+          }
+        },
+        "disclosures": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 1024,
+          "items": {
+            "$ref": "#/$defs/MonitorDisclosure"
           }
         }
       }
@@ -3545,6 +3554,249 @@
           "$ref": "#/$defs/FinancialTime"
         },
         "witness_signature": {
+          "$ref": "#/$defs/FinancialSignature"
+        }
+      }
+    },
+    "MonitorDisclosure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy_id",
+        "monitor_id",
+        "selection_criteria",
+        "relationships"
+      ],
+      "properties": {
+        "policy_id": {
+          "type": "string",
+          "pattern": "^fydp2:[0-9a-f]{64}$"
+        },
+        "monitor_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "selection_criteria": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "relationships": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 16,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "party",
+              "kind",
+              "description"
+            ],
+            "properties": {
+              "party": {
+                "anyOf": [
+                  {
+                    "const": "foundation"
+                  },
+                  {
+                    "$ref": "#/$defs/FinancialDid"
+                  }
+                ]
+              },
+              "kind": {
+                "enum": [
+                  "funding",
+                  "ownership"
+                ]
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              }
+            }
+          }
+        }
+      }
+    },
+    "FoundationEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "monitor_id",
+        "kind",
+        "heads",
+        "closure",
+        "transfer",
+        "observed_at",
+        "monitor_signature"
+      ],
+      "properties": {
+        "monitor_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "kind": {
+          "enum": [
+            "log_rewrite",
+            "head_after_closure",
+            "recipient_funded_deposit"
+          ]
+        },
+        "heads": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 2,
+          "items": {
+            "$ref": "#/$defs/FoundationLogHead"
+          }
+        },
+        "closure": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/FoundationKeyClosure"
+            }
+          ]
+        },
+        "transfer": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "network",
+                "transaction",
+                "recipient"
+              ],
+              "properties": {
+                "network": {
+                  "enum": [
+                    "bitcoin-mainnet",
+                    "ethereum-mainnet"
+                  ]
+                },
+                "transaction": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128,
+                  "pattern": "^[\\x21-\\x7e]+$"
+                },
+                "recipient": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128,
+                  "pattern": "^[\\x21-\\x7e]+$"
+                }
+              }
+            }
+          ]
+        },
+        "observed_at": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "monitor_signature": {
+          "$ref": "#/$defs/FinancialSignature"
+        }
+      }
+    },
+    "FoundationEvidencePage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence"
+      ],
+      "properties": {
+        "evidence": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 1024,
+          "items": {
+            "$ref": "#/$defs/FoundationEvidence"
+          }
+        }
+      }
+    },
+    "AccountHistoryEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sequence",
+        "at",
+        "kind",
+        "amount_base_units",
+        "reference"
+      ],
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "at": {
+          "$ref": "#/$defs/FinancialTime"
+        },
+        "kind": {
+          "enum": [
+            "deposit_credit",
+            "deposit_reversal",
+            "debit",
+            "fee_restore",
+            "withdrawal",
+            "withdrawal_return"
+          ]
+        },
+        "amount_base_units": {
+          "$ref": "#/$defs/FinancialPositiveAmount"
+        },
+        "reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "pattern": "^[\\x21-\\x7e]+$"
+        }
+      }
+    },
+    "AccountHistoryPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider_id",
+        "author_id",
+        "network",
+        "entries",
+        "more",
+        "provider_signature"
+      ],
+      "properties": {
+        "provider_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "author_id": {
+          "$ref": "#/$defs/FinancialDid"
+        },
+        "network": {
+          "enum": [
+            "bitcoin-mainnet",
+            "ethereum-mainnet"
+          ]
+        },
+        "entries": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/AccountHistoryEntry"
+          }
+        },
+        "more": {
+          "type": "boolean"
+        },
+        "provider_signature": {
           "$ref": "#/$defs/FinancialSignature"
         }
       }

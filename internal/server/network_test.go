@@ -50,7 +50,7 @@ func TestTrustRefreshPinsAndRetainsRoot(t *testing.T) {
 		case "/v1/foundation/fee-schedules":
 			value = wire.FeeSchedulesPage{Schedules: devnet.FeeSchedules()}
 		case "/v1/foundation/distribution":
-			value = wire.DistributionPage{Policies: devnet.Policies(), Statements: []wire.DistributionStatement{}}
+			value = wire.DistributionPage{Policies: devnet.Policies(), Statements: []wire.DistributionStatement{}, Disclosures: devnet.Disclosures()}
 		default:
 			http.NotFound(w, r)
 			return

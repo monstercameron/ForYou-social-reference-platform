@@ -91,3 +91,22 @@ type WithdrawalStatus struct {
 	UpdatedAt         string           `json:"updated_at"`
 	ProviderSignature string           `json:"provider_signature"`
 }
+
+// AccountHistoryEntry is one change to a provider-local balance, an entries item of AccountHistoryPage described in "Funding the provider-local balance" in the protocol specification.
+type AccountHistoryEntry struct {
+	Sequence        int64  `json:"sequence"`
+	At              string `json:"at"`
+	Kind            string `json:"kind"`
+	AmountBaseUnits string `json:"amount_base_units"`
+	Reference       string `json:"reference"`
+}
+
+// AccountHistoryPage is a provider-signed page of one account's history described in "Funding the provider-local balance" in the protocol specification.
+type AccountHistoryPage struct {
+	ProviderID        string                `json:"provider_id"`
+	AuthorID          string                `json:"author_id"`
+	Network           string                `json:"network"`
+	Entries           []AccountHistoryEntry `json:"entries"`
+	More              bool                  `json:"more"`
+	ProviderSignature string                `json:"provider_signature"`
+}

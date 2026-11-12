@@ -51,8 +51,47 @@ type DistributionEntry struct {
 
 // DistributionPage lists Foundation policies and statements described in "Foundation publications" in the economics specification.
 type DistributionPage struct {
-	Policies   []DistributionPolicy    `json:"policies"`
-	Statements []DistributionStatement `json:"statements"`
+	Policies    []DistributionPolicy    `json:"policies"`
+	Statements  []DistributionStatement `json:"statements"`
+	Disclosures []MonitorDisclosure     `json:"disclosures"`
+}
+
+// MonitorDisclosure is the Foundation's unsigned statement of how one committee monitor of a policy was chosen and what ties it has, described in "Quality evidence and independence" in the governance specification.
+type MonitorDisclosure struct {
+	PolicyID          string                `json:"policy_id"`
+	MonitorID         string                `json:"monitor_id"`
+	SelectionCriteria string                `json:"selection_criteria"`
+	Relationships     []MonitorRelationship `json:"relationships"`
+}
+
+// MonitorRelationship is a relationships item in MonitorDisclosure: a funding or ownership tie to the Foundation or to a provider.
+type MonitorRelationship struct {
+	Party       string `json:"party"`
+	Kind        string `json:"kind"`
+	Description string `json:"description"`
+}
+
+// FoundationEvidence is a monitor's signed report of an inconsistency in the Foundation's log, closures or deposits described in "Foundation log" in the governance specification.
+type FoundationEvidence struct {
+	MonitorID        string                      `json:"monitor_id"`
+	Kind             string                      `json:"kind"`
+	Heads            []FoundationLogHead         `json:"heads"`
+	Closure          *FoundationKeyClosure       `json:"closure"`
+	Transfer         *FoundationEvidenceTransfer `json:"transfer"`
+	ObservedAt       string                      `json:"observed_at"`
+	MonitorSignature string                      `json:"monitor_signature"`
+}
+
+// FoundationEvidenceTransfer is the transfer member of FoundationEvidence: a provider deposit funded from a Foundation recipient address.
+type FoundationEvidenceTransfer struct {
+	Network     string `json:"network"`
+	Transaction string `json:"transaction"`
+	Recipient   string `json:"recipient"`
+}
+
+// FoundationEvidencePage lists the Foundation evidence a monitor holds, described in "Foundation log" in the governance specification.
+type FoundationEvidencePage struct {
+	Evidence []FoundationEvidence `json:"evidence"`
 }
 
 // FoundationKeyCertificate binds a Foundation signing key to network recipients under release-key governance described in "Foundation key certificate" in the governance specification.

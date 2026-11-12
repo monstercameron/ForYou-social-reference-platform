@@ -123,7 +123,7 @@ func ldgTrustRoot(t *testing.T, now time.Time) *sdk.TrustRoot {
 		Genesis:      genesis,
 		Certificates: wire.FoundationCertificatesPage{Certificates: devnet.Certificates(now), Closures: []wire.FoundationKeyClosure{}, KeySetUpdates: []wire.ReleaseKeySetUpdate{}},
 		FeeSchedules: wire.FeeSchedulesPage{Schedules: devnet.FeeSchedules()},
-		Distribution: wire.DistributionPage{Policies: devnet.Policies(), Statements: []wire.DistributionStatement{}},
+		Distribution: wire.DistributionPage{Policies: devnet.Policies(), Statements: []wire.DistributionStatement{}, Disclosures: devnet.Disclosures()},
 		FetchedAt:    now,
 		Endpoint:     "https://foundation.example",
 	})
@@ -344,13 +344,13 @@ func TestLedgerPage(t *testing.T) {
 	})
 	t.Run("no distribution statement yet", func(t *testing.T) {
 		fake, _, _ := ldgTwoClaims(t, now)
-		fake.distribution = []byte(`{"policies":[],"statements":[]}`)
+		fake.distribution = []byte(`{"disclosures":[],"policies":[],"statements":[]}`)
 		client, _ := ldgClient(t, now, fake, false)
 		ldgWant(t, ldgGet(client.Handler(), "/ledger").Body.String(), "has not published a distribution statement yet")
 	})
 	t.Run("a signed distribution statement verifies", func(t *testing.T) {
 		fake, _, _ := ldgTwoClaims(t, now)
-		raw, err := json.Marshal(wire.DistributionPage{Policies: []wire.DistributionPolicy{}, Statements: []wire.DistributionStatement{ldgSignedStatement(t)}})
+		raw, err := json.Marshal(wire.DistributionPage{Policies: []wire.DistributionPolicy{}, Statements: []wire.DistributionStatement{ldgSignedStatement(t)}, Disclosures: []wire.MonitorDisclosure{}})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -365,7 +365,7 @@ func TestLedgerPage(t *testing.T) {
 		fake, _, _ := ldgTwoClaims(t, now)
 		statement := ldgSignedStatement(t)
 		statement.DistributedBaseUnits = "501"
-		raw, err := json.Marshal(wire.DistributionPage{Policies: []wire.DistributionPolicy{}, Statements: []wire.DistributionStatement{statement}})
+		raw, err := json.Marshal(wire.DistributionPage{Policies: []wire.DistributionPolicy{}, Statements: []wire.DistributionStatement{statement}, Disclosures: []wire.MonitorDisclosure{}})
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -97,7 +97,7 @@ func buildFoundation(config roleConfig) (service, error) {
 	}
 	core, err := foundation.New(foundation.Config{
 		Dev: true, Key: ed25519.PrivateKey(devnet.FoundationKey()), Genesis: devnet.Genesis(),
-		Certificates: devnet.Certificates, FeeSchedules: devnet.FeeSchedules(), Policies: devnet.Policies(),
+		Certificates: devnet.Certificates, FeeSchedules: devnet.FeeSchedules(), Policies: devnet.Policies(), Disclosures: devnet.Disclosures(),
 		Calendar: calendar, DataDir: config.DataDir, Clock: now,
 		Faux:      faux.NewClient(config.Peers["faux"], serviceHTTPClient),
 		Providers: []string{config.Peers["provider"]}, Monitors: monitors, MonitorPayouts: payouts,
@@ -145,7 +145,7 @@ func buildMonitor(config roleConfig) (service, error) {
 
 // Every local role reaches the provider from the same loopback address, so one
 // source is allowed the whole capacity. The limits themselves stay in force.
-var sharedSourceReads = provider.ReadLimits{DirectPerMinute: 6000, DirectPerSourcePerMinute: 6000, ListingPerMinute: 600, ListingPerSourcePerMinute: 600}
+var sharedSourceReads = provider.ReadLimits{DirectPerMinute: 6000, DirectPerSourcePerMinute: 6000, ListingPerMinute: 600, ListingPerSourcePerMinute: 600, SettlementPerMinute: 6000, SettlementPerSourcePerMinute: 6000}
 
 func buildProvider(config roleConfig) (service, error) {
 	if err := requireDev(config); err != nil {

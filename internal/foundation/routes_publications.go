@@ -22,8 +22,9 @@ const (
 )
 
 type pubDistributionPage struct {
-	Policies   []wire.DistributionPolicy `json:"policies"`
-	Statements []json.RawMessage         `json:"statements"`
+	Policies    []wire.DistributionPolicy `json:"policies"`
+	Statements  []json.RawMessage         `json:"statements"`
+	Disclosures []wire.MonitorDisclosure  `json:"disclosures"`
 }
 
 type pubVaultStatusPage struct {
@@ -102,7 +103,7 @@ func pubRegisterRoutes(s *Service, mux *http.ServeMux) {
 			pubUnavailable(w)
 			return
 		}
-		page := pubDistributionPage{Policies: policies, Statements: make([]json.RawMessage, 0, pubStatementWindowQuarters*2)}
+		page := pubDistributionPage{Policies: policies, Statements: make([]json.RawMessage, 0, pubStatementWindowQuarters*2), Disclosures: s.cfg.Disclosures}
 		periods := make([]string, 0, pubStatementWindowQuarters)
 		start, _ := s.Calendar().Quarter(s.Clock())
 		for i := 0; i < pubStatementWindowQuarters && !start.IsZero(); i++ {

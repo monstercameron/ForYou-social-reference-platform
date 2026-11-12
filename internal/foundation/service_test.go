@@ -194,7 +194,7 @@ func testConfig(t *testing.T, now *time.Time) Config {
 	}
 	return Config{
 		Dev: true, Key: ed25519.PrivateKey(devnet.FoundationKey()), Genesis: devnet.Genesis(),
-		Certificates: devnet.Certificates, FeeSchedules: devnet.FeeSchedules(), Policies: devnet.Policies(),
+		Certificates: devnet.Certificates, FeeSchedules: devnet.FeeSchedules(), Policies: devnet.Policies(), Disclosures: devnet.Disclosures(),
 		Calendar: calendar, DataDir: t.TempDir(), Clock: func() time.Time { return *now }, HeadInterval: time.Hour,
 		Providers: []string{"http://127.0.0.1:8445"}, Monitors: map[string]string{}, MonitorPayouts: map[string]map[string]string{},
 	}
