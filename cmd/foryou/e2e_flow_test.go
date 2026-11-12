@@ -387,9 +387,12 @@ func TestDevnetEndToEnd(t *testing.T) {
 	t.Run("Distribution", func(t *testing.T) {
 		cutoff := calendar.CutOff(quarterEnd)
 		clock.Store(cutoff.Add(time.Second).Unix())
-		page := flowAwaitDistribution(t, ctx, d, foundation, 10*time.Second)
-		if len(page.Statements) != 1 {
-			t.Fatalf("distribution statements = %d; want one", len(page.Statements))
+		page := flowAwaitDistribution(t, ctx, d, foundation, time.Minute)
+		if len(page.Statements) != 2 || page.Statements[0].Network != wire.BitcoinMainnet || page.Statements[1].Network != wire.EthereumMainnet {
+			t.Fatalf("distribution statements = %+v; want one for Bitcoin and one for Ethereum", page.Statements)
+		}
+		if other := page.Statements[1]; other.ReceivedBaseUnits != "0" || other.DistributedBaseUnits != "0" || len(other.Entries) != 0 {
+			t.Fatalf("Ethereum DistributionStatement = %+v; want nothing received and no entries", other)
 		}
 		statement := page.Statements[0]
 		if statement.Network != wire.BitcoinMainnet || statement.PeriodStart != wire.FormatTime(quarterStart) || statement.PeriodEnd != wire.FormatTime(quarterEnd) {
@@ -508,12 +511,12 @@ func flowAwaitDistribution(t *testing.T, ctx context.Context, d *devnetRuntime, 
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(page.Statements) > 0 {
+		if len(page.Statements) >= 2 {
 			return page
 		}
 		select {
 		case <-timer.C:
-			t.Fatal("Foundation did not publish the distribution statement before the deadline")
+			t.Fatal("Foundation did not publish a distribution statement for each network before the deadline")
 		case <-poll.C:
 		}
 	}
