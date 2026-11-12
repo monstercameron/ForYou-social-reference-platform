@@ -50,10 +50,10 @@
   .network-status { @apply mb-2 flex items-center gap-2 rounded-[9px] bg-[var(--accent-soft)] px-2.5 py-[9px] text-[13px] font-semibold text-[var(--accent)]; }
   .network-status svg { @apply h-5 w-5 shrink-0; }
   .network-list { @apply m-0; }
-  .network-list > div { @apply grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-t border-[var(--line)] py-2.5; }
-  .network-list dt { @apply flex min-w-0 items-center gap-2 text-[13px] font-semibold; }
+  .network-list > div { @apply grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-3 border-t border-[var(--line)] py-2.5; }
+  .network-list dt { @apply flex items-center gap-2 whitespace-nowrap text-[13px] font-semibold; }
   .network-list dt svg, .about-panel svg { @apply h-5 w-5 shrink-0 text-[var(--muted)]; }
-  .network-list dd { @apply m-0 text-right text-[13px] text-[var(--muted)]; }
+  .network-list dd { @apply m-0 min-w-0 text-right text-[13px] text-[var(--muted)]; overflow-wrap:anywhere; }
   .about-panel h2 { @apply mb-3; }
   .about-panel > div { @apply flex items-start gap-2.5 text-[var(--muted)]; }
   .about-panel > div + div { @apply mt-2.5; }
