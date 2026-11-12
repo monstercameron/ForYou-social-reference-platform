@@ -1,6 +1,7 @@
 package committee
 
 import (
+	"math/big"
 	"reflect"
 	"testing"
 
@@ -413,6 +414,126 @@ func TestOneWitnessPerSequence(t *testing.T) {
 		m.state.Holds[slotKey(keys.DIDOf(w.provider), btc, 2)] = hold
 		if got := result(audit(t, m, a, la, "2027-01-13T12:00:00Z")); got != "refused bad_chain" {
 			t.Fatalf("claim under a two-claim hold = %s", got)
+		}
+	})
+}
+
+func TestAClaimArrivingAtAHeldSlotReviewsTheHold(t *testing.T) {
+	// leafFault builds a sequence-2 claim whose one leaf has an impossible amount, a fault its leaves prove, and a
+	// faulty monitor's witness for it.
+	leafFault := func(t *testing.T, w *world) (wire.SettlementClaim, []wire.SettlementLeaf, wire.SettlementWitness) {
+		t.Helper()
+		bad, bl := w.claim(t, claimSpec{previous: &w.example.Claim, start: "2027-01-12T00:00:00Z", end: "2027-01-13T00:00:00Z",
+			leaves: []wire.SettlementLeaf{leaf("corrected", w.btcSchedule, "137", "2027-01-12T06:00:00Z")}})
+		faulty, err := settlement.SignWitness(w.monitors[4].key, bad, big.NewInt(0), at(t, "2027-01-13T12:00:00Z"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return bad, bl, faulty
+	}
+	t.Run("hold on A and B with A provably bad witnesses B", func(t *testing.T) {
+		w := primed(t)
+		bad, bl, faulty := leafFault(t, w)
+		good, gl := w.second(t, "corrected")
+		honest := *audit(t, w.monitors[0], good, gl, "2027-01-13T12:00:00Z").Witness
+		n := w.newcomer(t, "held-pair")
+		got, err := n.Takeover([]Candidate{{Claim: bad, Leaves: bl, Witnesses: []wire.SettlementWitness{faulty}}, {Claim: good, Witnesses: []wire.SettlementWitness{honest}}},
+			w.committee(), at(t, "2027-02-01T00:00:00Z"), nil, nil, nil, nil)
+		wantHold(t, got, err, sortedPair(bad.ClaimID, good.ClaimID))
+		if got := result(audit(t, n, good, gl, "2027-02-01T00:00:00Z")); got != "9989392" {
+			t.Fatalf("B arriving with its leaves = %s; want a witness with credit 9989392", got)
+		}
+		if page := n.Page(good.ProviderID, btc, 1, 10); len(page.Holds) != 0 {
+			t.Fatalf("page holds = %+v; want the hold ended", page.Holds)
+		}
+	})
+	t.Run("hold on A alone with A provably bad witnesses the correction C", func(t *testing.T) {
+		w := primed(t)
+		bad, bl, faulty := leafFault(t, w)
+		n := w.newcomer(t, "held-single")
+		got, err := n.Takeover([]Candidate{{Claim: bad, Leaves: bl, Witnesses: []wire.SettlementWitness{faulty}}}, w.committee(), at(t, "2027-02-01T00:00:00Z"), nil, nil, nil, nil)
+		wantHold(t, got, err, []string{bad.ClaimID})
+		correction, cl := w.second(t, "corrected")
+		if got := result(audit(t, n, correction, cl, "2027-02-01T00:00:00Z")); got != "9989392" {
+			t.Fatalf("correction C = %s; want a witness with credit 9989392", got)
+		}
+		if page := n.Page(correction.ProviderID, btc, 1, 10); len(page.Holds) != 0 {
+			t.Fatalf("page holds = %+v; want the hold ended", page.Holds)
+		}
+	})
+	t.Run("hold on two claims that are not provably invalid still refuses", func(t *testing.T) {
+		w := primed(t)
+		a, la := w.fork(t, "claim A", "2027-01-12T06:00:00Z")
+		b, lb := w.fork(t, "claim B", "2027-01-12T07:00:00Z")
+		wa := *audit(t, w.monitors[0], a, la, "2027-01-13T12:00:00Z").Witness
+		wb := *audit(t, w.monitors[1], b, lb, "2027-01-13T12:00:00Z").Witness
+		n := w.newcomer(t, "held-equivocation")
+		got, err := n.Takeover([]Candidate{{Claim: a, Leaves: la, Witnesses: []wire.SettlementWitness{wa}}, {Claim: b, Leaves: lb, Witnesses: []wire.SettlementWitness{wb}}},
+			w.committee(), at(t, "2027-02-01T00:00:00Z"), nil, nil, nil, nil)
+		wantHold(t, got, err, sortedPair(a.ClaimID, b.ClaimID))
+		if got := result(audit(t, n, a, la, "2027-02-01T00:00:00Z")); got != "refused bad_chain" {
+			t.Fatalf("A under the hold = %s; want refused bad_chain", got)
+		}
+		page := n.Page(a.ProviderID, btc, 1, 10)
+		if len(page.Holds) != 1 || !reflect.DeepEqual(page.Holds[0].ClaimIDs, sortedPair(a.ClaimID, b.ClaimID)) || page.Holds[0].WitnessSignature != got.Hold.WitnessSignature {
+			t.Fatalf("page holds = %+v; want the original hold on A and B", page.Holds)
+		}
+	})
+	t.Run("a provably bad claim is dropped from a hold that still blocks", func(t *testing.T) {
+		w := primed(t)
+		bad, bl, faulty := leafFault(t, w)
+		a, la := w.fork(t, "claim A", "2027-01-12T06:00:00Z")
+		b, lb := w.fork(t, "claim B", "2027-01-12T07:00:00Z")
+		wa := *audit(t, w.monitors[0], a, la, "2027-01-13T12:00:00Z").Witness
+		wb := *audit(t, w.monitors[1], b, lb, "2027-01-13T12:00:00Z").Witness
+		n := w.newcomer(t, "held-three")
+		got, err := n.Takeover([]Candidate{{Claim: bad, Leaves: bl, Witnesses: []wire.SettlementWitness{faulty}},
+			{Claim: a, Leaves: la, Witnesses: []wire.SettlementWitness{wa}}, {Claim: b, Leaves: lb, Witnesses: []wire.SettlementWitness{wb}}},
+			w.committee(), at(t, "2027-02-01T00:00:00Z"), nil, nil, nil, nil)
+		if err != nil || got.Hold == nil || len(got.Hold.ClaimIDs) != 3 {
+			t.Fatalf("Takeover() = %+v, %v; want a hold on three claims", got, err)
+		}
+		if got := result(audit(t, n, a, la, "2027-02-02T00:00:00Z")); got != "refused bad_chain" {
+			t.Fatalf("A under the hold = %s; want refused bad_chain", got)
+		}
+		page := n.Page(a.ProviderID, btc, 1, 10)
+		if len(page.Holds) != 1 || !reflect.DeepEqual(page.Holds[0].ClaimIDs, sortedPair(a.ClaimID, b.ClaimID)) || page.Holds[0].HeldAt != "2027-02-02T00:00:00Z" {
+			t.Fatalf("page holds = %+v; want a hold on A and B signed at 2027-02-02T00:00:00Z", page.Holds)
+		}
+		if settlement.VerifyHold(page.Holds[0]) != nil {
+			t.Fatal("narrowed hold signature does not verify")
+		}
+	})
+	t.Run("a refusal under a hold is audited again once new data proves the other claim invalid", func(t *testing.T) {
+		w := primed(t)
+		future := w.declare(t, w.provider, "2027-01-20T00:00:00Z")
+		bad, bl := w.claim(t, claimSpec{previous: &w.example.Claim, start: "2027-01-12T00:00:00Z", end: "2027-01-13T00:00:00Z", declaration: future.DeclarationID,
+			leaves: []wire.SettlementLeaf{leaf("honest mistake", w.btcSchedule, "136", "2027-01-12T06:00:00Z")}})
+		good, gl := w.second(t, "honest mistake")
+		faulty, err := settlement.SignWitness(w.monitors[4].key, bad, big.NewInt(0), at(t, "2027-01-13T12:00:00Z"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		honest := *audit(t, w.monitors[0], good, gl, "2027-01-13T12:00:00Z").Witness
+		n := w.newcomer(t, "held-until-declared")
+		got, err := n.Takeover([]Candidate{{Claim: bad, Leaves: bl, Witnesses: []wire.SettlementWitness{faulty}}, {Claim: good, Leaves: gl, Witnesses: []wire.SettlementWitness{honest}}},
+			w.committee(), at(t, "2027-02-01T00:00:00Z"), nil, nil, nil, nil)
+		wantHold(t, got, err, sortedPair(bad.ClaimID, good.ClaimID))
+		if got := result(audit(t, n, good, gl, "2027-02-01T00:00:00Z")); got != "refused bad_chain" {
+			t.Fatalf("good claim before the declaration is fetched = %s; want refused bad_chain", got)
+		}
+		if due := n.ReauditDue(at(t, "2027-02-01T01:00:00Z")); len(due) != 0 {
+			t.Fatalf("ReauditDue before new data = %+v; want none", due)
+		}
+		if err := n.RegisterDeclaration(future); err != nil {
+			t.Fatal(err)
+		}
+		due := n.ReauditDue(at(t, "2027-02-01T01:00:00Z"))
+		if len(due) != 1 || due[0].ClaimID != good.ClaimID {
+			t.Fatalf("ReauditDue after the declaration = %+v; want the good claim", due)
+		}
+		if got := result(audit(t, n, good, gl, "2027-02-01T01:00:00Z")); got != "9989392" {
+			t.Fatalf("good claim after the declaration = %s; want a witness with credit 9989392", got)
 		}
 	})
 }

@@ -16,18 +16,19 @@ import (
 )
 
 type monitorState struct {
-	Claims             map[string]wire.SettlementClaim      `json:"claims"`
-	Witnessed          map[string]wire.SettlementWitness    `json:"witnessed"`
-	WitnessLeaves      map[string][]wire.SettlementLeaf     `json:"witness_leaves"`
-	Refusals           map[string]refusalRecord             `json:"refusals"`
-	UnverifiedRefusals map[string]refusalRecord             `json:"unverified_refusals"`
-	Holds              map[string]wire.SettlementHold       `json:"holds"`
-	Followed           map[string]wire.SettlementClaim      `json:"followed"`
-	Equivocations      [][2]wire.SettlementClaim            `json:"equivocations"`
-	FirstSeen          map[string]time.Time                 `json:"first_seen"`
-	Declarations       map[string]wire.RetentionDeclaration `json:"declarations"`
-	Successions        []wire.KeySuccession                 `json:"successions"`
-	ReceiptIndex       map[string]map[string]int64          `json:"receipt_index"`
+	Claims             map[string]wire.SettlementClaim             `json:"claims"`
+	Witnessed          map[string]wire.SettlementWitness           `json:"witnessed"`
+	WitnessLeaves      map[string][]wire.SettlementLeaf            `json:"witness_leaves"`
+	Refusals           map[string]refusalRecord                    `json:"refusals"`
+	UnverifiedRefusals map[string]refusalRecord                    `json:"unverified_refusals"`
+	Holds              map[string]wire.SettlementHold              `json:"holds"`
+	HeldLeaves         map[string]map[string][]wire.SettlementLeaf `json:"held_leaves"`
+	Followed           map[string]wire.SettlementClaim             `json:"followed"`
+	Equivocations      [][2]wire.SettlementClaim                   `json:"equivocations"`
+	FirstSeen          map[string]time.Time                        `json:"first_seen"`
+	Declarations       map[string]wire.RetentionDeclaration        `json:"declarations"`
+	Successions        []wire.KeySuccession                        `json:"successions"`
+	ReceiptIndex       map[string]map[string]int64                 `json:"receipt_index"`
 }
 
 type refusalRecord struct {
@@ -36,6 +37,7 @@ type refusalRecord struct {
 	Leaves        []wire.SettlementLeaf  `json:"leaves"`
 	Recheck       bool                   `json:"recheck"`
 	Dependency    dependency             `json:"dependency"`
+	Held          bool                   `json:"held,omitempty"`
 	FirstUnfunded *time.Time             `json:"first_unfunded,omitempty"`
 }
 
@@ -47,7 +49,7 @@ func newMonitorState() monitorState {
 	return monitorState{
 		Claims: make(map[string]wire.SettlementClaim), Witnessed: make(map[string]wire.SettlementWitness),
 		WitnessLeaves: make(map[string][]wire.SettlementLeaf), Refusals: make(map[string]refusalRecord), UnverifiedRefusals: make(map[string]refusalRecord),
-		Holds: make(map[string]wire.SettlementHold), Followed: make(map[string]wire.SettlementClaim),
+		Holds: make(map[string]wire.SettlementHold), HeldLeaves: make(map[string]map[string][]wire.SettlementLeaf), Followed: make(map[string]wire.SettlementClaim),
 		Equivocations: make([][2]wire.SettlementClaim, 0), FirstSeen: make(map[string]time.Time),
 		Declarations: make(map[string]wire.RetentionDeclaration), Successions: make([]wire.KeySuccession, 0),
 		ReceiptIndex: make(map[string]map[string]int64),
@@ -86,6 +88,11 @@ func (m *Monitor) recordAdopted(c wire.SettlementClaim, leaves []wire.Settlement
 		m.state.ReceiptIndex[chain][leaf.ReceiptHash] = c.Sequence
 	}
 	m.markDependentClaimsDue(c)
+	for slot := range m.state.HeldLeaves {
+		if _, held := m.state.Holds[slot]; !held {
+			delete(m.state.HeldLeaves, slot)
+		}
+	}
 }
 
 func (m *Monitor) markDependentClaimsDue(predecessor wire.SettlementClaim) {
@@ -95,12 +102,17 @@ func (m *Monitor) markDependentClaimsDue(predecessor wire.SettlementClaim) {
 			record.Dependency = dependencyNone
 			m.state.Refusals[key] = record
 		}
+		if record.Held && record.Claim.Sequence == predecessor.Sequence+1 && record.Claim.Network == predecessor.Network && m.Line(record.Claim.ProviderID) == m.Line(predecessor.ProviderID) {
+			record.Recheck = true
+			m.state.Refusals[key] = record
+		}
 	}
 }
 
 func (m *Monitor) markDataAvailable(kind dependency) {
 	for key, record := range m.state.Refusals {
-		if record.Dependency == kind {
+		// New public data may prove a held claim invalid, so a refusal under a hold is audited again too.
+		if record.Dependency == kind || record.Held {
 			record.Recheck = true
 			m.state.Refusals[key] = record
 		}
@@ -121,6 +133,9 @@ func (m *Monitor) ReauditDue(now time.Time) []ClaimRef {
 		}
 		refusedAt, _ := wire.ParseTime(record.Refusal.RefusedAt)
 		ready := record.Recheck
+		if _, held := m.state.Holds[slot]; record.Held && !held {
+			ready = true
+		}
 		if record.Dependency == dependencySchedule {
 			ready = len(record.Leaves) > 0
 			for _, leaf := range record.Leaves {
@@ -375,6 +390,17 @@ func Restore(cfg Config, data []byte) (*Monitor, error) {
 			}
 		}
 	}
+	for slot, byClaim := range monitor.state.HeldLeaves {
+		h, ok := monitor.state.Holds[slot]
+		if !ok {
+			return nil, errors.New("committee: held leaves without a hold")
+		}
+		for claimID := range byClaim {
+			if !contains(h.ClaimIDs, claimID) {
+				return nil, errors.New("committee: held leaves for a claim the hold does not name")
+			}
+		}
+	}
 	for _, pair := range monitor.state.Equivocations {
 		if settlement.VerifyClaimObject(pair[0]) != nil || settlement.VerifyClaimObject(pair[1]) != nil {
 			return nil, errors.New("committee: invalid equivocation state")
@@ -397,6 +423,9 @@ func normalizeState(s *monitorState) error {
 	}
 	if s.Equivocations == nil {
 		s.Equivocations = [][2]wire.SettlementClaim{}
+	}
+	if s.HeldLeaves == nil {
+		s.HeldLeaves = make(map[string]map[string][]wire.SettlementLeaf)
 	}
 	return nil
 }

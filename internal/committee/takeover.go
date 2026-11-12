@@ -103,6 +103,7 @@ func (m *Monitor) Takeover(cs []Candidate, outgoing []string, at time.Time, hold
 	}
 	if len(valid) == 1 && !blocking {
 		delete(m.state.Holds, slot)
+		delete(m.state.HeldLeaves, slot)
 		outcome, err := m.audit(valid[0].Claim, valid[0].Leaves, at, at, false)
 		if err != nil {
 			return TakeoverResult{}, err
@@ -115,8 +116,12 @@ func (m *Monitor) Takeover(cs []Candidate, outgoing []string, at time.Time, hold
 	if len(knownIDs) > 64 {
 		return TakeoverResult{}, fmt.Errorf("committee: handover knows %d claims; hold limit is 64", len(knownIDs))
 	}
+	heldLeaves := make(map[string][]wire.SettlementLeaf)
 	for _, candidate := range known {
 		m.state.Claims[candidate.Claim.ClaimID] = cloneClaim(candidate.Claim)
+		if candidate.Leaves != nil {
+			heldLeaves[candidate.Claim.ClaimID] = append([]wire.SettlementLeaf(nil), candidate.Leaves...)
+		}
 	}
 	ids := make([]string, 0, len(knownIDs))
 	for id := range knownIDs {
@@ -128,7 +133,66 @@ func (m *Monitor) Takeover(cs []Candidate, outgoing []string, at time.Time, hold
 		return TakeoverResult{}, err
 	}
 	m.state.Holds[slot] = hold
+	m.state.HeldLeaves[slot] = heldLeaves
 	return TakeoverResult{Hold: &hold}, nil
+}
+
+// reviewHold checks the hold at slot again when claimID arrives there and reports whether it still blocks that claim.
+// A hold stands until all but one of its claims are proven invalid, so the claims now proven invalid are dropped and the
+// hold is signed again; it ends when none is left or only the arriving claim is.
+func (m *Monitor) reviewHold(slot, claimID string, now time.Time) (bool, error) {
+	hold := m.state.Holds[slot]
+	standing := make([]string, 0, len(hold.ClaimIDs))
+	for _, id := range hold.ClaimIDs {
+		if id != claimID {
+			invalid, err := m.provenInvalid(id, m.state.HeldLeaves[slot][id], now)
+			if err != nil {
+				return false, err
+			}
+			if invalid {
+				continue
+			}
+		}
+		standing = append(standing, id)
+	}
+	if len(standing) == 0 || len(standing) == 1 && standing[0] == claimID {
+		delete(m.state.Holds, slot)
+		delete(m.state.HeldLeaves, slot)
+		return false, nil
+	}
+	if len(standing) < len(hold.ClaimIDs) {
+		narrowed, err := settlement.SignHold(m.key, hold.ProviderID, hold.Network, hold.Sequence, standing, now)
+		if err != nil {
+			return false, err
+		}
+		m.state.Holds[slot] = narrowed
+		for id := range m.state.HeldLeaves[slot] {
+			if !contains(standing, id) {
+				delete(m.state.HeldLeaves[slot], id)
+			}
+		}
+	}
+	return true, nil
+}
+
+// provenInvalid reports whether a held claim fails audit by facts that cannot change: a provable fault found from the
+// claim, its adopted predecessor and the objects it names. Without its leaves only the rules that need none can prove it.
+func (m *Monitor) provenInvalid(claimID string, leaves []wire.SettlementLeaf, now time.Time) (bool, error) {
+	claim, ok := m.state.Claims[claimID]
+	if !ok {
+		return false, nil
+	}
+	var problem *Fault
+	var err error
+	if leaves == nil {
+		problem, err = m.checkWithoutLeaves(claim, now, false)
+	} else {
+		_, problem, err = m.Check(claim, leaves, now, false)
+	}
+	if err != nil {
+		return false, err
+	}
+	return problem != nil && problem.Provable, nil
 }
 
 // HandoverWait returns the earliest takeover time required by known claim periods.

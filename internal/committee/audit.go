@@ -23,49 +23,8 @@ type ClaimRef struct {
 
 // Check audits a claim and returns its available credit or its first refusal fault.
 func (m *Monitor) Check(c wire.SettlementClaim, leaves []wire.SettlementLeaf, seenAt time.Time, lateness bool) (*big.Int, *Fault, error) {
-	if err := settlement.VerifyClaimObject(c); err != nil {
-		return nil, fault(settlement.ReasonBadSignature, true), nil
-	}
-	previous := m.predecessor(c)
-	if previous == nil && c.Sequence > 1 {
-		if m.hasWitnessedClaim(value(c.PreviousClaimID)) {
-			// The named predecessor is held under another line, so what is missing is the succession to this key.
-			f := fault(settlement.ReasonUnknownProviderKey, false)
-			f.dependency = dependencySuccession
-			return nil, f, nil
-		}
-		f := fault(settlement.ReasonBadChain, false)
-		f.dependency = dependencyPredecessor
-		return nil, f, nil
-	}
-	if err := settlement.CheckLink(c, previous, m.succession); err != nil {
-		if mapped := mapLinkFault(err); mapped != nil {
-			return nil, mapped, nil
-		}
-		return nil, nil, err
-	}
-	periodEnd, err := wire.ParseTime(c.PeriodEnd)
-	if err != nil {
-		return nil, nil, err
-	}
-	seenAt = seenAt.UTC().Truncate(time.Second)
-	if seenAt.Before(periodEnd) || lateness && seenAt.Sub(periodEnd) > 90*24*time.Hour {
-		return nil, fault(settlement.ReasonBadPeriod, false), nil
-	}
-	if err := settlement.CheckDeclaration(c, previous, func(id string) (wire.RetentionDeclaration, bool) {
-		d, ok := m.state.Declarations[id]
-		return d, ok
-	}); err != nil {
-		switch {
-		case errors.Is(err, settlement.ErrDeclarationRule):
-			return nil, fault(settlement.ReasonBadPeriod, true), nil
-		case errors.Is(err, settlement.ErrDeclarationUnknown):
-			f := fault(settlement.ReasonBadPeriod, false)
-			f.dependency = dependencyDeclaration
-			return nil, f, nil
-		default:
-			return nil, nil, err
-		}
+	if problem, err := m.checkWithoutLeaves(c, seenAt, lateness); problem != nil || err != nil {
+		return nil, problem, err
 	}
 	if err := settlement.CheckLeafSet(leaves); err != nil {
 		return nil, fault(settlement.ReasonBadLeaf, true), nil
@@ -108,6 +67,56 @@ func (m *Monitor) Check(c wire.SettlementClaim, leaves []wire.SettlementLeaf, se
 	return credit, nil, nil
 }
 
+// checkWithoutLeaves applies the audit rules fixed by the claim, its adopted predecessor and the objects it names, which
+// need no leaves: signature, chain link, period and declaration.
+func (m *Monitor) checkWithoutLeaves(c wire.SettlementClaim, seenAt time.Time, lateness bool) (*Fault, error) {
+	if err := settlement.VerifyClaimObject(c); err != nil {
+		return fault(settlement.ReasonBadSignature, true), nil
+	}
+	previous := m.predecessor(c)
+	if previous == nil && c.Sequence > 1 {
+		if m.hasWitnessedClaim(value(c.PreviousClaimID)) {
+			// The named predecessor is held under another line, so what is missing is the succession to this key.
+			f := fault(settlement.ReasonUnknownProviderKey, false)
+			f.dependency = dependencySuccession
+			return f, nil
+		}
+		f := fault(settlement.ReasonBadChain, false)
+		f.dependency = dependencyPredecessor
+		return f, nil
+	}
+	if err := settlement.CheckLink(c, previous, m.succession); err != nil {
+		if mapped := mapLinkFault(err); mapped != nil {
+			return mapped, nil
+		}
+		return nil, err
+	}
+	periodEnd, err := wire.ParseTime(c.PeriodEnd)
+	if err != nil {
+		return nil, err
+	}
+	seenAt = seenAt.UTC().Truncate(time.Second)
+	if seenAt.Before(periodEnd) || lateness && seenAt.Sub(periodEnd) > 90*24*time.Hour {
+		return fault(settlement.ReasonBadPeriod, false), nil
+	}
+	if err := settlement.CheckDeclaration(c, previous, func(id string) (wire.RetentionDeclaration, bool) {
+		d, ok := m.state.Declarations[id]
+		return d, ok
+	}); err != nil {
+		switch {
+		case errors.Is(err, settlement.ErrDeclarationRule):
+			return fault(settlement.ReasonBadPeriod, true), nil
+		case errors.Is(err, settlement.ErrDeclarationUnknown):
+			f := fault(settlement.ReasonBadPeriod, false)
+			f.dependency = dependencyDeclaration
+			return f, nil
+		default:
+			return nil, err
+		}
+	}
+	return nil, nil
+}
+
 // Audit records and returns the monitor's one decision for the claim's sequence.
 func (m *Monitor) Audit(c wire.SettlementClaim, leaves []wire.SettlementLeaf, seenAt, now time.Time) (Outcome, error) {
 	return m.audit(c, leaves, seenAt, now, true)
@@ -129,11 +138,19 @@ func (m *Monitor) audit(c wire.SettlementClaim, leaves []wire.SettlementLeaf, se
 		}
 		return m.refuse(c, leaves, settlement.ReasonBadChain, now, dependencyNone, false)
 	}
-	if hold, ok := m.state.Holds[slot]; ok {
-		if len(hold.ClaimIDs) != 1 || hold.ClaimIDs[0] != c.ClaimID {
-			return m.refuse(c, leaves, settlement.ReasonBadChain, now, dependencyNone, false)
+	if _, ok := m.state.Holds[slot]; ok {
+		blocked, err := m.reviewHold(slot, c.ClaimID, now)
+		if err != nil {
+			return Outcome{}, err
 		}
-		delete(m.state.Holds, slot)
+		if blocked {
+			outcome, err := m.refuse(c, leaves, settlement.ReasonBadChain, now, dependencyNone, false)
+			if record, ok := m.state.Refusals[refusalKey(c)]; ok && err == nil {
+				record.Held = true
+				m.state.Refusals[refusalKey(c)] = record
+			}
+			return outcome, err
+		}
 	}
 	credit, problem, err := m.Check(c, leaves, seenAt, lateness)
 	if err != nil {
