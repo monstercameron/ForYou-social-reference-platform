@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"foryou.local/foryou/internal/fee"
@@ -257,6 +258,34 @@ func (c *Client) Balance(ctx context.Context, key ed25519.PrivateKey, network st
 		return wire.BalanceStatus{}, rdProtocol("invalid BalanceStatus binding or signature")
 	}
 	return balance, nil
+}
+
+// AccountHistory returns the verified page of the account's history after the
+// sequence the caller already holds. It refuses a page that skips an entry.
+func (c *Client) AccountHistory(ctx context.Context, key ed25519.PrivateKey, network string, after uint64) (wire.AccountHistoryPage, error) {
+	if network != wire.BitcoinMainnet && network != wire.EthereumMainnet {
+		return wire.AccountHistoryPage{}, ErrUnsupportedNetwork
+	}
+	path := "/v1/account-history/" + rdEscape(network) + "/" + strconv.FormatUint(after, 10)
+	headers, err := c.acAuthenticate(ctx, key, http.MethodGet, acResource(c, path), nil)
+	if err != nil {
+		return wire.AccountHistoryPage{}, err
+	}
+	res, err := c.send(ctx, http.MethodGet, path, nil, nil, headers, rdObjectLimit)
+	if err != nil {
+		return wire.AccountHistoryPage{}, err
+	}
+	if res.status != http.StatusOK {
+		return wire.AccountHistoryPage{}, rdProtocol("unexpected account history status")
+	}
+	var page wire.AccountHistoryPage
+	if err = acDecode(res.body, "AccountHistoryPage", &page); err != nil {
+		return wire.AccountHistoryPage{}, err
+	}
+	if err = funding.VerifyHistory(page, c.ServiceID(), after); err != nil || page.AuthorID != keys.DIDOf(key) || page.Network != network {
+		return wire.AccountHistoryPage{}, rdProtocol("invalid AccountHistoryPage binding, sequence or signature")
+	}
+	return page, nil
 }
 
 // Withdraw requests a provider-local withdrawal; callers must reuse requestID after an ambiguous result.

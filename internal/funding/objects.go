@@ -102,6 +102,52 @@ func (s Signer) SignBalance(bal wire.BalanceStatus) (wire.BalanceStatus, error) 
 	return bal, nil
 }
 
+// SignHistory signs one page of an account's history.
+func (s Signer) SignHistory(page wire.AccountHistoryPage) (wire.AccountHistoryPage, error) {
+	if page.ProviderID != keys.DIDOf(s.Key) {
+		return wire.AccountHistoryPage{}, errors.New("funding: provider_id does not match signing key")
+	}
+	encoded, err := canon.EncodeWithout(page, "provider_signature")
+	if err != nil {
+		return wire.AccountHistoryPage{}, err
+	}
+	page.ProviderSignature, err = keys.Sign(s.Key, "account-history", encoded)
+	if err != nil {
+		return wire.AccountHistoryPage{}, err
+	}
+	after := uint64(0)
+	if len(page.Entries) > 0 {
+		after = uint64(page.Entries[0].Sequence) - 1
+	}
+	if err := VerifyHistory(page, page.ProviderID, after); err != nil {
+		return wire.AccountHistoryPage{}, err
+	}
+	return page, nil
+}
+
+// VerifyHistory checks a history page's schema, its provider signature, and that its
+// entries continue the sequence directly after the one the reader already holds.
+func VerifyHistory(page wire.AccountHistoryPage, providerID string, after uint64) error {
+	if err := checkWire("AccountHistoryPage", page); err != nil {
+		return err
+	}
+	if page.ProviderID != providerID {
+		return fieldError("provider_id mismatch")
+	}
+	for i, entry := range page.Entries {
+		if uint64(entry.Sequence) != after+uint64(i)+1 {
+			return fieldError("history sequence gap at entry %d", i)
+		}
+		if _, err := wire.ParseTime(entry.At); err != nil {
+			return fieldError("history entry time: %v", err)
+		}
+		if _, err := fee.ParsePositiveAmount(entry.AmountBaseUnits); err != nil {
+			return fieldError("history entry amount: %v", err)
+		}
+	}
+	return verifySignature(page, page.ProviderSignature, providerID, "account-history")
+}
+
 // SignWithdrawal signs a provider's withdrawal status.
 func (s Signer) SignWithdrawal(w wire.WithdrawalStatus) (wire.WithdrawalStatus, error) {
 	if w.ProviderID != keys.DIDOf(s.Key) {

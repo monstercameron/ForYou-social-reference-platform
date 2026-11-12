@@ -190,6 +190,35 @@ func TestFundingRoutes(t *testing.T) {
 			t.Fatalf("background faux transfer = %#v, error %v", backgroundTransfer, err)
 		}
 	})
+	t.Run("history lists every change in order and is signed", func(t *testing.T) {
+		got := fdTestServe(t, s, author, http.MethodGet, "/v1/account-history/bitcoin-mainnet/0", nil, true, "192.0.2.10:1234")
+		var page wire.AccountHistoryPage
+		if got.Code != http.StatusOK || json.Unmarshal(got.Body.Bytes(), &page) != nil {
+			t.Fatalf("history response = %d %s", got.Code, got.Body)
+		}
+		if err := funding.VerifyHistory(page, s.ProviderID(), 0); err != nil {
+			t.Fatal(err)
+		}
+		if len(page.Entries) != 3 || page.More || page.AuthorID != authorID ||
+			page.Entries[0].Kind != "deposit_credit" || page.Entries[0].AmountBaseUnits != "50000000" ||
+			page.Entries[1].Kind != "withdrawal" || page.Entries[1].AmountBaseUnits != "1000000" ||
+			page.Entries[2].Kind != "withdrawal" || page.Entries[2].AmountBaseUnits != "2000000" {
+			t.Errorf("history = %+v; want the 50000000 credit and the two withdrawals of 1000000 and 2000000", page)
+		}
+	})
+	t.Run("history after a sequence returns only later entries", func(t *testing.T) {
+		got := fdTestServe(t, s, author, http.MethodGet, "/v1/account-history/bitcoin-mainnet/2", nil, true, "192.0.2.10:1234")
+		var page wire.AccountHistoryPage
+		if got.Code != http.StatusOK || json.Unmarshal(got.Body.Bytes(), &page) != nil || funding.VerifyHistory(page, s.ProviderID(), 2) != nil || len(page.Entries) != 1 || page.Entries[0].Sequence != 3 {
+			t.Errorf("history after 2 = %d %s; want one verified entry with sequence 3", got.Code, got.Body)
+		}
+	})
+	t.Run("history refuses a position that is not a canonical number", func(t *testing.T) {
+		fdTestError(t, fdTestServe(t, s, author, http.MethodGet, "/v1/account-history/bitcoin-mainnet/02", nil, true, "192.0.2.10:1234"), http.StatusNotFound, "not_found")
+	})
+	t.Run("history without authentication is refused", func(t *testing.T) {
+		fdTestError(t, fdTestServe(t, s, author, http.MethodGet, "/v1/account-history/bitcoin-mainnet/0", nil, false, "192.0.2.10:1234"), http.StatusUnauthorized, "unauthenticated")
+	})
 	t.Run("withdrawal above available balance requires payment", func(t *testing.T) {
 		tooMuch := wire.WithdrawalRequest{ProviderID: s.ProviderID(), AuthorID: authorID, Network: wire.BitcoinMainnet, AmountBaseUnits: "999999999000", Recipient: faux.DevAddress(wire.BitcoinMainnet, "author-wallet"), RequestID: keys.EncodeB64URL(bytes.Repeat([]byte{11}, 32))}
 		got := fdTestServe(t, s, author, http.MethodPost, "/v1/withdrawals", fdTestJSON(t, tooMuch), true, "192.0.2.10:1234")

@@ -190,6 +190,7 @@ func (l *Ledger) stageAdmission(r record, at time.Time) (func(), error) {
 		l.receipts[rc.Network] = append(l.receipts[rc.Network], ReceiptEntry{Sequence: sequence, Receipt: rc})
 		a := l.touch(rc.AuthorID, rc.Network, at)
 		a.available.Sub(a.available, amount)
+		a.note(HistoryDebit, amount, rc.ReceiptID, at)
 	}, nil
 }
 
@@ -325,5 +326,6 @@ func (l *Ledger) stageRestore(r record, at time.Time) (func(), error) {
 		st.restored = true
 		a := l.touch(r.AuthorID, st.network, at)
 		a.available.Add(a.available, st.amount)
+		a.note(HistoryFeeRestore, st.amount, st.receiptID, at)
 	}, nil
 }

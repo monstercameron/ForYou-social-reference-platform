@@ -46,6 +46,7 @@ var DefaultRouteShapes = []RouteShape{
 	{Method: "POST", Pattern: "/v1/deposits"},
 	{Method: "POST", Pattern: "/v1/deposits/observe"},
 	{Method: "GET", Pattern: "/v1/balances/{network}"},
+	{Method: "GET", Pattern: "/v1/account-history/{network}/{after}"},
 	{Method: "POST", Pattern: "/v1/withdrawals"},
 	{Method: "GET", Pattern: "/v1/admissions/{message_id}"},
 	{Method: "POST", Pattern: "/v1/authorization-epochs", Protected: true},

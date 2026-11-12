@@ -97,6 +97,7 @@ func (l *Ledger) stageWithdrawal(r record, at time.Time) (func(), error) {
 		a := l.touch(req.AuthorID, req.Network, at)
 		a.available.Sub(a.available, amount)
 		a.reserved.Add(a.reserved, amount)
+		a.note(HistoryWithdrawal, amount, req.RequestID, at)
 	}, nil
 }
 
@@ -169,6 +170,7 @@ func (l *Ledger) stageWithdrawalStatus(r record, at time.Time) (func(), error) {
 		a.reserved.Sub(a.reserved, amount)
 		if r.Status == WithdrawalFailed {
 			a.available.Add(a.available, amount)
+			a.note(HistoryWithdrawalReturn, amount, w.Request.RequestID, at)
 		}
 	}, nil
 }

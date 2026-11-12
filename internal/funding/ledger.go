@@ -128,6 +128,7 @@ type account struct {
 	available, frozen, reserved *big.Int
 	revision                    uint64
 	updatedAt                   time.Time
+	history                     []HistoryEntry
 }
 
 // record is one journaled mutation with only the fields of its kind set. Balances

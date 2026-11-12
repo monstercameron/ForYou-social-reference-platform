@@ -510,6 +510,7 @@ func (l *Ledger) stageCredit(r record, at time.Time) (func(), error) {
 		}
 		a := l.touch(c.AuthorID, c.Network, at)
 		a.available.Add(a.available, amount)
+		a.note(HistoryDepositCredit, amount, c.CreditID, at)
 	}, nil
 }
 
@@ -573,6 +574,7 @@ func (l *Ledger) stageDisposition(r record, at time.Time) (func(), error) {
 		if r.Disposition == DispositionCredited {
 			a := l.touch(c.AuthorID, c.Network, at)
 			a.available.Add(a.available, amount)
+			a.note(HistoryDepositCredit, amount, c.TransferID, at)
 		}
 	}, nil
 }
